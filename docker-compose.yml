@@ -1,0 +1,4 @@
+services:
+  build: ./docker_app
+  env_file:
+    - 'variables.env'
