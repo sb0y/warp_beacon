@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-echo "hello"
+
+exec /app/warp_beacon.py

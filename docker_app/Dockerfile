@@ -15,12 +15,21 @@ deb http://us.archive.ubuntu.com/ubuntu/ focal-backports main restricted univers
 deb http://security.ubuntu.com/ubuntu focal-security main restricted universe multiverse\n" /etc/apt/sources.list
 
 RUN set -x \
-	&& apt-get install python-is-python3 -y
+	&& apt-get update -y \
+	&& apt-get install python-is-python3 python3-pip -y
 
-RUN mkdir -p /var/warp_beacon
+RUN set -x \
+	&& mkdir -p /app/ /var/warp_beacon/ /var/warp_beacon/videos/
 
-WORKDIR /warp_beacon
+RUN set -x \
+	&& pip install python-telegram-bot --upgrade \
+	&& pip install urlextract --upgrade \
+	&& pip install instagrapi --upgrade \
+	&& pip install pillow --upgrade \
+	&& pip install pymongo --upgrade
+
+#WORKDIR /app
 
 COPY ./entrypoint.sh .
 
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT [ "/app/warp_beacon.py" ]
