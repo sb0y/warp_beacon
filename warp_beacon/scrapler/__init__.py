@@ -4,13 +4,14 @@ import logging
 
 class AsyncDownloader(object):
 	workers = []
-	alow_loop = True
+	alow_loop = None
 	job_queue = multiprocessing.Queue()
 	manager = None
 	results = None
 	def __init__(self, workers_count: int=multiprocessing.cpu_count()) -> None:
 		self.manager = multiprocessing.Manager()
 		self.results = self.manager.dict()
+		self.alow_loop = multiprocessing.Value('i', 1)
 		for _ in range(workers_count):
 			proc = multiprocessing.Process(target=self.do_work)
 			self.workers.append(proc)
@@ -21,7 +22,7 @@ class AsyncDownloader(object):
 
 	def do_work(self) -> None:
 		logging.info("download worker started")
-		while self.alow_loop:
+		while self.alow_loop.value == 1:
 			try:
 				try:
 					item = self.job_queue.get()
@@ -41,7 +42,7 @@ class AsyncDownloader(object):
 				logging.exception(e)
 
 	def stop_all(self) -> None:
-		self.alow_loop = False
+		self.alow_loop.value = 0
 		for proc in self.workers:
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)
