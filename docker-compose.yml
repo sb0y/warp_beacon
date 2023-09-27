@@ -1,4 +1,23 @@
+version: '3.8'
 services:
-  build: ./docker_app
-  env_file:
-    - 'variables.env'
+  mongo:
+    image: mongo
+    restart: always
+    container_name: mongodb
+    ports:
+      - '27017:27017'
+    command: mongod --quiet --logpath /dev/null
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: changeme
+      MONGO_INITDB_DATABASE: media
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  warp_beacon:
+    build: ./docker_app
+    env_file:
+      - 'variables.env'
+    volumes:
+      - /var/warp_beacon:/var/warp_beacon
+      - ./warp_beacon:/app
