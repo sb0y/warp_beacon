@@ -49,6 +49,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		reply_text = "Your message should contains URLs"
 	else:
 		for url in urls:
+			if "instagram.com" not in url:
+				logging.info("Only instagram.com is now supported. Skipping.")
+				continue
 			media_path = ""
 			try:
 				media_path = storage.db_lookup(url)
