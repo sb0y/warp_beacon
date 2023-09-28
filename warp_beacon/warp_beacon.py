@@ -5,6 +5,8 @@ import os
 import signal
 import logging
 
+import multiprocessing
+
 from urlextract import URLExtract
 
 from scrapler import AsyncDownloader
@@ -23,7 +25,9 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 storage = Storage()
-downloader = AsyncDownloader()
+downloader = AsyncDownloader(
+	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=multiprocessing.cpu_count()))
+)
 
 # Define a few command handlers. These usually take the two arguments update and
 # context.
