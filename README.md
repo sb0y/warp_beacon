@@ -19,6 +19,7 @@ MONGODB_PORT="27017"
 MONGODB_USER="root"
 MONGODB_PASSWORD="changeme"
 VIDEO_STORAGE_DIR="/var/warp_beacon/videos"
+WORKERS_POOL_SIZE=3
 ```
 ## Deployed example bot ##
 [Try it 🚀](https://t.me/anus_sebe_zablokiruy_bot)
