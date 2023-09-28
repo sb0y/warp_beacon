@@ -40,6 +40,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 	await update.message.reply_text("Send me a link to remote media")
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+	if update.message is None:
+		return
 	chat = update.effective_chat
 	effective_message_id = update.message.message_id
 	extractor = URLExtract()
