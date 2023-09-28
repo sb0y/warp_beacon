@@ -24,6 +24,12 @@ VIDEO_STORAGE_DIR="/var/warp_beacon/videos"
 ## How to run ##
 Any Linux machine will suit in.
 
+Install docker
+```
+apt update
+apt install docker-compose
+```
+
 Download sources
 ```bash
 git clone https://github.com/sb0y/warp_beacon.git
