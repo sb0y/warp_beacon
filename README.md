@@ -21,7 +21,7 @@ MONGODB_PASSWORD="changeme"
 VIDEO_STORAGE_DIR="/var/warp_beacon/videos"
 ```
 ## Deployed example bot ##
-[Try it 🚀](https://t.me/anus_sebe_zablokiruy_bot).
+[Try it 🚀](https://t.me/anus_sebe_zablokiruy_bot)
 
 ## How to run ##
 Any Linux machine will suit in.
