@@ -13,8 +13,8 @@ class VideoInfo(object):
 	def get_demensions(self) -> dict:
 		res = {"width": None, "height": None}
 		if self.vid.isOpened():
-			res["width"] = int(self.vid.get(cv2.CV_CAP_PROP_FRAME_WIDTH))
-			res["height"] = int(self.vid.get(cv2.CV_CAP_PROP_FRAME_HEIGHT))
+			res["width"] = int(self.vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+			res["height"] = int(self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 		return res
 
