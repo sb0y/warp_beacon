@@ -16,7 +16,7 @@ deb http://security.ubuntu.com/ubuntu focal-security main restricted universe mu
 
 RUN set -x \
 	&& apt-get update -y \
-	&& apt-get install python-is-python3 python3-pip libmediainfo-dev -y
+	&& apt-get install python-is-python3 python3-pip python3-opencv -y
 
 RUN set -x \
 	&& mkdir -p /app/ /var/warp_beacon/ /var/warp_beacon/videos/
@@ -26,8 +26,7 @@ RUN set -x \
 	&& pip install urlextract --upgrade \
 	&& pip install instagrapi --upgrade \
 	&& pip install pillow --upgrade \
-	&& pip install pymongo --upgrade \
-	&& pip install pymediainfo --upgrade
+	&& pip install pymongo --upgrade
 
 #WORKDIR /app
 

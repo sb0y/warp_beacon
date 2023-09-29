@@ -11,10 +11,10 @@ from urlextract import URLExtract
 
 from scrapler import AsyncDownloader
 from storage import Storage
+from mediainfo.video import VideoInfo
 
 from telegram import ForceReply, Update, Chat
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-from pymediainfo import MediaInfo
 
 # Enable logging
 logging.basicConfig(
@@ -84,23 +84,18 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL was '%s' found in DB", url)
 			
 			try:
-				media_duration = None
-				media_width = None
-				media_height = None
-				media_info = MediaInfo.parse(media_path)
-				for track in media_info.tracks:
-					if track.track_type == "Video":
-						media_duration = int(track.duration)
-						media_width = int(track.width)
-						media_height = int(track.height)
+				video_info = VideoInfo(media_path)
+				media_info = video_info.get_finfo()
+				thumb = video_info.generate_thumbnail()
 				await update.message.reply_video(
 					video=open(media_path, 'rb'), 
 					reply_to_message_id=effective_message_id, 
 					supports_streaming=False,
 					disable_notification=True,
-					duration=media_duration,
-					width=media_width,
-					height=media_height)
+					duration=media_info["duration"],
+					width=media_info["width"],
+					height=media_info["height"],
+					thumbnail=thumb)
 				if "/tmp/" in media_path:
 					os.unlink(media_path)
 			except Exception as e:
