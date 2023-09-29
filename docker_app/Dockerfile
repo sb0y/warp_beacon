@@ -26,7 +26,8 @@ RUN set -x \
 	&& pip install urlextract --upgrade \
 	&& pip install instagrapi --upgrade \
 	&& pip install pillow --upgrade \
-	&& pip install pymongo --upgrade
+	&& pip install pymongo --upgrade \
+	&& pip install pymediainfo --upgrade
 
 #WORKDIR /app
 

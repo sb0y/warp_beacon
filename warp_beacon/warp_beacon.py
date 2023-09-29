@@ -14,6 +14,7 @@ from storage import Storage
 
 from telegram import ForceReply, Update, Chat
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from pymediainfo import MediaInfo
 
 # Enable logging
 logging.basicConfig(
@@ -83,10 +84,23 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL was '%s' found in DB", url)
 			
 			try:
+				media_duration = None
+				media_width = None
+				media_height = None
+				media_info = MediaInfo.parse(media_path)
+				for track in media_info.tracks:
+					if track.track_type == "Video":
+						media_duration = int(track.duration)
+						media_width = int(track.width)
+						media_height = int(track.height)
 				await update.message.reply_video(
 					video=open(media_path, 'rb'), 
 					reply_to_message_id=effective_message_id, 
-					supports_streaming=False)
+					supports_streaming=False,
+					disable_notification=True,
+					duration=media_duration,
+					width=media_width,
+					height=media_height)
 				if "/tmp/" in media_path:
 					os.unlink(media_path)
 			except Exception as e:
