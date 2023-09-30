@@ -19,12 +19,13 @@ class VideoInfo(object):
 		return res
 
 	def get_duration(self) -> int:
-		res = None
+		duration_in_seconds = None
 		if self.vid.isOpened():
-			self.vid.set(cv2.CAP_PROP_POS_AVI_RATIO, 1)
-			res = int(self.vid.get(cv2.CAP_PROP_POS_MSEC) / 1000)
+			fps = self.vid.get(cv2.CAP_PROP_FPS)
+			total_no_frames = self.vid.get(cv2.CAP_PROP_FRAME_COUNT)
+			duration_in_seconds = total_no_frames / fps
 
-		return res
+		return duration_in_seconds
 	
 	def get_finfo(self) -> dict:
 		res = {}
