@@ -1,8 +1,7 @@
 import os
-import time
+from typing import Optional
+
 from urllib.parse import urlparse
-import pathlib
-import shutil
 
 from pymongo import MongoClient
 
@@ -30,25 +29,20 @@ class Storage(object):
 		path = urlparse(url).path.strip('/')
 		return path
 	
-	def db_find(self, uniq_id: str) -> str:
+	def db_find(self, uniq_id: str) -> Optional[dict]:
 		document = self.db.find_one({"uniq_id": uniq_id})
 		if not document:
-			return ""
-		return document["local_media_path"]
+			return None
+		return {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"]}
 	
-	def db_lookup(self, url: str) -> str:
+	def db_lookup(self, url: str) -> Optional[dict]:
 		uniq_id = self.compute_uniq(url)
 		local_path = self.db_find(uniq_id)
 		return local_path
 	
-	def add_media(self, url: str, local_path: str) -> int:
-		path = pathlib.Path(local_path)
-		media_ext = path.suffix
-		media_filename = time.time()
-		store_local_path = "%s/%s%s" % (VIDEO_STORAGE_DIR, media_filename, media_ext)
-		shutil.copyfile(local_path, store_local_path)
-		uniq_id = self.compute_uniq(url)
-		media_id = self.db.insert_one({"uniq_id": uniq_id, "local_media_path": store_local_path}).inserted_id
+	def add_media(self, tg_file_id: str, media_url: str, origin: str) -> int:
+		uniq_id = self.compute_uniq(media_url)
+		media_id = self.db.insert_one({"uniq_id": uniq_id, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
 		return media_id
 
 

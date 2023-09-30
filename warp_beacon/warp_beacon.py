@@ -57,13 +57,27 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			if "instagram.com" not in url:
 				logging.info("Only instagram.com is now supported. Skipping.")
 				continue
-			media_path = ""
+			db_doc = None
+			tg_file_id = ""
 			try:
-				media_path = storage.db_lookup(url)
+				db_doc = storage.db_lookup(url)
 			except Exception as e:
 				logging.error("Failed to search link in DB!")
 				logging.exception(e)
-			if not media_path:
+			if db_doc:
+				tg_file_id = db_doc["tg_file_id"]
+				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
+				try:
+					await update.message.reply_video(
+						video=tg_file_id, 
+						reply_to_message_id=effective_message_id, 
+						supports_streaming=False,
+						disable_notification=True,
+						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+				except Exception as e:
+					logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
+					logging.exception(e)
+			else:
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				task_id = None
 				try:
@@ -72,35 +86,28 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)
 				
-				media_path = downloader.wait_result(task_id)
+				local_media_path = downloader.wait_result(task_id)
+
 				try:
-					storage.add_media(url, media_path)
+					video_info = VideoInfo(local_media_path)
+					media_info = video_info.get_finfo()
+					logging.info("media file info: %s", media_info)
+					thumb = video_info.generate_thumbnail()
+					message = await update.message.reply_video(
+						video=open(local_media_path, 'rb'), 
+						reply_to_message_id=effective_message_id, 
+						supports_streaming=False,
+						disable_notification=True,
+						duration=media_info["duration"],
+						width=media_info["width"],
+						height=media_info["height"],
+						thumbnail=thumb,
+						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+					storage.add_media(tg_file_id=message.video.file_id, url=url, origin="instagram")
+					os.unlink(local_media_path)
 				except Exception as e:
-					logging.error("Failed to write link to DB!")
+					logging.error("Error occurred!")
 					logging.exception(e)
-			else:
-				logging.info("URL was '%s' found in DB", url)
-			
-			try:
-				video_info = VideoInfo(media_path)
-				media_info = video_info.get_finfo()
-				logging.info("media file info: %s", media_info)
-				thumb = video_info.generate_thumbnail()
-				await update.message.reply_video(
-					video=open(media_path, 'rb'), 
-					reply_to_message_id=effective_message_id, 
-					supports_streaming=False,
-					disable_notification=True,
-					duration=media_info["duration"],
-					width=media_info["width"],
-					height=media_info["height"],
-					thumbnail=thumb,
-					write_timeout=120)
-				if "/tmp/" in media_path:
-					os.unlink(media_path)
-			except Exception as e:
-				logging.error("Error occurred!")
-				logging.exception(e)
 		return
 
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
