@@ -103,7 +103,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						height=media_info["height"],
 						thumbnail=thumb,
 						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
-					storage.add_media(tg_file_id=message.video.file_id, url=url, origin="instagram")
+					storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
 					os.unlink(local_media_path)
 				except Exception as e:
 					logging.error("Error occurred!")

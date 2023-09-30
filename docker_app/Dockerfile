@@ -22,11 +22,7 @@ RUN set -x \
 	&& mkdir -p /app/ /var/warp_beacon/ /var/warp_beacon/videos/
 
 RUN set -x \
-	&& pip install python-telegram-bot --upgrade \
-	&& pip install urlextract --upgrade \
-	&& pip install instagrapi --upgrade \
-	&& pip install pillow --upgrade \
-	&& pip install pymongo --upgrade
+	&& pip install python-telegram-bot urlextract instagrapi pillow pymongo --upgrade
 
 #WORKDIR /app
 
