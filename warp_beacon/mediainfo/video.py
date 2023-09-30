@@ -23,7 +23,7 @@ class VideoInfo(object):
 		if self.vid.isOpened():
 			fps = self.vid.get(cv2.CAP_PROP_FPS)
 			total_no_frames = self.vid.get(cv2.CAP_PROP_FRAME_COUNT)
-			duration_in_seconds = total_no_frames / fps
+			duration_in_seconds = int(total_no_frames / fps)
 
 		return duration_in_seconds
 	
