@@ -94,7 +94,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					duration=media_info["duration"],
 					width=media_info["width"],
 					height=media_info["height"],
-					thumbnail=thumb)
+					thumbnail=thumb,
+					write_timeout=120)
 				if "/tmp/" in media_path:
 					os.unlink(media_path)
 			except Exception as e:
