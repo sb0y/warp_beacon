@@ -86,6 +86,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			try:
 				video_info = VideoInfo(media_path)
 				media_info = video_info.get_finfo()
+				logging.info("media file info: %s", media_info)
 				thumb = video_info.generate_thumbnail()
 				await update.message.reply_video(
 					video=open(media_path, 'rb'), 
