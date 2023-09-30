@@ -13,7 +13,7 @@ class AsyncDownloader(object):
 	def __init__(self, workers_count: int=CONST_CPU_COUNT) -> None:
 		self.manager = multiprocessing.Manager()
 		self.results = self.manager.dict()
-		self.alow_loop = multiprocessing.Value('i', 1)
+		self.allow_loop = multiprocessing.Value('i', 1)
 		for _ in range(workers_count):
 			proc = multiprocessing.Process(target=self.do_work)
 			self.workers.append(proc)
