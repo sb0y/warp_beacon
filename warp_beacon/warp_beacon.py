@@ -7,7 +7,7 @@ import logging
 
 from urlextract import URLExtract
 
-from scrapler import AsyncDownloader
+import scrapler
 from storage import Storage
 from mediainfo.video import VideoInfo
 
@@ -24,8 +24,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 storage = Storage()
-downloader = AsyncDownloader(
-	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=AsyncDownloader.CONST_CPU_COUNT))
+downloader = scrapler.AsyncDownloader(
+	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
 )
 
 # Define a few command handlers. These usually take the two arguments update and
