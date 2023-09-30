@@ -48,7 +48,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	chat = update.effective_chat
 	effective_message_id = update.message.message_id
 	extractor = URLExtract()
-	urls = extractor.find_urls(update.message.text)
+	urls = extractor.find_urls(update.message.text_html)
 	reply_text = "Wut?"
 	if not urls:
 		reply_text = "Your message should contains URLs"
