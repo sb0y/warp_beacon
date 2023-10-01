@@ -1,5 +1,5 @@
 import threading
-import queue
+import multiprocessing
 import logging
 
 from typing import Optional, Callable
@@ -11,7 +11,7 @@ class AsyncUploader(object):
 	callback = None
 
 	def __init__(self, pool_size: int=3) -> None:
-		self.job_queue = queue.Queue()
+		self.job_queue = multiprocessing.Queue()
 		for _ in range(pool_size):
 			thread = threading.Thread(target=self.do_work)
 			self.threads.append(thread)
@@ -44,7 +44,7 @@ class AsyncUploader(object):
 							self.callback(local_path)
 					except Exception as e:
 						logging.exception(e)
-				except queue.Queue.empty:
+				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:
 				logging.error("Exception occurred inside upload worker!")
