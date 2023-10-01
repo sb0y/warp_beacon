@@ -113,8 +113,6 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)
-
-				send()
 		return
 
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
