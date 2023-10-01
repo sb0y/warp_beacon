@@ -2,7 +2,6 @@ import threading
 import multiprocessing
 import logging
 
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
 from typing import Optional, Callable
@@ -16,7 +15,7 @@ class AsyncUploader(object):
 	def __init__(self, pool_size: int=3) -> None:
 		self.job_queue = multiprocessing.Queue()
 		for _ in range(pool_size):
-			thread = threading.Thread(target=asyncio.run, args=(self.do_work(),))
+			thread = threading.Thread(target=asyncio.run, args=(self.do_work,))
 			self.threads.append(thread)
 			thread.start()
 	
