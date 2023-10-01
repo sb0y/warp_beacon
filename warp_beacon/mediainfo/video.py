@@ -42,6 +42,22 @@ class VideoInfo(object):
 		res["filesize"] = self.get_filesize()
 		return res
 	
+	def shrink_image_to_fit(self, img):
+		height, width = img.shape[:2]
+		max_height = 320
+		max_width = 320
+
+		# only shrink if img is bigger than required
+		if max_height < height or max_width < width:
+			# get scaling factor
+			scaling_factor = max_height / float(height)
+			if max_width/float(width) < scaling_factor:
+				scaling_factor = max_width / float(width)
+			# resize image
+			img = cv2.resize(img, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
+
+		return img
+	
 	def generate_thumbnail(self) -> Optional[io.BytesIO]:
 		if self.vid.isOpened():
 			count = 4
@@ -50,10 +66,12 @@ class VideoInfo(object):
 				self.vid.set(cv2.CAP_PROP_POS_MSEC,(count*1000))
 				success, image = self.vid.read()
 				if success:
-					success, buffer = cv2.imencode(".png", image)
+					image = self.shrink_image_to_fit(image)
+					success, buffer = cv2.imencode(".jpg", image)
 				if success:
 					io_buf = io.BytesIO(buffer)
 					io_buf.seek(0)
+					#io_buf.name = "thumbnail.png"
 					return io_buf
 				count += 1
 
