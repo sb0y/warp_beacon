@@ -13,11 +13,9 @@ class AsyncDownloader(object):
 	allow_loop = None
 	job_queue = multiprocessing.Queue()
 	manager = None
-	results = None
 	uploader = None
 	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
 		self.manager = multiprocessing.Manager()
-		self.results = self.manager.dict()
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
 		for _ in range(workers_count):
@@ -31,7 +29,6 @@ class AsyncDownloader(object):
 	def do_work(self) -> None:
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
-			#current_task_id = ""
 			try:
 				try:
 					item = self.job_queue.get()
@@ -40,12 +37,9 @@ class AsyncDownloader(object):
 						if "instagram" in item["url"]:
 							from scrapler.instagram import InstagramScrapler
 							actor = InstagramScrapler()
-							#current_task_id = item["id"]
 							path = actor.download(item["url"])
 							self.uploader.queue_task(str(path))
-							#self.results[current_task_id] = str(path)
 					except Exception as e:
-						#self.results[current_task_id] = None
 						logging.exception(e)
 				except multiprocessing.queue.Empty:
 					pass
@@ -66,12 +60,3 @@ class AsyncDownloader(object):
 		id = uuid.uuid4()
 		self.job_queue.put_nowait({"url": url, "id": id})
 		return id
-
-	def wait_result(self, result_id: str) -> Optional[str]:
-		while self.allow_loop.value == 1:
-			if result_id in self.results:
-				res = self.results[result_id]
-				logging.info("local file: %s", res)
-				return res
-
-		return None
