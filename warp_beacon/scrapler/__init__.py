@@ -35,8 +35,8 @@ class AsyncDownloader(object):
 						if "instagram" in item["url"]:
 							from scrapler.instagram import InstagramScrapler
 							actor = InstagramScrapler()
-							path = actor.download(item["url"])
 							current_task_id = item["id"]
+							path = actor.download(item["url"])
 							self.results[current_task_id] = str(path)
 					except Exception as e:
 						self.results[current_task_id] = None
