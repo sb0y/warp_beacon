@@ -49,8 +49,8 @@ class InstagramScrapler(ScraplerAbstract):
 		except PleaseWaitFewMinutes as e:
 			logging.warning("Please wait a few minutes error. Trying to relogin...")
 			logging.exception(e)
-			self.login()
-			video_url = _scrap()
+			#os.unlink(INST_SESSION_FILE)
+			return self.scrap(url)
 		except LoginRequired as e:
 			logging.warning("Session error. Trying to relogin...")
 			logging.exception(e)
