@@ -1,4 +1,5 @@
 import io
+from typing import Optional
 import cv2
 
 class VideoInfo(object):
@@ -33,7 +34,7 @@ class VideoInfo(object):
 		res["duration"] = self.get_duration()
 		return res
 	
-	def generate_thumbnail(self) -> io.BytesIO:
+	def generate_thumbnail(self) -> Optional[io.BytesIO]:
 		if self.vid.isOpened():
 			count = 4
 			success = True
@@ -41,7 +42,9 @@ class VideoInfo(object):
 				self.vid.set(cv2.CAP_PROP_POS_MSEC,(count*1000))
 				success, image = self.vid.read()
 				if success:
-					io_buf = io.BytesIO(image)
+					success, buffer = cv2.imencode(".png", image)
+				if success:
+					io_buf = io.BytesIO(buffer)
 					io_buf.seek(0)
 					return io_buf
 				count += 1
