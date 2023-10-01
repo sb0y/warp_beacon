@@ -87,6 +87,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					logging.exception(e)
 				
 				local_media_path = downloader.wait_result(task_id)
+				if local_media_path is None:
+					return
 
 				try:
 					video_info = VideoInfo(local_media_path)
