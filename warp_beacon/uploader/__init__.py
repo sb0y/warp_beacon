@@ -32,13 +32,15 @@ class AsyncUploader(object):
 		self.job_queue.put_nowait({"path": local_path})
 
 	def do_work(self) -> None:
+		logging.info("Upload worker started")
 		while self.allow_loop:
 			try:
 				try:
 					item = self.job_queue.get()
 					try:
 						local_path = item["path"]
-						item["callback"](local_path)
+						if self.callback:
+							self.callback(local_path)
 					except Exception as e:
 						logging.exception(e)
 				except queue.Queue.empty:
