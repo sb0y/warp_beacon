@@ -15,9 +15,10 @@ class AsyncUploader(object):
 
 	def __init__(self, pool_size: int=3) -> None:
 		self.job_queue = multiprocessing.Queue()
-		with ThreadPoolExecutor(max_workers=3) as executor:
-			for r in executor.map(lambda: asyncio.run(), self.do_work):
-				logging.info(r)
+		for _ in range(pool_size):
+			thread = threading.Thread(target=asyncio.run, args=(self.do_work(),))
+			self.threads.append(thread)
+			thread.start()
 	
 	def __del__(self) -> None:
 		pass
