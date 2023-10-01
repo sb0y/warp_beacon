@@ -1,3 +1,4 @@
+from typing import Optional
 import multiprocessing
 import uuid
 import logging
@@ -25,6 +26,7 @@ class AsyncDownloader(object):
 	def do_work(self) -> None:
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
+			current_task_id = ""
 			try:
 				try:
 					item = self.job_queue.get()
@@ -34,8 +36,10 @@ class AsyncDownloader(object):
 							from scrapler.instagram import InstagramScrapler
 							actor = InstagramScrapler()
 							path = actor.download(item["url"])
-							self.results[item["id"]] = str(path)
+							current_task_id = item["id"]
+							self.results[current_task_id] = str(path)
 					except Exception as e:
+						self.results[current_task_id] = None
 						logging.exception(e)
 				except multiprocessing.queue.Empty:
 					pass
@@ -57,10 +61,11 @@ class AsyncDownloader(object):
 		self.job_queue.put_nowait({"url": url, "id": id})
 		return id
 
-	def wait_result(self, result_id: str) -> str:
+	def wait_result(self, result_id: str) -> Optional[str]:
 		while self.allow_loop.value == 1:
-			#logging.info(self.results)
 			if result_id in self.results:
 				res = self.results[result_id]
-				logging.info(res)
-				return str(res)
+				logging.info("local file: %s", res)
+				return res
+
+		return None
