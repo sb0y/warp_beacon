@@ -5,7 +5,7 @@ services:
     restart: always
     container_name: mongodb
     ports:
-      - '27017:27017'
+      - '127.0.0.1:27017:27017'
     command: mongod --quiet --logpath /dev/null
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
