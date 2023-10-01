@@ -83,13 +83,13 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 					logging.exception(e)
 			else:
-				def send(local_media_path: str) -> None:
+				async def send(local_media_path: str) -> None:
 					try:
 						video_info = VideoInfo(local_media_path)
 						media_info = video_info.get_finfo()
 						logging.info("media file info: %s", media_info)
 						thumb = video_info.generate_thumbnail()
-						message = update.message.reply_video(
+						message = await update.message.reply_video(
 							video=open(local_media_path, 'rb'), 
 							reply_to_message_id=effective_message_id, 
 							supports_streaming=True,
