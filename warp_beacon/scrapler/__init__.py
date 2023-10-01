@@ -3,7 +3,10 @@ import multiprocessing
 import uuid
 import logging
 
+from uploader import AsyncUploader
+
 CONST_CPU_COUNT = multiprocessing.cpu_count()
+
 
 class AsyncDownloader(object):
 	workers = []
@@ -11,10 +14,12 @@ class AsyncDownloader(object):
 	job_queue = multiprocessing.Queue()
 	manager = None
 	results = None
-	def __init__(self, workers_count: int=CONST_CPU_COUNT) -> None:
+	uploader = None
+	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
 		self.manager = multiprocessing.Manager()
 		self.results = self.manager.dict()
 		self.allow_loop = multiprocessing.Value('i', 1)
+		self.uploader = uploader
 		for _ in range(workers_count):
 			proc = multiprocessing.Process(target=self.do_work)
 			self.workers.append(proc)
@@ -37,7 +42,7 @@ class AsyncDownloader(object):
 							actor = InstagramScrapler()
 							#current_task_id = item["id"]
 							path = actor.download(item["url"])
-							item["callback"](path)
+							self.uploader.queue_task(path)
 							#self.results[current_task_id] = str(path)
 					except Exception as e:
 						#self.results[current_task_id] = None
@@ -57,9 +62,9 @@ class AsyncDownloader(object):
 				proc.join()
 				logging.info("process #%d stopped", proc.pid)
 
-	def queue_task(self, url: str, send: Callable) -> str:
+	def queue_task(self, url: str) -> str:
 		id = uuid.uuid4()
-		self.job_queue.put_nowait({"url": url, "id": id, "callback": send})
+		self.job_queue.put_nowait({"url": url, "id": id})
 		return id
 
 	def wait_result(self, result_id: str) -> Optional[str]:

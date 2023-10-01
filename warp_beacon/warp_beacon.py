@@ -10,6 +10,7 @@ from urlextract import URLExtract
 import scrapler
 from storage import Storage
 from mediainfo.video import VideoInfo
+from uploader import AsyncUploader
 
 from telegram import ForceReply, Update, Chat, error
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -24,8 +25,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 storage = Storage()
+uploader = AsyncUploader(
+	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=3))
+)
 downloader = scrapler.AsyncDownloader(
-	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
+	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+	uploader=uploader
 )
 
 # Define a few command handlers. These usually take the two arguments update and
@@ -78,13 +83,13 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 					logging.exception(e)
 			else:
-				async def send(local_media_path: str):
+				def send(local_media_path: str) -> None:
 					try:
 						video_info = VideoInfo(local_media_path)
 						media_info = video_info.get_finfo()
 						logging.info("media file info: %s", media_info)
 						thumb = video_info.generate_thumbnail()
-						message = await update.message.reply_video(
+						message = update.message.reply_video(
 							video=open(local_media_path, 'rb'), 
 							reply_to_message_id=effective_message_id, 
 							supports_streaming=True,
@@ -99,7 +104,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						logging.error("Failed to upload due telegram limits :(")
 						logging.exception(e)
 						reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
-						await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
+						update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 					except Exception as e:
 						logging.error("Error occurred!")
 						logging.exception(e)
@@ -107,9 +112,11 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						if os.path.exists(local_media_path):
 							os.unlink(local_media_path)
 
+				uploader.set_callback(send)
+
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(url, send)
+					downloader.queue_task(url)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)
@@ -132,6 +139,7 @@ def main() -> None:
 	# Run the bot until the user presses Ctrl-C
 	application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
 	downloader.stop_all()
+	uploader.stop_all()
 
 
 if __name__ == "__main__":
