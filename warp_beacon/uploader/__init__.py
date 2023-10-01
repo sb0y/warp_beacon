@@ -31,7 +31,7 @@ class AsyncUploader(object):
 	def queue_task(self, local_path: str) -> None:
 		self.job_queue.put_nowait({"path": local_path})
 
-	def do_work(self) -> None:
+	async def do_work(self) -> None:
 		logging.info("Upload worker started")
 		while self.allow_loop:
 			try:
@@ -41,7 +41,7 @@ class AsyncUploader(object):
 					logging.info("Accepted download job, file: '%s'", local_path)
 					try:
 						if self.callback:
-							self.callback(local_path)
+							await self.callback(local_path)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
