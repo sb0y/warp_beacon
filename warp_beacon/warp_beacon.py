@@ -104,7 +104,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						logging.error("Failed to upload due telegram limits :(")
 						logging.exception(e)
 						reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
-						update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
+						await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 					except Exception as e:
 						logging.error("Error occurred!")
 						logging.exception(e)
