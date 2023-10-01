@@ -101,7 +101,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						duration=media_info["duration"],
 						width=media_info["width"],
 						height=media_info["height"],
-						thumbnail=thumb,
+						thumbnail=thumb.getvalue(),
 						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
 					storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
 				except error.NetworkError as e:
