@@ -37,8 +37,9 @@ class AsyncUploader(object):
 			try:
 				try:
 					item = self.job_queue.get()
+					local_path = item["path"]
+					logging.info("Accepted download work, file: '%s'", local_path)
 					try:
-						local_path = item["path"]
 						if self.callback:
 							self.callback(local_path)
 					except Exception as e:
