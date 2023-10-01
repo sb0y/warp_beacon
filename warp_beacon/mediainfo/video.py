@@ -1,12 +1,15 @@
-import io
+import io, os
 from typing import Optional
 import cv2
 
 class VideoInfo(object):
 	vid = None
+	# need for filesize
+	filename = ""
 
 	def __init__(self, filename: str) -> None:
 		self.vid = cv2.VideoCapture(filename)
+		self.filename = filename
 		
 	def __del__(self) -> None:
 		self.vid.release()
@@ -28,10 +31,15 @@ class VideoInfo(object):
 
 		return duration_in_seconds
 	
+	def get_filesize(self) -> float:
+		size = os.path.getsize(self.filename)
+		return round(size/(pow(1024,2)), 2)
+	
 	def get_finfo(self) -> dict:
 		res = {}
 		res.update(self.get_demensions())
 		res["duration"] = self.get_duration()
+		res["filesize"] = self.get_filesize()
 		return res
 	
 	def generate_thumbnail(self) -> Optional[io.BytesIO]:

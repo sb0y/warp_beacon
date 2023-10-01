@@ -11,7 +11,7 @@ import scrapler
 from storage import Storage
 from mediainfo.video import VideoInfo
 
-from telegram import ForceReply, Update, Chat
+from telegram import ForceReply, Update, Chat, error
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 # Enable logging
@@ -104,10 +104,17 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						thumbnail=thumb,
 						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
 					storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
-					os.unlink(local_media_path)
+				except error.NetworkError:
+					logging.error("Failed to upload due telegram limits :(")
+					logging.exception(e)
+					reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
+					await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 				except Exception as e:
 					logging.error("Error occurred!")
 					logging.exception(e)
+				finally:
+					if os.path.exists(local_media_path):
+						os.unlink(local_media_path)
 		return
 
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
