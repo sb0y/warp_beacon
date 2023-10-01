@@ -96,7 +96,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					message = await update.message.reply_video(
 						video=open(local_media_path, 'rb'), 
 						reply_to_message_id=effective_message_id, 
-						supports_streaming=False,
+						supports_streaming=True,
 						disable_notification=True,
 						duration=media_info["duration"],
 						width=media_info["width"],
