@@ -42,7 +42,7 @@ class AsyncDownloader(object):
 							actor = InstagramScrapler()
 							#current_task_id = item["id"]
 							path = actor.download(item["url"])
-							self.uploader.queue_task(path)
+							self.uploader.queue_task(str(path))
 							#self.results[current_task_id] = str(path)
 					except Exception as e:
 						#self.results[current_task_id] = None
