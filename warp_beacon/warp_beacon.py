@@ -78,45 +78,43 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 					logging.exception(e)
 			else:
+				async def send(local_media_path: str):
+					try:
+						video_info = VideoInfo(local_media_path)
+						media_info = video_info.get_finfo()
+						logging.info("media file info: %s", media_info)
+						thumb = video_info.generate_thumbnail()
+						message = await update.message.reply_video(
+							video=open(local_media_path, 'rb'), 
+							reply_to_message_id=effective_message_id, 
+							supports_streaming=True,
+							disable_notification=True,
+							duration=media_info["duration"],
+							width=media_info["width"],
+							height=media_info["height"],
+							thumbnail=thumb,
+							write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+						storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
+					except error.NetworkError as e:
+						logging.error("Failed to upload due telegram limits :(")
+						logging.exception(e)
+						reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
+						await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
+					except Exception as e:
+						logging.error("Error occurred!")
+						logging.exception(e)
+					finally:
+						if os.path.exists(local_media_path):
+							os.unlink(local_media_path)
+
 				logging.info("Downloading URL '%s' from instagram ...", url)
-				task_id = None
 				try:
-					task_id = downloader.queue_task(url)
+					downloader.queue_task(url, send)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)
-				
-				local_media_path = downloader.wait_result(task_id)
-				if local_media_path is None:
-					return
 
-				try:
-					video_info = VideoInfo(local_media_path)
-					media_info = video_info.get_finfo()
-					logging.info("media file info: %s", media_info)
-					thumb = video_info.generate_thumbnail()
-					message = await update.message.reply_video(
-						video=open(local_media_path, 'rb'), 
-						reply_to_message_id=effective_message_id, 
-						supports_streaming=True,
-						disable_notification=True,
-						duration=media_info["duration"],
-						width=media_info["width"],
-						height=media_info["height"],
-						thumbnail=thumb,
-						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
-					storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
-				except error.NetworkError as e:
-					logging.error("Failed to upload due telegram limits :(")
-					logging.exception(e)
-					reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
-					await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
-				except Exception as e:
-					logging.error("Error occurred!")
-					logging.exception(e)
-				finally:
-					if os.path.exists(local_media_path):
-						os.unlink(local_media_path)
+				send()
 		return
 
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 import multiprocessing
 import uuid
 import logging
@@ -26,7 +26,7 @@ class AsyncDownloader(object):
 	def do_work(self) -> None:
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
-			current_task_id = ""
+			#current_task_id = ""
 			try:
 				try:
 					item = self.job_queue.get()
@@ -35,11 +35,12 @@ class AsyncDownloader(object):
 						if "instagram" in item["url"]:
 							from scrapler.instagram import InstagramScrapler
 							actor = InstagramScrapler()
-							current_task_id = item["id"]
+							#current_task_id = item["id"]
 							path = actor.download(item["url"])
-							self.results[current_task_id] = str(path)
+							item["callback"](path)
+							#self.results[current_task_id] = str(path)
 					except Exception as e:
-						self.results[current_task_id] = None
+						#self.results[current_task_id] = None
 						logging.exception(e)
 				except multiprocessing.queue.Empty:
 					pass
@@ -56,9 +57,9 @@ class AsyncDownloader(object):
 				proc.join()
 				logging.info("process #%d stopped", proc.pid)
 
-	def queue_task(self, url: str) -> str:
+	def queue_task(self, url: str, send: Callable) -> str:
 		id = uuid.uuid4()
-		self.job_queue.put_nowait({"url": url, "id": id})
+		self.job_queue.put_nowait({"url": url, "id": id, "callback": send})
 		return id
 
 	def wait_result(self, result_id: str) -> Optional[str]:
