@@ -15,8 +15,9 @@ class AsyncUploader(object):
 
 	def __init__(self, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.job_queue = multiprocessing.Queue()
+		do_work = lambda: asyncio.run(self.do_work())
 		for _ in range(pool_size):
-			thread = threading.Thread(target=lambda: asyncio.run(self.do_work()))
+			thread = threading.Thread(target=do_work)
 			self.threads.append(thread)
 			thread.start()
 	
@@ -55,14 +56,15 @@ class AsyncUploader(object):
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
 								if in_process:
-									success = True
-									while success:
-										success = await self.callbacks[m_id](path, uniq_id, in_process)
-										if success:
-											break
-										time.sleep(1)
-										#if not success:
-										#	self.queue_task(path, uniq_id, message_id, in_process)
+									#success = True
+									#while success:
+									#	success = await self.callbacks[m_id](path, uniq_id, in_process)
+									#	if success:
+									#		break
+									#	time.sleep(1)
+									success = await self.callbacks[m_id](path, uniq_id, in_process)
+									if not success:
+										self.queue_task(path, uniq_id, message_id, in_process)
 								else:
 									await self.callbacks[m_id](path, uniq_id, in_process)
 					except Exception as e:
