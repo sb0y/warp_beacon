@@ -55,7 +55,7 @@ class AsyncUploader(object):
 									if not success:
 										self.queue_task(path, uniq_id, in_process)
 								else:
-									await cb["callback"](path, uniq_id)
+									await cb["callback"](path, uniq_id, in_process)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
