@@ -12,10 +12,9 @@ class AsyncDownloader(object):
 	workers = []
 	allow_loop = None
 	job_queue = multiprocessing.Queue()
-	manager = None
 	uploader = None
+
 	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
-		self.manager = multiprocessing.Manager()
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
 		for _ in range(workers_count):
@@ -35,13 +34,17 @@ class AsyncDownloader(object):
 					actor = None
 					try:
 						if "instagram" in item["url"]:
-							from scrapler.instagram import InstagramScrapler
-							actor = InstagramScrapler()
-							path = actor.download(item["url"])
-							self.uploader.queue_task(str(path))
+							if not item["in_process"]:
+								from scrapler.instagram import InstagramScrapler
+								actor = InstagramScrapler()
+								path = actor.download(item["url"])
+								self.uploader.queue_task(path=str(path), uniq_id=item["uniq_id"])
+							else:
+								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
+								self.uploader.queue_task(path=item["url"], uniq_id=item["uniq_id"], item_in_process=True)
 					except Exception as e:
 						logging.exception(e)
-				except multiprocessing.queue.Empty:
+				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:
 				logging.error("Exception occurred inside worker!")
@@ -55,8 +58,9 @@ class AsyncDownloader(object):
 				proc.terminate()
 				proc.join()
 				logging.info("process #%d stopped", proc.pid)
+		self.workers.clear()
 
-	def queue_task(self, url: str) -> str:
+	def queue_task(self, url: str, uniq_id: str, item_in_process: str=False) -> str:
 		id = uuid.uuid4()
-		self.job_queue.put_nowait({"url": url, "id": id})
+		self.job_queue.put_nowait({"url": url, "id": id, "in_process": item_in_process, "uniq_id": uniq_id})
 		return id
