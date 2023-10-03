@@ -10,11 +10,9 @@ class AsyncUploader(object):
 	threads = []
 	allow_loop = True
 	job_queue = None
-	callbacks = []
-	callback = None
-	in_process_callback = None
+	callbacks = {}
 
-	def __init__(self, pool_size: int=3) -> None:
+	def __init__(self, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.job_queue = multiprocessing.Queue()
 		for _ in range(pool_size):
 			thread = threading.Thread(target=lambda: asyncio.run(self.do_work()))
@@ -25,7 +23,11 @@ class AsyncUploader(object):
 		self.stop_all()
 
 	def add_callback(self, message_id: int, callback: Callable) -> None:
-		self.callbacks.append({"message_id": message_id, "callback": callback})
+		self.callbacks[message_id] = callback
+
+	def remove_callback(self, message_id: int) -> None:
+		if message_id in self.callbacks:
+			del self.callbacks[message_id]
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
@@ -49,14 +51,14 @@ class AsyncUploader(object):
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
-						for cb in self.callbacks:
-							if cb["message_id"] == message_id:
+						for m_id in self.callbacks:
+							if m_id == message_id:
 								if in_process:
-									success = await cb["callback"](path, uniq_id, in_process)
+									success = await self.callbacks[m_id](path, uniq_id, in_process)
 									if not success:
 										self.queue_task(path, uniq_id, message_id, in_process)
 								else:
-									await cb["callback"](path, uniq_id, in_process)
+									await self.callbacks[m_id]["callback"](path, uniq_id, in_process)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
