@@ -47,7 +47,8 @@ class AsyncUploader(object):
 					path = item["path"]
 					in_process = item["in_process"]
 					uniq_id = item["uniq_id"]
-					logging.info("Accepted download job, file: '%s'", path)
+					if not in_process:
+						logging.info("Accepted download job, file: '%s'", path)
 					try:
 						if in_process:
 							if self.in_process_callback:
