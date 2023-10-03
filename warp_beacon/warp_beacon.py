@@ -76,8 +76,16 @@ async def handle_in_process(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 		
 	return True
 
-async def send_video(update: Update, context: ContextTypes.DEFAULT_TYPE, local_media_path: str, url: str, uniq_id: str) -> None:
+async def send_video(update: Update, 
+	context: ContextTypes.DEFAULT_TYPE,
+	local_media_path: str, 
+	url: str, 
+	uniq_id: str, 
+	in_process: bool=False) -> bool:
 	try:
+		if in_process:
+			return handle_in_process(update, context, uniq_id)
+
 		effective_message_id = update.message.message_id
 		video_info = VideoInfo(local_media_path)
 		media_info = video_info.get_finfo()
@@ -107,6 +115,8 @@ async def send_video(update: Update, context: ContextTypes.DEFAULT_TYPE, local_m
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
 		items_in_process.discard(uniq_id)
+
+	return True
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
@@ -139,10 +149,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			else:
 				def send_video_wrapper(local_media_path: str, uniq_id: str) -> None:
 					return send_video(update, context, local_media_path, url, uniq_id)
-				def handle_in_process_wrapper(uniq_id: str) -> None:
-					return handle_in_process(update, context, uniq_id)
-				uploader.set_send_video_callback(send_video_wrapper)
-				uploader.set_in_process_callback(handle_in_process_wrapper)
+	
+				uploader.add_callback(uniq_id, send_video_wrapper)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
@@ -151,7 +159,6 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)
-		return
 
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
 		await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
