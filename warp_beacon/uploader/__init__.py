@@ -51,7 +51,7 @@ class AsyncUploader(object):
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
-						for m_id in self.callbacks:
+						for m_id in self.callbacks.copy():
 							if m_id == message_id:
 								if in_process:
 									success = await self.callbacks[m_id](path, uniq_id, in_process)
