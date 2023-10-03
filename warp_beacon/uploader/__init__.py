@@ -24,8 +24,8 @@ class AsyncUploader(object):
 	def __del__(self) -> None:
 		self.stop_all()
 
-	def add_callback(self, uniq_id: str, callback: Callable) -> None:
-		self.callbacks.append({"uniq_id": uniq_id, "callback": callback})
+	def add_callback(self, message_id: int, callback: Callable) -> None:
+		self.callbacks.append({"message_id": message_id, "callback": callback})
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
@@ -33,8 +33,8 @@ class AsyncUploader(object):
 			i.join()
 		self.threads.clear()
 
-	def queue_task(self, path: str, uniq_id: str, item_in_process: bool=False) -> None:
-		self.job_queue.put_nowait({"path": path, "uniq_id": uniq_id, "in_process": item_in_process})
+	def queue_task(self, path: str, uniq_id: str, message_id: int, item_in_process: bool=False) -> None:
+		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "in_process": item_in_process})
 
 	async def do_work(self) -> None:
 		logging.info("Upload worker started")
@@ -45,11 +45,12 @@ class AsyncUploader(object):
 					path = item["path"]
 					in_process = item["in_process"]
 					uniq_id = item["uniq_id"]
+					message_id = item["message_id"]
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
 						for cb in self.callbacks:
-							if cb["uniq_id"] == uniq_id:
+							if cb["message_id"] == message_id:
 								if in_process:
 									success = await cb["callback"](path, uniq_id, in_process)
 									if not success:
