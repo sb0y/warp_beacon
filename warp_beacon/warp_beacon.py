@@ -147,8 +147,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
 				await send_without_upload(update, tg_file_id, effective_message_id)
 			else:
-				def send_video_wrapper(local_media_path: str, uniq_id: str) -> None:
-					return send_video(update, context, local_media_path, url, uniq_id)
+				def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
+					return send_video(update, context, local_media_path, url, uniq_id, in_process)
 	
 				uploader.add_callback(uniq_id, send_video_wrapper)
 
