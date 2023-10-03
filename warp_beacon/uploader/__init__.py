@@ -35,10 +35,8 @@ class AsyncUploader(object):
 			i.join()
 		self.threads.clear()
 
-	def queue_task(self, path: str, uniq_id: str, effective_message_id: int, item_in_process: bool=False) -> None:
-		self.job_queue.put_nowait({"path": path, "uniq_id": uniq_id, "in_process": item_in_process, 
-			"effective_message_id": effective_message_id}
-		)
+	def queue_task(self, path: str, uniq_id: str, item_in_process: bool=False) -> None:
+		self.job_queue.put_nowait({"path": path, "uniq_id": uniq_id, "in_process": item_in_process})
 
 	async def do_work(self) -> None:
 		logging.info("Upload worker started")
@@ -49,18 +47,17 @@ class AsyncUploader(object):
 					path = item["path"]
 					in_process = item["in_process"]
 					uniq_id = item["uniq_id"]
-					effective_message_id = item["effective_message_id"]
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
 						if in_process:
 							if self.in_process_callback:
-								success = await self.in_process_callback(uniq_id, effective_message_id)
+								success = await self.in_process_callback(uniq_id)
 								if not success:
-									self.queue_task(path, uniq_id, effective_message_id, in_process)
+									self.queue_task(path, uniq_id, in_process)
 						else:
 							if self.callback:
-								await self.callback(path, uniq_id, effective_message_id)
+								await self.callback(path, uniq_id)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
