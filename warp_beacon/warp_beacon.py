@@ -83,6 +83,7 @@ async def send_video(update: Update,
 	url: str, 
 	uniq_id: str, 
 	in_process: bool=False) -> bool:
+	effective_message_id = None
 	try:
 		if in_process:
 			return await handle_in_process(update, context, uniq_id)
@@ -116,7 +117,8 @@ async def send_video(update: Update,
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
 		items_in_process.discard(uniq_id)
-		uploader.remove_callback(effective_message_id)
+		if effective_message_id is not None:
+			uploader.remove_callback(effective_message_id)
 
 	return True
 
