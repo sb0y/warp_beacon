@@ -86,7 +86,8 @@ async def send_video(update: Update,
 	effective_message_id = None
 	try:
 		if in_process:
-			return await handle_in_process(update, context, uniq_id)
+			ret = await handle_in_process(update, context, uniq_id)
+			return ret
 
 		effective_message_id = update.message.message_id
 		video_info = VideoInfo(local_media_path)
@@ -186,7 +187,6 @@ def main() -> None:
 	application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
 	downloader.stop_all()
 	uploader.stop_all()
-
 
 if __name__ == "__main__":
 	main()
