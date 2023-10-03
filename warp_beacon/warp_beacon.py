@@ -69,7 +69,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	extractor = URLExtract()
 	urls = extractor.find_urls(update.message.text_html)
 
-	async def handle_in_process(uniq_id: str) -> bool:
+	async def handle_in_process(uniq_id: str, effective_message_id: int) -> bool:
 		try:
 			doc = storage.db_lookup_id(uniq_id)
 			if doc:
@@ -83,7 +83,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		
 		return True
 
-	async def send_video(local_media_path: str, uniq_id: str) -> None:
+	async def send_video(local_media_path: str, uniq_id: str, effective_message_id: int) -> None:
 		try:
 			video_info = VideoInfo(local_media_path)
 			media_info = video_info.get_finfo()
@@ -140,7 +140,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(url=url, item_in_process=uniq_id in items_in_process, uniq_id=uniq_id)
+					downloader.queue_task(url=url, item_in_process=uniq_id in items_in_process, 
+						uniq_id=uniq_id, effective_message_id=effective_message_id)
 					items_in_process.add(uniq_id)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
