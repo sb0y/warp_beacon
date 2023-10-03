@@ -76,7 +76,7 @@ async def handle_in_process(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 		
 	return True
 
-async def send_video(update: Update, context: ContextTypes.DEFAULT_TYPE, local_media_path: str, uniq_id: str) -> None:
+async def send_video(update: Update, context: ContextTypes.DEFAULT_TYPE, local_media_path: str, url: str, uniq_id: str) -> None:
 	try:
 		effective_message_id = update.message.message_id
 		video_info = VideoInfo(local_media_path)
@@ -138,7 +138,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				await send_without_upload(update, tg_file_id, effective_message_id)
 			else:
 				def send_video_wrapper(local_media_path: str, uniq_id: str) -> None:
-					return send_video(update, context, local_media_path, uniq_id)
+					return send_video(update, context, local_media_path, url, uniq_id)
 				def handle_in_process_wrapper(uniq_id: str) -> None:
 					return handle_in_process(update, context, uniq_id)
 				uploader.set_send_video_callback(send_video_wrapper)
