@@ -150,11 +150,15 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
 					return send_video(update, context, local_media_path, url, uniq_id, in_process)
 	
-				uploader.add_callback(uniq_id, send_video_wrapper)
+				uploader.add_callback(effective_message_id, send_video_wrapper)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(url=url, item_in_process=uniq_id in items_in_process, uniq_id=uniq_id)
+					downloader.queue_task(url=url, 
+						message_id=effective_message_id, 
+						item_in_process=uniq_id in items_in_process, 
+						uniq_id=uniq_id
+					)
 					items_in_process.add(uniq_id)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
