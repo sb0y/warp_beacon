@@ -3,6 +3,7 @@
 
 import os
 import signal
+import time
 import logging
 
 from urlextract import URLExtract
@@ -26,12 +27,14 @@ logger = logging.getLogger(__name__)
 
 storage = Storage()
 uploader = AsyncUploader(
-	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=3))
+	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
 )
 downloader = scrapler.AsyncDownloader(
 	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
 	uploader=uploader
 )
+
+items_in_process = set()
 
 # Define a few command handlers. These usually take the two arguments update and
 # context.
@@ -47,6 +50,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 	"""Send a message when the command /help is issued."""
 	await update.message.reply_text("Send me a link to remote media")
 
+async def send_without_upload(update: Update, tg_file_id: str, effective_message_id: int) -> None:
+	try:
+		await update.message.reply_video(
+			video=tg_file_id, 
+			reply_to_message_id=effective_message_id, 
+			disable_notification=True,
+			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+	except Exception as e:
+		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
+		logging.exception(e)
+
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
 		return
@@ -54,6 +68,52 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	effective_message_id = update.message.message_id
 	extractor = URLExtract()
 	urls = extractor.find_urls(update.message.text_html)
+
+	async def handle_in_process(uniq_id: str) -> bool:
+		try:
+			doc = storage.db_lookup_id(uniq_id)
+			if doc:
+				tg_file_id = doc["tg_file_id"]
+				await send_without_upload(update, tg_file_id, effective_message_id)
+			else:
+				return False
+		except Exception as e:
+			logging.error("An exception occurred while in process video handling!")
+			logging.exception(e)
+		
+		return True
+
+	async def send_video(local_media_path: str, uniq_id: str) -> None:
+		try:
+			video_info = VideoInfo(local_media_path)
+			media_info = video_info.get_finfo()
+			logging.info("media file info: %s", media_info)
+			thumb = video_info.generate_thumbnail()
+			message = await update.message.reply_video(
+				video=open(local_media_path, 'rb'), 
+				reply_to_message_id=effective_message_id, 
+				supports_streaming=True,
+				disable_notification=True,
+				duration=media_info["duration"],
+				width=media_info["width"],
+				height=media_info["height"],
+				thumbnail=thumb,
+				write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+			storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
+			logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
+		except error.NetworkError as e:
+			logging.error("Failed to upload due telegram limits :(")
+			logging.exception(e)
+			_reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
+			await update.message.reply_text(_reply_text, reply_to_message_id=effective_message_id)
+		except Exception as e:
+			logging.error("Error occurred!")
+			logging.exception(e)
+		finally:
+			if os.path.exists(local_media_path):
+				os.unlink(local_media_path)
+			items_in_process.discard(uniq_id)
+
 	reply_text = "Wut?"
 	if not urls:
 		reply_text = "Your message should contains URLs"
@@ -62,62 +122,26 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			if "instagram.com" not in url:
 				logging.info("Only instagram.com is now supported. Skipping.")
 				continue
-			db_doc = None
+			doc = None
 			tg_file_id = ""
+			uniq_id = Storage.compute_uniq(url)
 			try:
-				db_doc = storage.db_lookup(url)
+				doc = storage.db_lookup_id(uniq_id)
 			except Exception as e:
 				logging.error("Failed to search link in DB!")
 				logging.exception(e)
-			if db_doc:
-				tg_file_id = db_doc["tg_file_id"]
+			if doc:
+				tg_file_id = doc["tg_file_id"]
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
-				try:
-					await update.message.reply_video(
-						video=tg_file_id, 
-						reply_to_message_id=effective_message_id, 
-						supports_streaming=False,
-						disable_notification=True,
-						write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
-				except Exception as e:
-					logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
-					logging.exception(e)
+				await send_without_upload(update, tg_file_id, effective_message_id)
 			else:
-				async def send(local_media_path: str) -> None:
-					try:
-						video_info = VideoInfo(local_media_path)
-						media_info = video_info.get_finfo()
-						logging.info("media file info: %s", media_info)
-						thumb = video_info.generate_thumbnail()
-						message = await update.message.reply_video(
-							video=open(local_media_path, 'rb'), 
-							reply_to_message_id=effective_message_id, 
-							supports_streaming=True,
-							disable_notification=True,
-							duration=media_info["duration"],
-							width=media_info["width"],
-							height=media_info["height"],
-							thumbnail=thumb,
-							write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
-						storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
-						logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
-					except error.NetworkError as e:
-						logging.error("Failed to upload due telegram limits :(")
-						logging.exception(e)
-						_reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
-						await update.message.reply_text(_reply_text, reply_to_message_id=effective_message_id)
-					except Exception as e:
-						logging.error("Error occurred!")
-						logging.exception(e)
-					finally:
-						if os.path.exists(local_media_path):
-							os.unlink(local_media_path)
-
-				uploader.set_callback(send)
+				uploader.set_send_video_callback(send_video)
+				uploader.set_in_process_callback(handle_in_process)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(url)
+					downloader.queue_task(url=url, item_in_process=uniq_id in items_in_process, uniq_id=uniq_id)
+					items_in_process.add(uniq_id)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)

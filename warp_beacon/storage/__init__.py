@@ -22,7 +22,8 @@ class Storage(object):
 		self.db = self.client.media.media
 
 	def __del__(self) -> None:
-		pass
+		if self.client:
+			self.client.close()
 
 	@staticmethod
 	def compute_uniq(url: str) -> str:
@@ -37,8 +38,11 @@ class Storage(object):
 	
 	def db_lookup(self, url: str) -> Optional[dict]:
 		uniq_id = self.compute_uniq(url)
-		local_path = self.db_find(uniq_id)
-		return local_path
+		doc = self.db_find(uniq_id)
+		return doc
+	
+	def db_lookup_id(self, uniq_id: str) -> Optional[dict]:
+		return self.db_find(uniq_id)
 	
 	def add_media(self, tg_file_id: str, media_url: str, origin: str) -> int:
 		uniq_id = self.compute_uniq(media_url)
