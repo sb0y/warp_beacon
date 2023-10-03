@@ -3,7 +3,7 @@ import multiprocessing
 import time
 import uuid
 import logging
-from requests.exceptions import ConnectTimeout
+from requests.exceptions import ConnectTimeout, HTTPError
 
 from uploader import AsyncUploader
 
@@ -52,6 +52,9 @@ class AsyncDownloader(object):
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], item_in_process=True)
+					except HTTPError as e:
+						logging.error("HTTP error inside download worker!")
+						logging.exception(e)
 					except Exception as e:
 						logging.error("Error inside download worker!")
 						logging.exception(e)
