@@ -10,6 +10,7 @@ class AsyncUploader(object):
 	threads = []
 	allow_loop = True
 	job_queue = None
+	callbacks = []
 	callback = None
 	in_process_callback = None
 
@@ -23,11 +24,8 @@ class AsyncUploader(object):
 	def __del__(self) -> None:
 		self.stop_all()
 
-	def set_send_video_callback(self, callback: Callable) -> None:
-		self.callback = callback
-
-	def set_in_process_callback(self, callback: Callable) -> None:
-		self.in_process_callback = callback
+	def add_callback(self, uniq_id: str, callback: Callable) -> None:
+		self.callbacks.append({"uniq_id": uniq_id, "callback": callback})
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
@@ -50,14 +48,14 @@ class AsyncUploader(object):
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
-						if in_process:
-							if self.in_process_callback:
-								success = await self.in_process_callback(uniq_id)
-								if not success:
-									self.queue_task(path, uniq_id, in_process)
-						else:
-							if self.callback:
-								await self.callback(path, uniq_id)
+						for cb in self.callbacks:
+							if cb["uniq_id"] == uniq_id:
+								if in_process:
+									success = await cb["callback"](path, uniq_id, in_process)
+									if not success:
+										self.queue_task(path, uniq_id, in_process)
+								else:
+									await cb["callback"](path, uniq_id)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
