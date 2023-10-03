@@ -68,12 +68,13 @@ async def handle_in_process(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 		if doc:
 			tg_file_id = doc["tg_file_id"]
 			await send_without_upload(update, tg_file_id, effective_message_id)
+			uploader.remove_callback(effective_message_id)
 		else:
 			return False
 	except Exception as e:
 		logging.error("An exception occurred while in process video handling!")
 		logging.exception(e)
-		
+
 	return True
 
 async def send_video(update: Update, 
@@ -115,6 +116,7 @@ async def send_video(update: Update,
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
 		items_in_process.discard(uniq_id)
+		uploader.remove_callback(effective_message_id)
 
 	return True
 
