@@ -1,7 +1,9 @@
 from typing import Optional, Callable
 import multiprocessing
+import time
 import uuid
 import logging
+from requests.exceptions import ConnectTimeout
 
 from uploader import AsyncUploader
 
@@ -37,13 +39,23 @@ class AsyncDownloader(object):
 							if not item["in_process"]:
 								from scrapler.instagram import InstagramScrapler
 								actor = InstagramScrapler()
-								path = actor.download(item["url"])
+								while True:
+									try:
+										path = actor.download(item["url"])
+										break
+									except ConnectTimeout as e:
+										logging.error("ConnectTimeout download error!")
+										logging.exception(e)
+										time.sleep(2)
+
 								self.uploader.queue_task(path=str(path), uniq_id=item["uniq_id"])
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 								self.uploader.queue_task(path=item["url"], uniq_id=item["uniq_id"], item_in_process=True)
 					except Exception as e:
+						logging.error("Error inside download worker!")
 						logging.exception(e)
+						self.queue_task(url=item["url"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
 				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:
