@@ -177,7 +177,7 @@ def main() -> None:
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).build()
 
 	# on different commands - answer in Telegram
-	application.add_handler(CommandHandler("start", start))
+	application.add_handler(CommandHandler("start", start, block=False))
 	application.add_handler(CommandHandler("help", help_command))
 
 	# on non command i.e message - echo the message on Telegram
