@@ -50,7 +50,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 	"""Send a message when the command /help is issued."""
 	await update.message.reply_text("Send me a link to remote media")
 
-async def send_without_upload(update: Update, tg_file_id: str, effective_message_id: int) -> None:
+async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, effective_message_id: int) -> None:
 	try:
 		await update.message.reply_video(
 			video=tg_file_id, 
@@ -67,7 +67,7 @@ async def handle_in_process(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 		doc = storage.db_lookup_id(uniq_id)
 		if doc:
 			tg_file_id = doc["tg_file_id"]
-			await send_without_upload(update, tg_file_id, effective_message_id)
+			await send_without_upload(update, context, tg_file_id, effective_message_id)
 			uploader.remove_callback(effective_message_id)
 		else:
 			return False
@@ -149,7 +149,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			if doc:
 				tg_file_id = doc["tg_file_id"]
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
-				await send_without_upload(update, tg_file_id, effective_message_id)
+				await send_without_upload(update, context, tg_file_id, effective_message_id)
 			else:
 				def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
 					return send_video(update, context, local_media_path, url, uniq_id, in_process)
