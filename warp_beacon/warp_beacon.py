@@ -86,8 +86,7 @@ async def send_video(update: Update,
 	effective_message_id = None
 	try:
 		if in_process:
-			ret = await handle_in_process(update, context, uniq_id)
-			return ret
+			return await handle_in_process(update, context, uniq_id)
 
 		effective_message_id = update.message.message_id
 		video_info = VideoInfo(local_media_path)
