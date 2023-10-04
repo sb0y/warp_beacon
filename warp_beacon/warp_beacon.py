@@ -187,7 +187,12 @@ async def main() -> None:
 	# on non command i.e message - echo the message on Telegram
 	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 	# Run the bot until the user presses Ctrl-C
-	application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	async with application:
+		await application.initialize() # inits bot, update, persistence
+		await application.start()
+		await application.updater.start_polling()
+		await application.stop()
 	downloader.stop_all()
 	uploader.stop_all()
 
