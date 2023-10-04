@@ -3,6 +3,7 @@
 
 import os
 import signal
+import time
 import asyncio
 import logging
 
@@ -189,6 +190,8 @@ async def main() -> None:
 	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
 	async with application:
 		await application.start()
+		while True:
+			time.sleep(1)
 		await application.stop()
 	downloader.stop_all()
 	uploader.stop_all()
