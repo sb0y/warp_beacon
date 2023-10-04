@@ -3,7 +3,7 @@
 
 import os
 import signal
-import time
+import asyncio
 import logging
 
 from urlextract import URLExtract
@@ -26,13 +26,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 storage = Storage()
-uploader = AsyncUploader(
-	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
-)
-downloader = scrapler.AsyncDownloader(
-	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
-	uploader=uploader
-)
+uploader = None
+downloader = None
 
 items_in_process = set()
 
@@ -151,8 +146,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
 				await send_without_upload(update, context, tg_file_id, effective_message_id)
 			else:
-				def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
-					return send_video(update, context, local_media_path, url, uniq_id, in_process)
+				async def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
+					return await send_video(update, context, local_media_path, url, uniq_id, in_process)
 	
 				uploader.add_callback(effective_message_id, send_video_wrapper)
 
@@ -171,10 +166,18 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
 		await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 
-def main() -> None:
+async def main() -> None:
 	"""Start the bot."""
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
+
+	uploader = AsyncUploader(
+		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
+	)
+	downloader = scrapler.AsyncDownloader(
+		workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+		uploader=uploader
+	)
 
 	# on different commands - answer in Telegram
 	application.add_handler(CommandHandler("start", start, block=False))
@@ -183,9 +186,12 @@ def main() -> None:
 	# on non command i.e message - echo the message on Telegram
 	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 	# Run the bot until the user presses Ctrl-C
-	application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	async with application:
+		await application.start()
+		await application.stop()
 	downloader.stop_all()
 	uploader.stop_all()
 
 if __name__ == "__main__":
-	main()
+	asyncio.run(main())
