@@ -169,6 +169,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def main() -> None:
 	"""Start the bot."""
+	loop = asyncio.get_event_loop()
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 
@@ -189,9 +190,8 @@ async def main() -> None:
 	# Run the bot until the user presses Ctrl-C
 	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
 	async with application:
-		await application.initialize() # inits bot, update, persistence
 		await application.start()
-		await application.updater.start_polling()
+		loop.run_forever()
 		await application.stop()
 	downloader.stop_all()
 	uploader.stop_all()
