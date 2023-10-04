@@ -13,12 +13,14 @@ class AsyncUploader(object):
 	allow_loop = True
 	job_queue = None
 	callbacks = {}
+	loop = None
 
 	def __init__(self, loop: AbstractEventLoop, pool_size: int=multiprocessing.cpu_count()) -> None:
+		self.loop = loop
 		self.job_queue = multiprocessing.Queue()
 		#do_work = lambda: asyncio.run(self.do_work())
 		for _ in range(pool_size):
-			thread = threading.Thread(target=lambda: loop.create_task(self.do_work()))
+			thread = threading.Thread(target=asyncio.run(self.do_work()))
 			self.threads.append(thread)
 			thread.start()
 	
@@ -42,6 +44,7 @@ class AsyncUploader(object):
 		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "in_process": item_in_process})
 
 	async def do_work(self) -> None:
+		asyncio.set_event_loop(self.loop)
 		logging.info("Upload worker started")
 		while self.allow_loop:
 			try:
@@ -63,11 +66,13 @@ class AsyncUploader(object):
 									#	if success:
 									#		break
 									#	time.sleep(1)
-									success = await self.callbacks[m_id](path, uniq_id, in_process)
+									task = self.loop.create_task(self.callbacks[m_id](path, uniq_id, in_process))
+									await task
+									success = task.result()
 									if not success:
 										self.queue_task(path, uniq_id, message_id, in_process)
 								else:
-									await self.callbacks[m_id](path, uniq_id, in_process)
+									self.loop.create_task(self.callbacks[m_id](path, uniq_id, in_process))
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
