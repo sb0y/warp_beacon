@@ -154,7 +154,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				async def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
 					return await send_video(update, context, local_media_path, url, uniq_id, in_process)
 	
-				uploader.add_callback(effective_message_id, send_video_wrapper)
+				uploader.add_callback(effective_message_id, send_video_wrapper())
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
