@@ -177,6 +177,7 @@ def main() -> None:
 
 	uploader = AsyncUploader(
 		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
+		loop=loop
 	)
 	downloader = scrapler.AsyncDownloader(
 		workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
