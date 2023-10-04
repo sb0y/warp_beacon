@@ -169,7 +169,6 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def main() -> None:
 	"""Start the bot."""
-	loop = asyncio.get_event_loop()
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 
