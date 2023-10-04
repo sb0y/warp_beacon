@@ -171,7 +171,7 @@ def main() -> None:
 	"""Start the bot."""
 	loop = asyncio.new_event_loop()
 	# Create the Application and pass it your bot's token.
-	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
+	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).build()
 
 	uploader = AsyncUploader(
 		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
@@ -183,7 +183,7 @@ def main() -> None:
 	)
 
 	# on different commands - answer in Telegram
-	application.add_handler(CommandHandler("start", start, block=False))
+	application.add_handler(CommandHandler("start", start))
 	application.add_handler(CommandHandler("help", help_command))
 
 	# on non command i.e message - echo the message on Telegram
