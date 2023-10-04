@@ -176,7 +176,7 @@ def main() -> None:
 	loop = asyncio.get_event_loop()
 
 	uploader = AsyncUploader(
-		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
+		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
 		loop=loop
 	)
 	downloader = scrapler.AsyncDownloader(
