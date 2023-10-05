@@ -169,8 +169,6 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def main() -> None:
 	"""Start the bot."""
-	# Create the Application and pass it your bot's token.
-	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).build()
 
 	uploader = AsyncUploader(
 		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
@@ -179,6 +177,9 @@ def main() -> None:
 		workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
 		uploader=uploader
 	)
+
+	# Create the Application and pass it your bot's token.
+	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).build()
 
 	# on different commands - answer in Telegram
 	application.add_handler(CommandHandler("start", start))
