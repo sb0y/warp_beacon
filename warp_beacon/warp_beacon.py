@@ -4,7 +4,6 @@
 import os
 import signal
 import time
-import asyncio
 import logging
 
 from urlextract import URLExtract
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 storage = Storage()
 uploader = AsyncUploader(
-	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
 )
 downloader = scrapler.AsyncDownloader(
 	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
@@ -174,12 +173,11 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def main() -> None:
 	"""Start the bot."""
-
 	# Create the Application and pass it your bot's token.
-	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).build()
+	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 
 	# on different commands - answer in Telegram
-	application.add_handler(CommandHandler("start", start))
+	application.add_handler(CommandHandler("start", start, block=False))
 	application.add_handler(CommandHandler("help", help_command))
 
 	# on non command i.e message - echo the message on Telegram
