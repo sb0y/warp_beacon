@@ -13,7 +13,7 @@ class AsyncUploader(object):
 	job_queue = None
 	callbacks = {}
 
-	def __init__(self, loop, pool_size: int=multiprocessing.cpu_count()) -> None:
+	def __init__(self, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.job_queue = multiprocessing.Queue()
 		#do_work = lambda: asyncio.run(self.do_work())
 		loop = asyncio.get_running_loop()
