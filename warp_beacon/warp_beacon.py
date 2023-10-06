@@ -116,8 +116,8 @@ async def send_video(update: Update,
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
 		items_in_process.discard(uniq_id)
-		if effective_message_id is not None and tg_file_id is None:
-			uploader.remove_callback(effective_message_id)
+	if effective_message_id is not None and tg_file_id is None:
+		uploader.remove_callback(effective_message_id)
 
 	return True
 
