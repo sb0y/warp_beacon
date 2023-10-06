@@ -13,6 +13,7 @@ class AsyncUploader(object):
 	job_queue = None
 	callbacks = {}
 	in_process_check_callback = None
+	lock = asyncio.Lock()
 
 	def __init__(self, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.job_queue = multiprocessing.Queue()
@@ -62,11 +63,13 @@ class AsyncUploader(object):
 								if in_process:
 									tg_id = self.in_process_check_callback(uniq_id)
 									if tg_id:
-										await self.callbacks[m_id](path, uniq_id, tg_id)
+										async with self.lock:
+											await self.callbacks[m_id](path, uniq_id, tg_id)
 									else:
 										self.queue_task(path, uniq_id, message_id, in_process)
 								else:
-									await self.callbacks[m_id](path, uniq_id)
+									async with self.lock:
+										await self.callbacks[m_id](path, uniq_id)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
