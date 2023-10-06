@@ -12,6 +12,7 @@ class AsyncUploader(object):
 	allow_loop = True
 	job_queue = None
 	callbacks = {}
+	in_process_check_callback = None
 
 	def __init__(self, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.job_queue = multiprocessing.Queue()
@@ -30,6 +31,9 @@ class AsyncUploader(object):
 	def remove_callback(self, message_id: int) -> None:
 		if message_id in self.callbacks:
 			del self.callbacks[message_id]
+
+	def set_in_process_callback(self, callback: Callable) -> None:
+		self.in_process_check_callback = callback
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
@@ -56,17 +60,13 @@ class AsyncUploader(object):
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
 								if in_process:
-									#success = True
-									#while success:
-									#	success = await self.callbacks[m_id](path, uniq_id, in_process)
-									#	if success:
-									#		break
-									#	time.sleep(1)
-									success = await self.callbacks[m_id](path, uniq_id, in_process)
-									if not success:
+									tg_id = self.in_process_check_callback(uniq_id)
+									if tg_id:
+										await self.callbacks[m_id](path, uniq_id, tg_id)
+									else:
 										self.queue_task(path, uniq_id, message_id, in_process)
 								else:
-									await self.callbacks[m_id](path, uniq_id, in_process)
+									await self.callbacks[m_id](path, uniq_id)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
