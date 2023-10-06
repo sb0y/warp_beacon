@@ -61,7 +61,10 @@ class AsyncUploader(object):
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
 								if in_process:
-									tg_id = self.storage.db_lookup_id(uniq_id=uniq_id).get("tg_file_id", default=None)
+									tg_id = None
+									doc = self.storage.db_lookup_id(uniq_id=uniq_id)
+									if doc:
+										tg_id = doc.get("tg_file_id", default=None)
 									if tg_id:
 										async with self.lock:
 											await self.callbacks[m_id](path, uniq_id, tg_id)
