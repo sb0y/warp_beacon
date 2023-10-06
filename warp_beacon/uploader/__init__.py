@@ -64,7 +64,10 @@ class AsyncUploader(object):
 									tg_id = None
 									doc = self.storage.db_lookup_id(uniq_id=uniq_id)
 									if doc:
-										tg_id = doc.get("tg_file_id", default=None)
+										try:
+											tg_id = doc["tg_file_id"]
+										except:
+											pass
 									if tg_id:
 										async with self.lock:
 											await self.callbacks[m_id](path, uniq_id, tg_id)
