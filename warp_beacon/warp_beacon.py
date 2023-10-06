@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 storage = Storage()
 uploader = AsyncUploader(
+	storage=storage,
 	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
 )
 downloader = scrapler.AsyncDownloader(
@@ -62,17 +63,6 @@ async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE
 		logging.exception(e)
 	finally:
 		uploader.remove_callback(effective_message_id)
-
-def check_done(uniq_id: str) -> str:
-	try:
-		doc = storage.db_lookup_id(uniq_id)
-		if doc:
-			return doc["tg_file_id"]
-	except Exception as e:
-		logging.error("An exception occurred while in process video handling!")
-		logging.exception(e)
-
-	return ""
 
 async def send_video(update: Update, 
 	context: ContextTypes.DEFAULT_TYPE,
@@ -172,7 +162,6 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def main() -> None:
 	"""Start the bot."""
-	uploader.set_in_process_callback(check_done)
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 

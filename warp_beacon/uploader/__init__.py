@@ -7,15 +7,18 @@ import asyncio
 
 from typing import Optional, Callable
 
+from storage import Storage
+
 class AsyncUploader(object):
 	threads = []
 	allow_loop = True
 	job_queue = None
 	callbacks = {}
-	in_process_check_callback = None
 	lock = asyncio.Lock()
+	storage = None
 
-	def __init__(self, pool_size: int=multiprocessing.cpu_count()) -> None:
+	def __init__(self, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
+		self.storage = storage
 		self.job_queue = multiprocessing.Queue()
 		#do_work = lambda: asyncio.run(self.do_work())
 		for _ in range(pool_size):
@@ -32,9 +35,6 @@ class AsyncUploader(object):
 	def remove_callback(self, message_id: int) -> None:
 		if message_id in self.callbacks:
 			del self.callbacks[message_id]
-
-	def set_in_process_callback(self, callback: Callable) -> None:
-		self.in_process_check_callback = callback
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
@@ -61,12 +61,12 @@ class AsyncUploader(object):
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
 								if in_process:
-									tg_id = self.in_process_check_callback(uniq_id)
+									tg_id = self.storage.db_lookup_id(uniq_id=uniq_id).get("tg_file_id", default=None)
 									if tg_id:
 										async with self.lock:
 											await self.callbacks[m_id](path, uniq_id, tg_id)
 									else:
-										self.queue_task(path, uniq_id, message_id, in_process)
+										self.queue_task(path, uniq_id, message_id, True)
 								else:
 									async with self.lock:
 										await self.callbacks[m_id](path, uniq_id)
