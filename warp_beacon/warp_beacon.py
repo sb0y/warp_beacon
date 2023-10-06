@@ -61,34 +61,30 @@ async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE
 		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 		logging.exception(e)
 
-async def handle_in_process(update: Update, context: ContextTypes.DEFAULT_TYPE, uniq_id: str) -> bool:
+def check_done(uniq_id: str) -> str:
 	try:
-		effective_message_id = update.message.message_id
 		doc = storage.db_lookup_id(uniq_id)
 		if doc:
-			tg_file_id = doc["tg_file_id"]
-			await send_without_upload(update, context, tg_file_id, effective_message_id)
-			uploader.remove_callback(effective_message_id)
-		else:
-			return False
+			return doc["tg_file_id"]
 	except Exception as e:
 		logging.error("An exception occurred while in process video handling!")
 		logging.exception(e)
 
-	return True
+	return ""
 
 async def send_video(update: Update, 
 	context: ContextTypes.DEFAULT_TYPE,
 	local_media_path: str, 
 	url: str, 
-	uniq_id: str, 
-	in_process: bool=False) -> bool:
+	uniq_id: str,
+	tg_file_id: str=None) -> bool:
 	effective_message_id = None
 	try:
-		if in_process:
-			return await handle_in_process(update, context, uniq_id)
-
 		effective_message_id = update.message.message_id
+
+		if tg_file_id is not None:
+			return await send_without_upload(update, context, tg_file_id, effective_message_id)
+
 		video_info = VideoInfo(local_media_path)
 		media_info = video_info.get_finfo()
 		logging.info("media file info: %s", media_info)
@@ -114,6 +110,7 @@ async def send_video(update: Update,
 		logging.error("Error occurred!")
 		logging.exception(e)
 	finally:
+		logging.info("Clean section triggered")
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
 		items_in_process.discard(uniq_id)
@@ -151,9 +148,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
 				await send_without_upload(update, context, tg_file_id, effective_message_id)
 			else:
-				async def send_video_wrapper(local_media_path: str, uniq_id: str, in_process: bool=False) -> None:
-					return await send_video(update, context, local_media_path, url, uniq_id, in_process)
-	
+				async def send_video_wrapper(local_media_path: str, uniq_id: str, tg_file_id: str=None) -> None:
+					return await send_video(update, context, local_media_path, url, uniq_id, tg_file_id)
+					
 				uploader.add_callback(effective_message_id, send_video_wrapper)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
@@ -168,11 +165,12 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)
 
-	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
+	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP) and not urls:
 		await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 
 def main() -> None:
 	"""Start the bot."""
+	uploader.set_in_process_callback(check_done)
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 
