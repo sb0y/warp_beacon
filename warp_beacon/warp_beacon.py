@@ -16,6 +16,7 @@ from uploader import AsyncUploader
 from telegram import ForceReply, Update, Chat, error
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
+
 # Enable logging
 logging.basicConfig(
 	format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -143,7 +144,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				async def send_video_wrapper(local_media_path: str, uniq_id: str, tg_file_id: str=None) -> None:
 					return await send_video(update, context, local_media_path, url, uniq_id, tg_file_id)
 					
-				uploader.add_callback(effective_message_id, send_video_wrapper)
+				uploader.add_callback(effective_message_id, send_video_wrapper())
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
