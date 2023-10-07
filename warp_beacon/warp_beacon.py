@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import asyncio
 import signal
 import time
 import logging
-from contextlib import suppress
 
 from urlextract import URLExtract
 
@@ -16,7 +14,7 @@ from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
 
 from telegram import ForceReply, Update, Chat, error
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, Updater
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 # Enable logging
 logging.basicConfig(
@@ -162,15 +160,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP) and not urls:
 		await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 
-async def start(que):
-	# your infinite loop here, for example:
-	while True:
-		update = await que.get()
-		await asyncio.sleep(1)
-
-async def run(loop: asyncio.AbstractEventLoop) -> None:
+def main() -> None:
 	"""Start the bot."""
-	que = asyncio.Queue()
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 
@@ -180,29 +171,10 @@ async def run(loop: asyncio.AbstractEventLoop) -> None:
 
 	# on non command i.e message - echo the message on Telegram
 	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
-	updater = Updater(application.bot, update_queue=que)
-	await updater.initialize()
-	await updater.start_polling()
-	task = asyncio.Task(start(que))
-
-	# cancel task to avoid warning:
-	task.cancel()
 	# Run the bot until the user presses Ctrl-C
-	with suppress(asyncio.CancelledError):
-		await task  # await for task cancellation
-
-	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
 	downloader.stop_all()
 	uploader.stop_all()
-
-def main() -> None:
-	loop = asyncio.new_event_loop()
-	asyncio.set_event_loop(loop)
-	try:
-		return loop.run_until_complete(run(loop))
-	finally:
-		loop.close()
-		asyncio.set_event_loop(None)
 
 if __name__ == "__main__":
 	main()
