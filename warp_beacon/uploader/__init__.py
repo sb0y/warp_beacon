@@ -69,8 +69,9 @@ class AsyncUploader(object):
 									if doc:
 										try:
 											tg_id = doc["tg_file_id"]
-										except:
-											pass
+										except Exception as e:
+											logging.error("DB error!")
+											logging.exception(e)
 									if tg_id:
 										logging.info("Performing wait job")
 										asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id), loop=self.loop)
