@@ -66,7 +66,6 @@ class AsyncUploader(object):
 								if in_process:
 									tg_id = None
 									doc = self.storage.db_lookup_id(uniq_id=uniq_id)
-									logging.info(doc)
 									if doc:
 										try:
 											tg_id = doc["tg_file_id"]
