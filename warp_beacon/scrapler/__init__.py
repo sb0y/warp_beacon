@@ -20,7 +20,7 @@ class AsyncDownloader(object):
 	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
-		self.workers = workers_count
+		self.workers_count = workers_count
 
 	def __del__(self) -> None:
 		self.stop_all()
