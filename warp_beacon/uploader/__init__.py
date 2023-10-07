@@ -22,7 +22,7 @@ class AsyncUploader(object):
 		self.job_queue = multiprocessing.Queue()
 		#do_work = lambda: asyncio.run(self.do_work())
 		for _ in range(pool_size):
-			thread = threading.Thread(target=asyncio.run_coroutine_threadsafe, args=(self.do_work(),asyncio.get_event_loop()))
+			thread = threading.Thread(target=asyncio.run, args=(self.do_work(),))
 			self.threads.append(thread)
 			thread.start()
 	
@@ -69,7 +69,8 @@ class AsyncUploader(object):
 										except:
 											pass
 									if tg_id:
-										await self.callbacks[m_id](path, uniq_id, tg_id)
+										async with self.lock:
+											await self.callbacks[m_id](path, uniq_id, tg_id)
 									else:
 										self.queue_task(path, uniq_id, message_id, True)
 								else:
