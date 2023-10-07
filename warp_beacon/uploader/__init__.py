@@ -72,6 +72,7 @@ class AsyncUploader(object):
 										except:
 											pass
 									if tg_id:
+										logging.info("Performing wait job")
 										asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id), loop=self.loop)
 									else:
 										self.queue_task(path, uniq_id, message_id, True)
