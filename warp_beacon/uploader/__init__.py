@@ -4,6 +4,8 @@ import multiprocessing
 import logging
 
 import asyncio
+from telegram import Update
+from telegram.ext import ContextTypes
 
 from typing import Optional, Callable, Coroutine
 
@@ -14,7 +16,7 @@ class AsyncUploader(object):
 	allow_loop = True
 	job_queue = None
 	callbacks = {}
-	lock = asyncio.Lock()
+	lock = None
 	storage = None
 
 	def __init__(self, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
@@ -29,8 +31,8 @@ class AsyncUploader(object):
 	def __del__(self) -> None:
 		self.stop_all()
 
-	def add_callback(self, message_id: int, callback: Callable) -> None:
-		self.callbacks[message_id] = callback
+	def add_callback(self, message_id: int, callback: Callable, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+		self.callbacks[message_id] = {"callback": callback, "update": update, "context": context}
 
 	def remove_callback(self, message_id: int) -> None:
 		if message_id in self.callbacks:
@@ -46,6 +48,7 @@ class AsyncUploader(object):
 		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "in_process": item_in_process})
 
 	async def do_work(self) -> None:
+		self.lock = asyncio.Lock()
 		logging.info("Upload worker started")
 		while self.allow_loop:
 			try:
@@ -70,11 +73,11 @@ class AsyncUploader(object):
 											pass
 									if tg_id:
 										async with self.lock:
-											await self.callbacks[m_id](path, uniq_id, tg_id)
+											await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id)
 									else:
 										self.queue_task(path, uniq_id, message_id, True)
 								else:
-									await self.callbacks[m_id](path, uniq_id)
+									await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
