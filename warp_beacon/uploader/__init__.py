@@ -36,7 +36,6 @@ class AsyncUploader(object):
 		self.callbacks[message_id] = {"callback": callback, "update": update, "context": context}
 
 	def remove_callback(self, message_id: int) -> None:
-		return
 		if message_id in self.callbacks:
 			del self.callbacks[message_id]
 
@@ -67,6 +66,7 @@ class AsyncUploader(object):
 								if in_process:
 									tg_id = None
 									doc = self.storage.db_lookup_id(uniq_id=uniq_id)
+									logging.info(doc)
 									if doc:
 										try:
 											tg_id = doc["tg_file_id"]
