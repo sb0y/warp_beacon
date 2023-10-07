@@ -22,6 +22,7 @@ class AsyncUploader(object):
 	def __init__(self, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.storage = storage
 		self.job_queue = multiprocessing.Queue()
+		self.lock = asyncio.Lock()
 		#do_work = lambda: asyncio.run(self.do_work())
 		for _ in range(pool_size):
 			thread = threading.Thread(target=asyncio.run, args=(self.do_work(),))
@@ -48,7 +49,6 @@ class AsyncUploader(object):
 		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "in_process": item_in_process})
 
 	async def do_work(self) -> None:
-		self.lock = asyncio.Lock()
 		logging.info("Upload worker started")
 		while self.allow_loop:
 			try:
