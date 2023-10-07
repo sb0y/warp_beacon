@@ -18,12 +18,12 @@ class AsyncUploader(object):
 	callbacks = {}
 	storage = None
 
-	def __init__(self, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
+	def __init__(self, loop: asyncio.AbstractEventLoop, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.storage = storage
 		self.job_queue = multiprocessing.Queue()
 		#do_work = lambda: asyncio.run(self.do_work())
 		for _ in range(pool_size):
-			thread = threading.Thread(target=asyncio.run, args=(self.do_work(),))
+			thread = threading.Thread(target=asyncio.run_coroutine_threadsafe, args=(self.do_work(), loop))
 			self.threads.append(thread)
 			thread.start()
 	
