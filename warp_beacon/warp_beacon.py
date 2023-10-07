@@ -204,6 +204,6 @@ if __name__ == "__main__":
 		except (KeyboardInterrupt, SystemExit):
 			logging.debug("Application received stop signal. Shutting down.")
 	except Exception as e:
-		logging.error(e)
+		logging.exception(e)
 	finally:
 		loop.close()
