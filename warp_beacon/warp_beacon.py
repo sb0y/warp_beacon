@@ -56,8 +56,6 @@ async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE
 	except Exception as e:
 		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 		logging.exception(e)
-	#finally:
-	#	uploader.remove_callback(effective_message_id)
 
 async def send_video(update: Update, 
 	context: ContextTypes.DEFAULT_TYPE,
@@ -100,9 +98,8 @@ async def send_video(update: Update,
 		logging.info("Clean section triggered")
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
-		#items_in_process.discard(uniq_id)
-	#if effective_message_id is not None and tg_file_id is None:
-		#uploader.remove_callback(effective_message_id)
+	
+		items_in_process.discard(uniq_id)
 
 	return True
 
