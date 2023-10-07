@@ -5,7 +5,7 @@ import logging
 
 import asyncio
 
-from typing import Optional, Callable
+from typing import Optional, Callable, Coroutine
 
 from storage import Storage
 
@@ -29,7 +29,7 @@ class AsyncUploader(object):
 	def __del__(self) -> None:
 		self.stop_all()
 
-	def add_callback(self, message_id: int, callback: Callable) -> None:
+	def add_callback(self, message_id: int, callback: Coroutine) -> None:
 		self.callbacks[message_id] = callback
 
 	def remove_callback(self, message_id: int) -> None:
