@@ -77,9 +77,6 @@ class AsyncUploader(object):
 									await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id)
 					except Exception as e:
 						logging.exception(e)
-					finally:
-						if self.lock.locked():
-							self.lock.release()
 				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:
