@@ -157,32 +157,13 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def main() -> None:
 	"""Start the bot."""
-	# Create the Application and pass it your bot's token.
-	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
-
-	# on different commands - answer in Telegram
-	application.add_handler(CommandHandler("start", start, block=False))
-	application.add_handler(CommandHandler("help", help_command))
-
-	# on non command i.e message - echo the message on Telegram
-	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 	# Run the bot until the user presses Ctrl-C
 	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
-	
-	storage = Storage()
-	uploader = AsyncUploader(
-		storage=storage,
-		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
-	)
-	downloader = scrapler.AsyncDownloader(
-		workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
-		uploader=uploader
-	)
+
 
 	async with application:
 		await application.initialize() # inits bot, update, persistence
 		await application.start()
-		await application.updater.start_polling()
 	downloader.stop_all()
 	uploader.stop_all()
 
@@ -191,6 +172,16 @@ if __name__ == "__main__":
 		@staticmethod
 		def _raise_system_exit() -> None:
 			raise SystemExit
+		
+		# Create the Application and pass it your bot's token.
+		application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
+
+		# on different commands - answer in Telegram
+		application.add_handler(CommandHandler("start", start, block=False))
+		application.add_handler(CommandHandler("help", help_command))
+
+		# on non command i.e message - echo the message on Telegram
+		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 
 		loop = asyncio.get_event_loop()
 		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
@@ -198,12 +189,39 @@ if __name__ == "__main__":
 			loop.add_signal_handler(sig, _raise_system_exit)
 		loop.add_signal_handler(sig, _raise_system_exit)
 
+		storage = Storage()
+		uploader = AsyncUploader(
+			storage=storage,
+			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
+		)
+		downloader = scrapler.AsyncDownloader(
+			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+			uploader=uploader
+		)
+
 		try:
-			loop.run_until_complete(main())
+			loop.run_until_complete(application.initialize())
+			if application.post_init:
+				loop.run_until_complete(application.post_init(application))
+			loop.run_until_complete(application.updater.start_polling())
+			loop.run_until_complete(application.start())
 			loop.run_forever()
 		except (KeyboardInterrupt, SystemExit):
 			logging.debug("Application received stop signal. Shutting down.")
+		finally:
+			try:
+				if application.updater.running:  # type: ignore[union-attr]
+					loop.run_until_complete(application.updater.stop())  # type: ignore[union-attr]
+				if application.running:
+					loop.run_until_complete(application.stop())
+				if application.post_stop:
+					loop.run_until_complete(application.post_stop(application))
+				loop.run_until_complete(application.shutdown())
+				if application.post_shutdown:
+					loop.run_until_complete(application.post_shutdown(application))
+			finally:
+				loop.close()
+				downloader.stop_all()
+				uploader.stop_all()
 	except Exception as e:
 		logging.exception(e)
-	finally:
-		loop.close()
