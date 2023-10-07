@@ -3,8 +3,8 @@
 
 import os
 import signal
+import time
 import logging
-import asyncio
 
 from urlextract import URLExtract
 
@@ -53,13 +53,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, effective_message_id: int) -> None:
 	try:
-		lock = asyncio.Lock()
-		async with lock:
-			await update.message.reply_video(
-				video=tg_file_id, 
-				reply_to_message_id=effective_message_id, 
-				disable_notification=True,
-				write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+		await update.message.reply_video(
+			video=tg_file_id, 
+			reply_to_message_id=effective_message_id, 
+			disable_notification=True,
+			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
 	except Exception as e:
 		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 		logging.exception(e)
