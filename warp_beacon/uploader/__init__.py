@@ -72,11 +72,11 @@ class AsyncUploader(object):
 										except:
 											pass
 									if tg_id:
-										self.loop.run_until_complete(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id))
+										asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id), loop=self.loop)
 									else:
 										self.queue_task(path, uniq_id, message_id, True)
 								else:
-									self.loop.run_until_complete(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id))
+									asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id), loop=self.loop)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
