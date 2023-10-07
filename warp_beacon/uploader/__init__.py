@@ -33,8 +33,8 @@ class AsyncUploader(object):
 		self.stop_all()
 
 	def add_callback(self, message_id: int, callback: Callable, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-		def callback_wrap() -> None:
-			ret = callback()
+		def callback_wrap(*args, **kwargs) -> None:
+			ret = callback(*args, **kwargs)
 			self.remove_callback(message_id)
 			return ret
 		self.callbacks[message_id] = {"callback": callback_wrap, "update": update, "context": context}
