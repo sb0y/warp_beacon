@@ -22,8 +22,11 @@ class AsyncUploader(object):
 		self.storage = storage
 		self.job_queue = multiprocessing.Queue()
 		#do_work = lambda: asyncio.run(self.do_work())
+		def loop_wrapper(loop: asyncio.AbstractEventLoop) -> None:
+			asyncio.set_event_loop(loop)
+			loop.run_until_complete(self.do_work())
 		for _ in range(pool_size):
-			thread = threading.Thread(target=asyncio.run_coroutine_threadsafe, args=(self.do_work(), loop))
+			thread = threading.Thread(target=loop_wrapper, args=(loop,))
 			self.threads.append(thread)
 			thread.start()
 	
