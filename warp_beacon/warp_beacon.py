@@ -26,7 +26,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-storage = None
+storage = Storage()
 uploader = None
 downloader = None
 
@@ -159,8 +159,8 @@ def _raise_system_exit() -> None:
 def main() -> None:
 	"""Start the bot."""
 	try:
-		storage = Storage()
-		
+		global uploader, downloader
+
 		loop = asyncio.get_event_loop()
 		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
 		for sig in stop_signals or []:
