@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from typing import Optional, Callable
 import signal
 import asyncio
 import logging
@@ -10,7 +11,6 @@ from urlextract import URLExtract
 
 import scrapler
 from storage import Storage
-from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
 
 from telegram import ForceReply, Update, Chat, error
@@ -60,6 +60,7 @@ async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def send_video(update: Update, 
 	context: ContextTypes.DEFAULT_TYPE,
 	local_media_path: str, 
+	media_info: Optional[dict],
 	url: str, 
 	uniq_id: str,
 	tg_file_id: str=None) -> bool:
@@ -70,10 +71,6 @@ async def send_video(update: Update,
 		if tg_file_id is not None:
 			return await send_without_upload(update, context, tg_file_id, effective_message_id)
 
-		video_info = VideoInfo(local_media_path)
-		media_info = video_info.get_finfo()
-		logging.info("media file info: %s", media_info)
-		thumb = video_info.generate_thumbnail()
 		message = await update.message.reply_video(
 			video=open(local_media_path, 'rb'), 
 			reply_to_message_id=effective_message_id, 
@@ -82,7 +79,7 @@ async def send_video(update: Update,
 			duration=media_info["duration"],
 			width=media_info["width"],
 			height=media_info["height"],
-			thumbnail=thumb,
+			thumbnail=media_info["thumb"],
 			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
 		storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
 		logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
@@ -132,8 +129,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
 				await send_without_upload(update, context, tg_file_id, effective_message_id)
 			else:
-				async def send_video_wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, local_media_path: str, uniq_id: str, tg_file_id: str=None) -> None:
-					return await send_video(update, context, local_media_path, url, uniq_id, tg_file_id)
+				async def send_video_wrapper(local_media_path: str, media_info: Optional[dict], uniq_id: str, tg_file_id: str=None) -> None:
+					return await send_video(update, context, local_media_path, media_info, url, uniq_id, tg_file_id)
 					
 				uploader.add_callback(effective_message_id, send_video_wrapper, update, context)
 

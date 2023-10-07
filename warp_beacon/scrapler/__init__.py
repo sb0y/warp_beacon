@@ -5,6 +5,7 @@ import uuid
 import logging
 from requests.exceptions import ConnectTimeout, HTTPError
 
+from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
 
 CONST_CPU_COUNT = multiprocessing.cpu_count()
@@ -52,10 +53,14 @@ class AsyncDownloader(object):
 										logging.exception(e)
 										time.sleep(2)
 
-								self.uploader.queue_task(path=str(path), message_id=item["message_id"], uniq_id=item["uniq_id"])
+								video_info = VideoInfo(path)
+								media_info = video_info.get_finfo()
+								logging.info("Media file info: %s", media_info)
+								media_info["thumb"] = video_info.generate_thumbnail()
+								self.uploader.queue_task(path=str(path), message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=media_info)
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
-								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], item_in_process=True)
+								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=None, item_in_process=True)
 					except HTTPError as e:
 						logging.error("HTTP error inside download worker!")
 						logging.exception(e)
