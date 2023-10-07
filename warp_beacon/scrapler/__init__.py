@@ -51,7 +51,7 @@ class AsyncDownloader(object):
 								self.uploader.queue_task(path=str(path), message_id=item["message_id"], uniq_id=item["uniq_id"])
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
-								#self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], item_in_process=True)
+								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], item_in_process=True)
 					except HTTPError as e:
 						logging.error("HTTP error inside download worker!")
 						logging.exception(e)
@@ -75,7 +75,7 @@ class AsyncDownloader(object):
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
 
-	def queue_task(self, url: str, uniq_id: str, message_id: str, item_in_process: str=False) -> str:
+	def queue_task(self, url: str, uniq_id: str, message_id: str, item_in_process: bool=False) -> str:
 		id = uuid.uuid4()
 		self.job_queue.put_nowait({"url": url, "id": id, "in_process": item_in_process, "uniq_id": uniq_id, "message_id": message_id})
 		return id
