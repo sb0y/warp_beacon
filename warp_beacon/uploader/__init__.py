@@ -52,8 +52,8 @@ class AsyncUploader(object):
 			i.join()
 		self.threads.clear()
 
-	def queue_task(self, path: str, uniq_id: str, message_id: int, item_in_process: bool=False) -> None:
-		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "in_process": item_in_process})
+	def queue_task(self, path: str, uniq_id: str, message_id: int, media_info: Optional[dict]=None, item_in_process: bool=False) -> None:
+		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "media_info": media_info, "in_process": item_in_process})
 
 	def do_work(self) -> None:
 		logging.info("Upload worker started")
@@ -65,6 +65,7 @@ class AsyncUploader(object):
 					in_process = item["in_process"]
 					uniq_id = item["uniq_id"]
 					message_id = item["message_id"]
+					media_info = item["media_info"]
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
@@ -74,11 +75,11 @@ class AsyncUploader(object):
 									tg_id = self.storage.db_lookup_id(uniq_id).get("tg_file_id", None)
 									if tg_id:
 										logging.info("Performing waited job")
-										asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id), loop=self.loop)
+										asyncio.ensure_future(self.callbacks[m_id]["callback"](path, media_info, uniq_id, tg_id), loop=self.loop)
 									else:
-										self.queue_task(path, uniq_id, message_id, True)
+										self.queue_task(path, uniq_id, message_id, media_info, True)
 								else:
-									asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id), loop=self.loop)
+									asyncio.ensure_future(self.callbacks[m_id]["callback"](path, media_info, uniq_id), loop=self.loop)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
