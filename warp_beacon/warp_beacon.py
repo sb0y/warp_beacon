@@ -152,41 +152,21 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP) and not urls:
 		await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 
-async def main() -> None:
+@staticmethod
+def _raise_system_exit() -> None:
+	raise SystemExit
+
+def main() -> None:
 	"""Start the bot."""
-	# Run the bot until the user presses Ctrl-C
-	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
-
-
-	async with application:
-		await application.initialize() # inits bot, update, persistence
-		await application.start()
-	downloader.stop_all()
-	uploader.stop_all()
-
-if __name__ == "__main__":
 	try:
-		@staticmethod
-		def _raise_system_exit() -> None:
-			raise SystemExit
+		storage = Storage()
 		
-		# Create the Application and pass it your bot's token.
-		application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
-
-		# on different commands - answer in Telegram
-		application.add_handler(CommandHandler("start", start, block=False))
-		application.add_handler(CommandHandler("help", help_command))
-
-		# on non command i.e message - echo the message on Telegram
-		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
-
 		loop = asyncio.get_event_loop()
 		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
 		for sig in stop_signals or []:
 			loop.add_signal_handler(sig, _raise_system_exit)
 		loop.add_signal_handler(sig, _raise_system_exit)
-
-		storage = Storage()
+		
 		uploader = AsyncUploader(
 			storage=storage,
 			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
@@ -196,6 +176,18 @@ if __name__ == "__main__":
 			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
 			uploader=uploader
 		)
+		downloader.start()
+		uploader.start()
+
+		# Create the Application and pass it your bot's token.
+		application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
+
+		# on different commands - answer in Telegram
+		application.add_handler(CommandHandler("start", start, block=False))
+		application.add_handler(CommandHandler("help", help_command))
+
+		# on non command i.e message - echo the message on Telegram
+		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 
 		try:
 			loop.run_until_complete(application.initialize())
@@ -223,3 +215,6 @@ if __name__ == "__main__":
 				uploader.stop_all()
 	except Exception as e:
 		logging.exception(e)
+
+if __name__ == "__main__":
+	main()

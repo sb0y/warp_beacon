@@ -18,19 +18,22 @@ class AsyncUploader(object):
 	callbacks = {}
 	storage = None
 	loop = None
+	pool_size = 1
 
 	def __init__(self, loop: asyncio.AbstractEventLoop, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
 		self.storage = storage
 		self.loop = loop
 		self.job_queue = multiprocessing.Queue()
-		#do_work = lambda: asyncio.run(self.do_work())
-		for _ in range(pool_size):
-			thread = threading.Thread(target=self.do_work)
-			self.threads.append(thread)
-			thread.start()
+		self.pool_size = pool_size
 	
 	def __del__(self) -> None:
 		self.stop_all()
+
+	def start(self) -> None:
+		for _ in range(self.pool_size):
+			thread = threading.Thread(target=self.do_work)
+			self.threads.append(thread)
+			thread.start()
 
 	def add_callback(self, message_id: int, callback: Callable, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		def callback_wrap(*args, **kwargs) -> None:
@@ -68,16 +71,9 @@ class AsyncUploader(object):
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
 								if in_process:
-									tg_id = None
-									doc = self.storage.db_lookup_id(uniq_id=uniq_id)
-									if doc:
-										try:
-											tg_id = doc["tg_file_id"]
-										except Exception as e:
-											logging.error("DB error!")
-											logging.exception(e)
+									tg_id = self.storage.db_lookup_id(uniq_id).get("tg_file_id", None)
 									if tg_id:
-										logging.info("Performing wait job")
+										logging.info("Performing waited job")
 										asyncio.ensure_future(self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id), loop=self.loop)
 									else:
 										self.queue_task(path, uniq_id, message_id, True)
