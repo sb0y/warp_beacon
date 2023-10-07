@@ -72,15 +72,20 @@ class AsyncUploader(object):
 										except:
 											pass
 									if tg_id:
-										async with self.lock:
-											await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id)
+										await self.lock.acquire()
+										await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id, tg_id)
+										self.lock.release()
 									else:
 										self.queue_task(path, uniq_id, message_id, True)
 								else:
-									async with self.lock:
-										await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id)
+									await self.lock.acquire()
+									await self.callbacks[m_id]["callback"](self.callbacks[m_id]["update"], self.callbacks[m_id]["context"], path, uniq_id)
+									self.lock.release()
 					except Exception as e:
 						logging.exception(e)
+					finally:
+						if self.lock.locked():
+							self.lock.release()
 				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:
