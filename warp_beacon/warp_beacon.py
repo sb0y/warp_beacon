@@ -168,6 +168,7 @@ async def main() -> None:
 	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 	# Run the bot until the user presses Ctrl-C
 	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	
 	storage = Storage()
 	uploader = AsyncUploader(
 		storage=storage,
@@ -177,6 +178,7 @@ async def main() -> None:
 		workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
 		uploader=uploader
 	)
+
 	async with application:
 		await application.initialize() # inits bot, update, persistence
 		await application.start()
@@ -185,4 +187,23 @@ async def main() -> None:
 	uploader.stop_all()
 
 if __name__ == "__main__":
-	asyncio.run(main())
+	try:
+		@staticmethod
+		def _raise_system_exit() -> None:
+			raise SystemExit
+
+		loop = asyncio.get_event_loop()
+		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
+		for sig in stop_signals or []:
+			loop.add_signal_handler(sig, _raise_system_exit)
+		loop.add_signal_handler(sig, _raise_system_exit)
+
+		try:
+			loop.run_until_complete(main())
+			loop.run_forever()
+		except (KeyboardInterrupt, SystemExit):
+			logging.debug("Application received stop signal. Shutting down.")
+	except Exception as e:
+		logging.error(e)
+	finally:
+		loop.close()
