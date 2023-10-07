@@ -15,17 +15,21 @@ class AsyncDownloader(object):
 	allow_loop = None
 	job_queue = multiprocessing.Queue()
 	uploader = None
+	workers_count = CONST_CPU_COUNT
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
-		for _ in range(workers_count):
-			proc = multiprocessing.Process(target=self.do_work)
-			self.workers.append(proc)
-			proc.start()
+		self.workers = workers_count
 
 	def __del__(self) -> None:
 		self.stop_all()
+
+	def start(self) -> None:
+		for _ in range(self.workers_count):
+			proc = multiprocessing.Process(target=self.do_work)
+			self.workers.append(proc)
+			proc.start()
 
 	def do_work(self) -> None:
 		logging.info("download worker started")
