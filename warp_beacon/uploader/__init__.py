@@ -29,7 +29,7 @@ class AsyncUploader(object):
 	def __del__(self) -> None:
 		self.stop_all()
 
-	def add_callback(self, message_id: int, callback: Coroutine) -> None:
+	def add_callback(self, message_id: int, callback: Callable) -> None:
 		self.callbacks[message_id] = callback
 
 	def remove_callback(self, message_id: int) -> None:
