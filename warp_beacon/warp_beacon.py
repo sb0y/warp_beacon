@@ -3,7 +3,7 @@
 
 import os
 import signal
-import time
+import asyncio
 import logging
 
 from urlextract import URLExtract
@@ -26,15 +26,9 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-storage = Storage()
-uploader = AsyncUploader(
-	storage=storage,
-	pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
-)
-downloader = scrapler.AsyncDownloader(
-	workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
-	uploader=uploader
-)
+storage = None
+uploader = None
+downloader = None
 
 items_in_process = set()
 
@@ -161,7 +155,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if chat.type not in (Chat.GROUP, Chat.SUPERGROUP) and not urls:
 		await update.message.reply_text(reply_text, reply_to_message_id=effective_message_id)
 
-def main() -> None:
+async def main() -> None:
 	"""Start the bot."""
 	# Create the Application and pass it your bot's token.
 	application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
@@ -173,9 +167,22 @@ def main() -> None:
 	# on non command i.e message - echo the message on Telegram
 	application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 	# Run the bot until the user presses Ctrl-C
-	application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	#application.run_polling(allowed_updates=Update.ALL_TYPES, stop_signals=[signal.SIGTERM, signal.SIGINT, signal.SIGQUIT])
+	storage = Storage()
+	uploader = AsyncUploader(
+		storage=storage,
+		pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT))
+	)
+	downloader = scrapler.AsyncDownloader(
+		workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+		uploader=uploader
+	)
+	async with application:
+		await application.initialize() # inits bot, update, persistence
+		await application.start()
+		await application.updater.start_polling()
 	downloader.stop_all()
 	uploader.stop_all()
 
 if __name__ == "__main__":
-	main()
+	asyncio.run(main())
