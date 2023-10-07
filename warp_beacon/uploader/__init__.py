@@ -36,6 +36,7 @@ class AsyncUploader(object):
 		self.callbacks[message_id] = {"callback": callback, "update": update, "context": context}
 
 	def remove_callback(self, message_id: int) -> None:
+		return
 		if message_id in self.callbacks:
 			del self.callbacks[message_id]
 
