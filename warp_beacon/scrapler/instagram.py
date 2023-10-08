@@ -72,7 +72,7 @@ class InstagramScrapler(ScraplerAbstract):
 		elif media_info.media_type == 8:
 			for i in media_info.resources:
 				if i.media_type == 2: # video
-					res = str(self.cl.video_download(media_pk, folder='/tmp'))
+					res = str(self.cl.video_download(i.pk, folder='/tmp'))
 					break
 
 		return res
