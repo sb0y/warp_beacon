@@ -1,8 +1,11 @@
 from typing import Optional, Callable
 import multiprocessing
+import time
 import uuid
 import logging
+from requests.exceptions import ConnectTimeout, HTTPError
 
+from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
 
 CONST_CPU_COUNT = multiprocessing.cpu_count()
@@ -12,19 +15,36 @@ class AsyncDownloader(object):
 	workers = []
 	allow_loop = None
 	job_queue = multiprocessing.Queue()
-	manager = None
 	uploader = None
+	workers_count = CONST_CPU_COUNT
+
 	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
-		self.manager = multiprocessing.Manager()
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
-		for _ in range(workers_count):
+		self.workers_count = workers_count
+
+	def __del__(self) -> None:
+		self.stop_all()
+
+	def start(self) -> None:
+		for _ in range(self.workers_count):
 			proc = multiprocessing.Process(target=self.do_work)
 			self.workers.append(proc)
 			proc.start()
 
-	def __del__(self) -> None:
-		self.stop_all()
+	def get_media_info(self, path: str) -> Optional[dict]:
+		media_info = None
+		try:
+			if path:
+				video_info = VideoInfo(path)
+				media_info = video_info.get_finfo()
+				logging.info("Media file info: %s", media_info)
+				media_info["thumb"] = video_info.generate_thumbnail()
+		except Exception as e:
+			logging.error("Failed to process media info!")
+			logging.exception(e)
+
+		return media_info
 
 	def do_work(self) -> None:
 		logging.info("download worker started")
@@ -35,13 +55,32 @@ class AsyncDownloader(object):
 					actor = None
 					try:
 						if "instagram" in item["url"]:
-							from scrapler.instagram import InstagramScrapler
-							actor = InstagramScrapler()
-							path = actor.download(item["url"])
-							self.uploader.queue_task(str(path))
-					except Exception as e:
+							if not item["in_process"]:
+								from scrapler.instagram import InstagramScrapler
+								actor = InstagramScrapler()
+								path = None
+								while True:
+									try:
+										path = str(actor.download(item["url"]))
+										break
+									except ConnectTimeout as e:
+										logging.error("ConnectTimeout download error!")
+										logging.exception(e)
+										time.sleep(2)
+
+								media_info = self.get_media_info(path)
+								self.uploader.queue_task(path=path, message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=media_info)
+							else:
+								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
+								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=None, item_in_process=True)
+					except HTTPError as e:
+						logging.error("HTTP error inside download worker!")
 						logging.exception(e)
-				except multiprocessing.queue.Empty:
+					except Exception as e:
+						logging.error("Error inside download worker!")
+						logging.exception(e)
+						self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
+				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:
 				logging.error("Exception occurred inside worker!")
@@ -55,8 +94,9 @@ class AsyncDownloader(object):
 				proc.terminate()
 				proc.join()
 				logging.info("process #%d stopped", proc.pid)
+		self.workers.clear()
 
-	def queue_task(self, url: str) -> str:
+	def queue_task(self, url: str, uniq_id: str, message_id: str, item_in_process: bool=False) -> str:
 		id = uuid.uuid4()
-		self.job_queue.put_nowait({"url": url, "id": id})
+		self.job_queue.put_nowait({"url": url, "id": id, "in_process": item_in_process, "uniq_id": uniq_id, "message_id": message_id})
 		return id
