@@ -85,6 +85,7 @@ class AsyncUploader(object):
 								if task_failed:
 									logging.info("URL '%s' download failed. Skipping upload job ...", path)
 									self.process_done(uniq_id)
+									self.remove_callback(message_id)
 									continue
 								if in_process:
 									tg_id = self.storage.db_lookup_id(uniq_id).get("tg_file_id", None)
