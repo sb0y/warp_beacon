@@ -32,6 +32,20 @@ class AsyncDownloader(object):
 			self.workers.append(proc)
 			proc.start()
 
+	def get_media_info(self, path: str) -> Optional[dict]:
+		media_info = None
+		try:
+			if path:
+				video_info = VideoInfo(path)
+				media_info = video_info.get_finfo()
+				logging.info("Media file info: %s", media_info)
+				media_info["thumb"] = video_info.generate_thumbnail()
+		except Exception as e:
+			logging.error("Failed to process media info!")
+			logging.exception(e)
+
+		return media_info
+
 	def do_work(self) -> None:
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
@@ -44,20 +58,18 @@ class AsyncDownloader(object):
 							if not item["in_process"]:
 								from scrapler.instagram import InstagramScrapler
 								actor = InstagramScrapler()
+								path = None
 								while True:
 									try:
-										path = actor.download(item["url"])
+										path = str(actor.download(item["url"]))
 										break
 									except ConnectTimeout as e:
 										logging.error("ConnectTimeout download error!")
 										logging.exception(e)
 										time.sleep(2)
 
-								video_info = VideoInfo(path)
-								media_info = video_info.get_finfo()
-								logging.info("Media file info: %s", media_info)
-								media_info["thumb"] = video_info.generate_thumbnail()
-								self.uploader.queue_task(path=str(path), message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=media_info)
+								media_info = self.get_media_info(path)
+								self.uploader.queue_task(path=path, message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=media_info)
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=None, item_in_process=True)
