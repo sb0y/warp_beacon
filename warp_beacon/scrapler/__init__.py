@@ -61,7 +61,7 @@ class AsyncDownloader(object):
 								path = None
 								while True:
 									try:
-										path = str(actor.download(item["url"]))
+										path = actor.download(item["url"])
 										break
 									except ConnectTimeout as e:
 										logging.error("ConnectTimeout download error!")
@@ -79,7 +79,7 @@ class AsyncDownloader(object):
 					except Exception as e:
 						logging.error("Error inside download worker!")
 						logging.exception(e)
-						self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
+						#self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
 				except multiprocessing.Queue.empty:
 					pass
 			except Exception as e:

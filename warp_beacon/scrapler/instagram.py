@@ -62,4 +62,4 @@ class InstagramScrapler(ScraplerAbstract):
 	def download(self, url: str) -> str:
 		video_url = self.scrap(url)
 		local_path = self.cl.video_download_by_url(video_url, folder='/tmp')
-		return local_path
+		return str(local_path)
