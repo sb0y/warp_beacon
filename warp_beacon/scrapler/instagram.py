@@ -1,5 +1,6 @@
 import os
 import json
+from typing import Optional, Callable
 import logging
 
 from instagrapi import Client
@@ -41,8 +42,9 @@ class InstagramScrapler(ScraplerAbstract):
 	def scrap(self, url: str) -> str:
 		self.load_session()
 		video_url = None
-		def _scrap() -> str:
+		def _scrap() -> Optional[str]:
 			media_id = self.cl.media_pk_from_url(url)
+			logging.info("media_id is '%s'", media_id)
 			return self.cl.media_info(media_id).video_url
 		try:
 			video_url = _scrap()
@@ -57,7 +59,7 @@ class InstagramScrapler(ScraplerAbstract):
 			self.login()
 			video_url = _scrap()
 			
-		return str(video_url)
+		return video_url
 	
 	def download(self, url: str) -> str:
 		video_url = self.scrap(url)
