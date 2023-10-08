@@ -57,7 +57,7 @@ class InstagramScrapler(ScraplerAbstract):
 			self.login()
 			video_url = _scrap()
 			
-		return video_url
+		return str(video_url)
 	
 	def download(self, url: str) -> str:
 		video_url = self.scrap(url)
