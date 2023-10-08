@@ -50,6 +50,7 @@ class AsyncDownloader(object):
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
 			try:
+				item = {}
 				try:
 					item = self.job_queue.get()
 					actor = None
@@ -80,6 +81,7 @@ class AsyncDownloader(object):
 					except Exception as e:
 						logging.error("Error inside download worker!")
 						logging.exception(e)
+						self.notify_task_failed(item=item)
 						#self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
 				except multiprocessing.Queue.empty:
 					pass
@@ -101,3 +103,6 @@ class AsyncDownloader(object):
 		id = uuid.uuid4()
 		self.job_queue.put_nowait({"url": url, "id": id, "in_process": item_in_process, "uniq_id": uniq_id, "message_id": message_id})
 		return id
+	
+	def notify_task_failed(self, item: dict) -> None:
+		self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=None, item_in_process=False, task_failed=True)
