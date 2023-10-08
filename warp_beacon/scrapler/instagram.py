@@ -42,10 +42,10 @@ class InstagramScrapler(ScraplerAbstract):
 	def scrap(self, url: str) -> str:
 		self.load_session()
 		video_url = None
-		def _scrap() -> Optional[str]:
+		def _scrap() -> int:
 			media_id = self.cl.media_pk_from_url(url)
 			logging.info("media_id is '%s'", media_id)
-			return self.cl.media_info(media_id).video_url
+			return int(media_id)
 		try:
 			video_url = _scrap()
 		except PleaseWaitFewMinutes as e:
@@ -62,7 +62,7 @@ class InstagramScrapler(ScraplerAbstract):
 		return video_url
 	
 	def download(self, url: str) -> str:
-		video_url = self.scrap(url)
-		logging.info("video_url is '%s'", video_url)
-		local_path = self.cl.video_download_by_url(video_url, folder='/tmp')
+		media_pk = self.scrap(url)
+		logging.info("video_url is '%s'", media_pk)
+		local_path = self.cl.video_download(media_pk, folder='/tmp')
 		return str(local_path)
