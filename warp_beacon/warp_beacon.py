@@ -30,8 +30,6 @@ storage = Storage()
 uploader = None
 downloader = None
 
-items_in_process = set()
-
 # Define a few command handlers. These usually take the two arguments update and
 # context.
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -96,7 +94,7 @@ async def send_video(update: Update,
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
 	
-		items_in_process.discard(uniq_id)
+		uploader.process_done(uniq_id)
 
 	return True
 
@@ -138,10 +136,10 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				try:
 					downloader.queue_task(url=url, 
 						message_id=effective_message_id, 
-						item_in_process=uniq_id in items_in_process, 
+						item_in_process=uploader.is_inprocess(uniq_id), 
 						uniq_id=uniq_id
 					)
-					items_in_process.add(uniq_id)
+					uploader.set_inprocess(uniq_id)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
 					logging.exception(e)

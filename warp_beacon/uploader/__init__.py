@@ -17,6 +17,7 @@ class AsyncUploader(object):
 	job_queue = None
 	callbacks = {}
 	storage = None
+	in_process = set()
 	loop = None
 	pool_size = 1
 
@@ -52,8 +53,17 @@ class AsyncUploader(object):
 			i.join()
 		self.threads.clear()
 
-	def queue_task(self, path: str, uniq_id: str, message_id: int, media_info: Optional[dict]=None, item_in_process: bool=False) -> None:
-		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "media_info": media_info, "in_process": item_in_process})
+	def is_inprocess(self, uniq_id: str) -> bool:
+		return uniq_id in self.in_process
+	
+	def process_done(self, uniq_id: str) -> None:
+		self.in_process.discard(uniq_id)
+
+	def set_inprocess(self, uniq_id: str) -> None:
+		self.in_process.add(uniq_id)
+
+	def queue_task(self, path: str, uniq_id: str, message_id: int, media_info: Optional[dict]=None, item_in_process: bool=False, task_failed: bool=False) -> None:
+		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "media_info": media_info, "in_process": item_in_process, "task_failed": task_failed})
 
 	def do_work(self) -> None:
 		logging.info("Upload worker started")
@@ -66,11 +76,16 @@ class AsyncUploader(object):
 					uniq_id = item["uniq_id"]
 					message_id = item["message_id"]
 					media_info = item["media_info"]
+					task_failed = item["task_failed"]
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
+								if task_failed:
+									logging.info("URL '%s' download failed. Skipping upload job ...", path)
+									self.process_done(uniq_id)
+									continue
 								if in_process:
 									tg_id = self.storage.db_lookup_id(uniq_id).get("tg_file_id", None)
 									if tg_id:
