@@ -61,6 +61,7 @@ class AsyncDownloader(object):
 								path = None
 								while True:
 									try:
+										logging.info("Downloading URL '%s'", item["url"])
 										path = actor.download(item["url"])
 										break
 									except ConnectTimeout as e:
