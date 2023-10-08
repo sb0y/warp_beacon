@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+import logging
 
 from urllib.parse import urlparse
 
@@ -22,23 +23,32 @@ class Storage(object):
 		self.db = self.client.media.media
 
 	def __del__(self) -> None:
-		pass
+		if self.client:
+			self.client.close()
 
 	@staticmethod
 	def compute_uniq(url: str) -> str:
 		path = urlparse(url).path.strip('/')
 		return path
 	
-	def db_find(self, uniq_id: str) -> Optional[dict]:
-		document = self.db.find_one({"uniq_id": uniq_id})
-		if not document:
-			return None
+	def db_find(self, uniq_id: str) -> dict:
+		document = None
+		try:
+			document = self.db.find_one({"uniq_id": uniq_id})
+			if not document:
+				return {}
+		except Exception as e:
+			logging.error("Error occurred while trying to read from the database!")
+			return {}
 		return {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"]}
 	
-	def db_lookup(self, url: str) -> Optional[dict]:
+	def db_lookup(self, url: str) -> dict:
 		uniq_id = self.compute_uniq(url)
-		local_path = self.db_find(uniq_id)
-		return local_path
+		doc = self.db_find(uniq_id)
+		return doc
+	
+	def db_lookup_id(self, uniq_id: str) -> dict:
+		return self.db_find(uniq_id)
 	
 	def add_media(self, tg_file_id: str, media_url: str, origin: str) -> int:
 		uniq_id = self.compute_uniq(media_url)
