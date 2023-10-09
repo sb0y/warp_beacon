@@ -57,18 +57,15 @@ class Storage(object):
 		return media_id
 	
 	def get_random(self) -> dict:
-		doc = None
 		ret = {}
 		try:
 			cursor = self.db.aggregate([
 				{ "$match": { "tg_file_id": { "$exists": True } } },
 				{ "$sample": { "size": 1 } }
 			])
-			logging.info(list(cursor))
-			if cursor:
-				tmp = list(cursor)
-				if tmp:
-					ret = tmp[-1]
+			tmp = list(cursor)
+			if tmp:
+				ret = tmp.pop()
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
