@@ -15,4 +15,6 @@ class DownloadJob(AbstractJob):
 		return DownloadJob(**kwargs)
 	
 	def to_upload_job(self, **kwargs: Unpack[JobSettings]) -> AbstractJob:
-		return UploadJob.build(**self.to_dict())
+		d = self.to_dict()
+		d.update(kwargs)
+		return UploadJob.build(**d)
