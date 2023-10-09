@@ -67,7 +67,7 @@ async def send_video(update: Update,
 	try:
 		effective_message_id = update.message.message_id
 
-		if tg_file_id is not None:
+		if tg_file_id:
 			return await send_without_upload(update, context, tg_file_id, effective_message_id)
 
 		message = await update.message.reply_video(
