@@ -76,7 +76,7 @@ class AsyncUploader(object):
 					in_process = job.in_process
 					uniq_id = job.uniq_id
 					message_id = job.message_id
-					task_failed = job.task_failed
+					task_failed = job.job_failed
 					if not in_process:
 						logging.info("Accepted download job, file: '%s'", path)
 					try:
