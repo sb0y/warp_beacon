@@ -12,6 +12,7 @@ from urlextract import URLExtract
 import scrapler
 from storage import Storage
 from uploader import AsyncUploader
+from jobs.download_job import DownloadJob, UploadJob
 
 from telegram import ForceReply, Update, Chat, error
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -90,11 +91,8 @@ async def send_video(update: Update,
 		logging.error("Error occurred!")
 		logging.exception(e)
 	finally:
-		logging.info("Clean section triggered")
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
-	
-		uploader.process_done(uniq_id)
 
 	return True
 
@@ -127,18 +125,20 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
 				await send_without_upload(update, context, tg_file_id, effective_message_id)
 			else:
-				async def send_video_wrapper(local_media_path: str, media_info: Optional[dict], uniq_id: str, tg_file_id: str=None) -> None:
-					return await send_video(update, context, local_media_path, media_info, url, uniq_id, tg_file_id)
-					
+				async def send_video_wrapper(job: UploadJob) -> None:
+					ret = await send_video(update, context, job.local_media_path, job.media_info, job.url, job.uniq_id, job.tg_file_id)
+					uploader.process_done(job.uniq_id)
+					return ret
+
 				uploader.add_callback(effective_message_id, send_video_wrapper, update, context)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(url=url, 
+					downloader.queue_task(DownloadJob.build(url=url, 
 						message_id=effective_message_id, 
 						item_in_process=uploader.is_inprocess(uniq_id), 
 						uniq_id=uniq_id
-					)
+					))
 					uploader.set_inprocess(uniq_id)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
