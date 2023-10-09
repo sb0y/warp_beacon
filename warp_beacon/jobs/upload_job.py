@@ -15,7 +15,9 @@ class UploadJob(AbstractJob):
 	
 	def to_download_job(self, **kwargs: Unpack[JobSettings]) -> AbstractJob:
 		from jobs.download_job import DownloadJob
-		return DownloadJob.build(**self.to_dict())
+		d = self.to_dict()
+		d.update(kwargs)
+		return DownloadJob.build(**d)
 	
 	def set_flag(self, key: str, value: bool) -> "UploadJob":
 		if key in self.__dict__:
