@@ -7,6 +7,7 @@ from requests.exceptions import ConnectTimeout, HTTPError
 
 from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
+from jobs.download_job import DownloadJob
 
 CONST_CPU_COUNT = multiprocessing.cpu_count()
 
@@ -50,38 +51,40 @@ class AsyncDownloader(object):
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
 			try:
-				item = {}
+				job = None
 				try:
-					item = self.job_queue.get()
+					job = self.job_queue.get()
 					actor = None
 					try:
-						if "instagram" in item["url"]:
-							if not item["in_process"]:
+						if "instagram.com/" in job.url:
+							if not job.in_process:
 								from scrapler.instagram import InstagramScrapler
 								actor = InstagramScrapler()
-								path = None
+								paths = None
 								while True:
 									try:
-										logging.info("Downloading URL '%s'", item["url"])
-										path = actor.download(item["url"])
+										logging.info("Downloading URL '%s'", job.url)
+										paths = actor.download(job.url)
 										break
 									except ConnectTimeout as e:
 										logging.error("ConnectTimeout download error!")
 										logging.exception(e)
 										time.sleep(2)
-
-								media_info = self.get_media_info(path)
-								self.uploader.queue_task(path=path, message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=media_info)
+								if paths:
+									for path in paths:
+										media_info = self.get_media_info(path)
+										upload_job = job.to_upload_job(local_media_path=path, media_info=media_info)
+										self.uploader.queue_task(upload_job)
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
-								self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=None, item_in_process=True)
+								self.uploader.queue_task(job.to_upload_job(in_process=True))
 					except HTTPError as e:
 						logging.error("HTTP error inside download worker!")
 						logging.exception(e)
 					except Exception as e:
 						logging.error("Error inside download worker!")
 						logging.exception(e)
-						self.notify_task_failed(item=item)
+						self.notify_task_failed(job)
 						#self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
 				except multiprocessing.Queue.empty:
 					pass
@@ -99,10 +102,9 @@ class AsyncDownloader(object):
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
 
-	def queue_task(self, url: str, uniq_id: str, message_id: str, item_in_process: bool=False) -> str:
-		id = uuid.uuid4()
-		self.job_queue.put_nowait({"url": url, "id": id, "in_process": item_in_process, "uniq_id": uniq_id, "message_id": message_id})
-		return id
+	def queue_task(self, job: DownloadJob) -> str:
+		self.job_queue.put_nowait(job)
+		return str(job.job_id)
 	
-	def notify_task_failed(self, item: dict) -> None:
-		self.uploader.queue_task(path=item["url"], message_id=item["message_id"], uniq_id=item["uniq_id"], media_info=None, item_in_process=False, task_failed=True)
+	def notify_task_failed(self, job: DownloadJob) -> None:
+		self.uploader.queue_task(job.to_upload_job(job_failed=True))
