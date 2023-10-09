@@ -45,6 +45,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 	"""Send a message when the command /help is issued."""
 	await update.message.reply_text("Send me a link to remote media")
 
+async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+	d = storage.get_random()
+	if not d:
+		await update.message.reply_text("No random content yet.")
+		return
+	await send_without_upload(update, context, d["tg_file_id"], update.message.message_id)
+
 async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
 	try:
 		await update.message.reply_text(
@@ -208,7 +215,8 @@ def main() -> None:
 		application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
 
 		# on different commands - answer in Telegram
-		application.add_handler(CommandHandler("start", start, block=False))
+		application.add_handler(CommandHandler("start", start))
+		application.add_handler(CommandHandler("random", random))
 		application.add_handler(CommandHandler("help", help_command))
 
 		# on non command i.e message - echo the message on Telegram

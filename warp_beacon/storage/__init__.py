@@ -39,6 +39,7 @@ class Storage(object):
 				return {}
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
+			logging.exception(e)
 			return {}
 		return {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"]}
 	
@@ -54,5 +55,20 @@ class Storage(object):
 		uniq_id = self.compute_uniq(media_url)
 		media_id = self.db.insert_one({"uniq_id": uniq_id, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
 		return media_id
+	
+	def get_random(self) -> dict:
+		doc = None
+		try:
+			doc = self.db.aggregate([
+				#{ "$match": { "start_time": { "$exists": False } } },
+				{ "$sample": { "size": 1 } }
+			])
+			if not doc:
+				return {}
+		except Exception as e:
+			logging.error("Error occurred while trying to read from the database!")
+			logging.exception(e)
+		return {"tg_file_id": doc["tg_file_id"]}
+
 
 
