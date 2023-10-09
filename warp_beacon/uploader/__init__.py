@@ -78,7 +78,7 @@ class AsyncUploader(object):
 					message_id = job.message_id
 					task_failed = job.job_failed
 					if not in_process:
-						logging.info("Accepted download job, file: '%s'", path)
+						logging.info("Accepted upload job, file: '%s'", path)
 					try:
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:

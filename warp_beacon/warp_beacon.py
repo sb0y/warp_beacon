@@ -45,6 +45,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 	"""Send a message when the command /help is issued."""
 	await update.message.reply_text("Send me a link to remote media")
 
+async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
+	try:
+		await update.message.reply_text(
+			text, 
+			reply_to_message_id=reply_id
+		)
+	except Exception as e:
+		logging.error("Failed to send text message!")
+		logging.exception(e)
+
 async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, effective_message_id: int) -> None:
 	try:
 		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
@@ -66,14 +76,15 @@ async def send_video(update: Update,
 	url: str, 
 	uniq_id: str,
 	tg_file_id: str=None) -> bool:
+	
 	effective_message_id = None
+	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	try:
 		effective_message_id = update.message.message_id
 
 		if tg_file_id:
 			return await send_without_upload(update, context, tg_file_id, effective_message_id)
 
-		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 		message = await update.message.reply_video(
 			video=open(local_media_path, 'rb'), 
 			reply_to_message_id=effective_message_id, 
@@ -88,11 +99,24 @@ async def send_video(update: Update,
 			connect_timeout=timeout)
 		storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
 		logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
+	except error.TimedOut as e:
+		logging.error("TG timeout error!")
+		logging.exception(e)
+		await send_text(
+			update, 
+			context, 
+			effective_message_id,
+			"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
+		)
 	except error.NetworkError as e:
 		logging.error("Failed to upload due telegram limits :(")
 		logging.exception(e)
-		_reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
-		await update.message.reply_text(_reply_text, reply_to_message_id=effective_message_id)
+		await send_text(
+			update, 
+			context, 
+			effective_message_id,
+			"Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
+		)
 	except Exception as e:
 		logging.error("Error occurred!")
 		logging.exception(e)
