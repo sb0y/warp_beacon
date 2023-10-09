@@ -66,7 +66,7 @@ class InstagramScrapler(ScraplerAbstract):
 		media_pk = self.scrap(url)
 		media_info = self.cl.media_info(media_pk)
 		logging.info("video_type is '%d'", media_info.media_type)
-		logging.info("video_url is '%s'", media_pk)
+		logging.info("media_id is '%s'", media_pk)
 		if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 			res.append(str(self.cl.video_download(media_pk, folder='/tmp')))
 		elif media_info.media_type == 8: # album
