@@ -136,7 +136,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				try:
 					downloader.queue_task(DownloadJob.build(url=url, 
 						message_id=effective_message_id, 
-						item_in_process=uploader.is_inprocess(uniq_id), 
+						in_process=uploader.is_inprocess(uniq_id), 
 						uniq_id=uniq_id
 					))
 					uploader.set_inprocess(uniq_id)
