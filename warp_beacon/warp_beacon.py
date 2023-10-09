@@ -12,6 +12,7 @@ from urlextract import URLExtract
 import scrapler
 from storage import Storage
 from uploader import AsyncUploader
+from jobs.download_job import DownloadJob, UploadJob
 
 from telegram import ForceReply, Update, Chat, error
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -44,13 +45,26 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 	"""Send a message when the command /help is issued."""
 	await update.message.reply_text("Send me a link to remote media")
 
+async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
+	try:
+		await update.message.reply_text(
+			text, 
+			reply_to_message_id=reply_id
+		)
+	except Exception as e:
+		logging.error("Failed to send text message!")
+		logging.exception(e)
+
 async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, effective_message_id: int) -> None:
 	try:
+		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 		await update.message.reply_video(
 			video=tg_file_id, 
 			reply_to_message_id=effective_message_id, 
 			disable_notification=True,
-			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+			write_timeout=timeout,
+			read_timeout=timeout,
+			connect_timeout=timeout)
 	except Exception as e:
 		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 		logging.exception(e)
@@ -62,11 +76,13 @@ async def send_video(update: Update,
 	url: str, 
 	uniq_id: str,
 	tg_file_id: str=None) -> bool:
+	
 	effective_message_id = None
+	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	try:
 		effective_message_id = update.message.message_id
 
-		if tg_file_id is not None:
+		if tg_file_id:
 			return await send_without_upload(update, context, tg_file_id, effective_message_id)
 
 		message = await update.message.reply_video(
@@ -78,23 +94,35 @@ async def send_video(update: Update,
 			width=media_info["width"],
 			height=media_info["height"],
 			thumbnail=media_info["thumb"],
-			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+			write_timeout=timeout,
+			read_timeout=timeout,
+			connect_timeout=timeout)
 		storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
 		logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
+	except error.TimedOut as e:
+		logging.error("TG timeout error!")
+		logging.exception(e)
+		await send_text(
+			update, 
+			context, 
+			effective_message_id,
+			"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
+		)
 	except error.NetworkError as e:
 		logging.error("Failed to upload due telegram limits :(")
 		logging.exception(e)
-		_reply_text = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
-		await update.message.reply_text(_reply_text, reply_to_message_id=effective_message_id)
+		await send_text(
+			update, 
+			context, 
+			effective_message_id,
+			"Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
+		)
 	except Exception as e:
 		logging.error("Error occurred!")
 		logging.exception(e)
 	finally:
-		logging.info("Clean section triggered")
 		if os.path.exists(local_media_path):
 			os.unlink(local_media_path)
-	
-		uploader.process_done(uniq_id)
 
 	return True
 
@@ -127,18 +155,20 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
 				await send_without_upload(update, context, tg_file_id, effective_message_id)
 			else:
-				async def send_video_wrapper(local_media_path: str, media_info: Optional[dict], uniq_id: str, tg_file_id: str=None) -> None:
-					return await send_video(update, context, local_media_path, media_info, url, uniq_id, tg_file_id)
-					
+				async def send_video_wrapper(job: UploadJob) -> None:
+					ret = await send_video(update, context, job.local_media_path, job.media_info, job.url, job.uniq_id, job.tg_file_id)
+					uploader.process_done(job.uniq_id)
+					return ret
+
 				uploader.add_callback(effective_message_id, send_video_wrapper, update, context)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(url=url, 
+					downloader.queue_task(DownloadJob.build(url=url, 
 						message_id=effective_message_id, 
-						item_in_process=uploader.is_inprocess(uniq_id), 
+						in_process=uploader.is_inprocess(uniq_id), 
 						uniq_id=uniq_id
-					)
+					))
 					uploader.set_inprocess(uniq_id)
 				except Exception as e:
 					logging.error("Failed to schedule download task!")
