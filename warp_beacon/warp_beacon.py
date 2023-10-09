@@ -47,11 +47,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, effective_message_id: int) -> None:
 	try:
+		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 		await update.message.reply_video(
 			video=tg_file_id, 
 			reply_to_message_id=effective_message_id, 
 			disable_notification=True,
-			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+			write_timeout=timeout,
+			read_timeout=timeout,
+			connect_timeout=timeout)
 	except Exception as e:
 		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
 		logging.exception(e)
@@ -70,6 +73,7 @@ async def send_video(update: Update,
 		if tg_file_id:
 			return await send_without_upload(update, context, tg_file_id, effective_message_id)
 
+		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 		message = await update.message.reply_video(
 			video=open(local_media_path, 'rb'), 
 			reply_to_message_id=effective_message_id, 
@@ -79,7 +83,9 @@ async def send_video(update: Update,
 			width=media_info["width"],
 			height=media_info["height"],
 			thumbnail=media_info["thumb"],
-			write_timeout=int(os.environ.get("TG_WRITE_TIMEOUT", default=120)))
+			write_timeout=timeout,
+			read_timeout=timeout,
+			connect_timeout=timeout)
 		storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
 		logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
 	except error.NetworkError as e:
