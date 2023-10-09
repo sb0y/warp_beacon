@@ -33,15 +33,15 @@ class Storage(object):
 	
 	def db_find(self, uniq_id: str) -> dict:
 		document = None
+		ret = {}
 		try:
 			document = self.db.find_one({"uniq_id": uniq_id})
-			if not document:
-				return {}
+			if document:
+				ret = {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"]}
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
-			return {}
-		return {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"]}
+		return ret
 	
 	def db_lookup(self, url: str) -> dict:
 		uniq_id = self.compute_uniq(url)
@@ -58,17 +58,19 @@ class Storage(object):
 	
 	def get_random(self) -> dict:
 		doc = None
+		ret = {}
 		try:
-			doc = self.db.aggregate([
-				#{ "$match": { "start_time": { "$exists": False } } },
+			cursor = self.db.aggregate([
+				{ "$match": { "tg_file_id": { "$exists": True } } },
 				{ "$sample": { "size": 1 } }
 			])
-			if not doc:
-				return {}
+			logging.info(list(cursor))
+			#if doc and doc["result"]:
+			#	ret = doc["result"]
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
-		return {"tg_file_id": doc["tg_file_id"]}
+		return ret
 
 
 
