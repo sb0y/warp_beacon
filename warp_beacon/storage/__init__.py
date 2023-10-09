@@ -65,8 +65,10 @@ class Storage(object):
 				{ "$sample": { "size": 1 } }
 			])
 			logging.info(list(cursor))
-			#if doc and doc["result"]:
-			#	ret = doc["result"]
+			if cursor:
+				tmp = list(cursor)
+				if tmp:
+					ret = tmp[-1]
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
