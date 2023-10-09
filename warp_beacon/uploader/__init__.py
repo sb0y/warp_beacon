@@ -1,5 +1,6 @@
 import threading
 import multiprocessing
+from jobs.upload_job import UploadJob
 #import time
 import logging
 
@@ -62,23 +63,22 @@ class AsyncUploader(object):
 	def set_inprocess(self, uniq_id: str) -> None:
 		self.in_process.add(uniq_id)
 
-	def queue_task(self, path: str, uniq_id: str, message_id: int, media_info: Optional[dict]=None, item_in_process: bool=False, task_failed: bool=False) -> None:
-		self.job_queue.put_nowait({"path": path, "message_id": message_id, "uniq_id": uniq_id, "media_info": media_info, "in_process": item_in_process, "task_failed": task_failed})
+	def queue_task(self, job: UploadJob) -> None:
+		self.job_queue.put_nowait(job)
 
 	def do_work(self) -> None:
 		logging.info("Upload worker started")
 		while self.allow_loop:
 			try:
 				try:
-					item = self.job_queue.get()
-					path = item["path"]
-					in_process = item["in_process"]
-					uniq_id = item["uniq_id"]
-					message_id = item["message_id"]
-					media_info = item["media_info"]
-					task_failed = item["task_failed"]
+					job = self.job_queue.get()
+					path = job.local_media_path
+					in_process = job.in_process
+					uniq_id = job.uniq_id
+					message_id = job.message_id
+					task_failed = job.job_failed
 					if not in_process:
-						logging.info("Accepted download job, file: '%s'", path)
+						logging.info("Accepted upload job, file: '%s'", path)
 					try:
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
@@ -91,11 +91,12 @@ class AsyncUploader(object):
 									tg_id = self.storage.db_lookup_id(uniq_id).get("tg_file_id", None)
 									if tg_id:
 										logging.info("Performing waited job")
-										asyncio.ensure_future(self.callbacks[m_id]["callback"](path, media_info, uniq_id, tg_id), loop=self.loop)
+										job.tg_file_id = tg_id
+										asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
 									else:
-										self.queue_task(path, uniq_id, message_id, media_info, True)
+										self.queue_task(job)
 								else:
-									asyncio.ensure_future(self.callbacks[m_id]["callback"](path, media_info, uniq_id), loop=self.loop)
+									asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
