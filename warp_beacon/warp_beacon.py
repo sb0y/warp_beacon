@@ -75,7 +75,7 @@ def build_tg_args(job: UploadJob) -> dict:
 			args["width"] = job.media_info["width"]
 			args["height"] = job.media_info["height"]
 			args["thumbnail"] = job.media_info["thumb"]
-	elif job.media_type == "photo":
+	elif job.media_type == "image":
 		if job.tg_file_id:
 			args["photo"] = job.tg_file_id
 		else:
