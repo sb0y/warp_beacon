@@ -37,7 +37,7 @@ class Storage(object):
 		try:
 			document = self.db.find_one({"uniq_id": uniq_id})
 			if document:
-				ret = {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"]}
+				ret = {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"], "media_type": document["media_type"]}
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
@@ -51,9 +51,9 @@ class Storage(object):
 	def db_lookup_id(self, uniq_id: str) -> dict:
 		return self.db_find(uniq_id)
 	
-	def add_media(self, tg_file_id: str, media_url: str, origin: str) -> int:
+	def add_media(self, tg_file_id: str, media_url: str, media_type: str, origin: str) -> int:
 		uniq_id = self.compute_uniq(media_url)
-		media_id = self.db.insert_one({"uniq_id": uniq_id, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
+		media_id = self.db.insert_one({"uniq_id": uniq_id, "media_type": media_type, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
 		return media_id
 	
 	def get_random(self) -> dict:
