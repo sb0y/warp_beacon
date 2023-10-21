@@ -90,15 +90,18 @@ def build_tg_args(job: UploadJob) -> dict:
 
 	return args
 
-async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> bool:
+async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> str:
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
+	tg_file_id = None
 	try:
 		if job.media_type == "video":
-			await update.message.reply_video(**build_tg_args(job))
+			message = await update.message.reply_video(**build_tg_args(job))
+			tg_file_id = message.video.file_id
 		elif job.media_type == "image":
-			await update.message.reply_photo(**build_tg_args(job))
-			
-		return True
+			message = await update.message.reply_photo(**build_tg_args(job))
+			#tg_file_id = message.photo.file_id
+			tg_file_id = ''
+
 	except error.TimedOut as e:
 		logging.error("TG timeout error!")
 		logging.exception(e)
@@ -124,7 +127,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 		if os.path.exists(job.local_media_path):
 			os.unlink(job.local_media_path)
 
-	return False
+	return tg_file_id
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
@@ -156,9 +159,10 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				await upload_job(update, context, UploadJob(tg_file_id=tg_file_id, message_id=effective_message_id, media_type=doc["media_type"]))
 			else:
 				async def upload_wrapper(job: UploadJob) -> None:
-					await upload_job(update, context, job)
+					tg_file_id = await upload_job(update, context, job)
 					uploader.process_done(job.uniq_id)
-					storage.add_media(tg_file_id=job.tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+					storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+					#job.tg_file_id = tg_file_id
 
 				uploader.add_callback(effective_message_id, upload_wrapper, update, context)
 
