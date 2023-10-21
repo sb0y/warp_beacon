@@ -57,11 +57,11 @@ class AsyncDownloader(object):
 					job = self.job_queue.get()
 					actor = None
 					try:
+						files = []
 						if "instagram.com/" in job.url:
 							if not job.in_process:
 								from scrapler.instagram import InstagramScrapler
 								actor = InstagramScrapler()
-								files = None
 								while True:
 									try:
 										logging.info("Downloading URL '%s'", job.url)
@@ -78,7 +78,7 @@ class AsyncDownloader(object):
 											job_failed=True,
 											job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
 										)
-										continue
+										break
 
 								if files:
 									for file in files:
