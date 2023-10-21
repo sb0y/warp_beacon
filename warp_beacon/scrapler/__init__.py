@@ -1,9 +1,9 @@
 from typing import Optional, Callable
 import multiprocessing
 import time
-import uuid
 import logging
 from requests.exceptions import ConnectTimeout, HTTPError
+from instagrapi.exceptions import MediaNotFound
 
 from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
@@ -71,6 +71,14 @@ class AsyncDownloader(object):
 										logging.error("ConnectTimeout download error!")
 										logging.exception(e)
 										time.sleep(2)
+									except MediaNotFound as e:
+										logging.warning("MediaNotFound occurred!")
+										logging.exception(e)
+										job.job_failed = True
+										job.job_failed_msg = "Unable to access to media under this URL. Seems like the media is private."
+										self.uploader.queue_task(job.to_upload_job())
+										continue
+
 								if files:
 									for file in files:
 										media_info = {}

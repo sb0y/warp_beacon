@@ -14,6 +14,7 @@ class JobSettings(TypedDict):
 	in_process: bool
 	job_failed: bool
 	media_type: str
+	job_failed_msg: str
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -26,6 +27,7 @@ class AbstractJob(ABC):
 	media_type: str = "video"
 	in_process: bool = False
 	job_failed: bool = False
+	job_failed_msg: str = ""
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:
