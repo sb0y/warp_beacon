@@ -13,6 +13,7 @@ class JobSettings(TypedDict):
 	tg_file_id: str
 	in_process: bool
 	job_failed: bool
+	media_type: str
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -22,6 +23,7 @@ class AbstractJob(ABC):
 	url: str = ""
 	uniq_id: str = ""
 	tg_file_id: str = ""
+	media_type: str = "video"
 	in_process: bool = False
 	job_failed: bool = False
 

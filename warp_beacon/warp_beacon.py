@@ -50,7 +50,7 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if not d:
 		await update.message.reply_text("No random content yet.")
 		return
-	await send_without_upload(update, context, d["tg_file_id"], update.message.message_id)
+	await upload_job(update, context, UploadJob(tg_file_id=d["tg_file_id"], message_id=update.message.message_id))
 
 async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
 	try:
@@ -62,57 +62,50 @@ async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id
 		logging.error("Failed to send text message!")
 		logging.exception(e)
 
-async def send_without_upload(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, effective_message_id: int) -> None:
-	try:
-		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
-		await update.message.reply_video(
-			video=tg_file_id, 
-			reply_to_message_id=effective_message_id, 
-			disable_notification=True,
-			write_timeout=timeout,
-			read_timeout=timeout,
-			connect_timeout=timeout)
-	except Exception as e:
-		logging.error("Failed to send video with tg_file_id = '%s'!", tg_file_id)
-		logging.exception(e)
+def build_tg_args(job: UploadJob) -> dict:
+	args = {}
+	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
+	if job.media_type == "video":
+		if job.tg_file_id:
+			args["video"] = job.tg_file_id
+		else:
+			args["video"] = open(job.local_media_path, 'rb')
+			args["supports_streaming"] = True
+			args["duration"] = job.media_info["duration"]
+			args["width"] = job.media_info["width"]
+			args["height"] = job.media_info["height"]
+			args["thumbnail"] = job.media_info["thumb"]
+	elif job.media_type == "photo":
+		if job.tg_file_id:
+			args["photo"] = job.tg_file_id
+		else:
+			args["photo"] = open(job.local_media_path, 'rb')
 
-async def send_video(update: Update, 
-	context: ContextTypes.DEFAULT_TYPE,
-	local_media_path: str, 
-	media_info: Optional[dict],
-	url: str, 
-	uniq_id: str,
-	tg_file_id: str=None) -> bool:
-	
-	effective_message_id = None
+	# common args
+	args["disable_notification"] = True
+	args["write_timeout"] = timeout
+	args["read_timeout"] = timeout
+	args["connect_timeout"] = timeout
+	args["reply_to_message_id"] = job.message_id
+
+	return args
+
+async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> bool:
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	try:
-		effective_message_id = update.message.message_id
-
-		if tg_file_id:
-			return await send_without_upload(update, context, tg_file_id, effective_message_id)
-
-		message = await update.message.reply_video(
-			video=open(local_media_path, 'rb'), 
-			reply_to_message_id=effective_message_id, 
-			supports_streaming=True,
-			disable_notification=True,
-			duration=media_info["duration"],
-			width=media_info["width"],
-			height=media_info["height"],
-			thumbnail=media_info["thumb"],
-			write_timeout=timeout,
-			read_timeout=timeout,
-			connect_timeout=timeout)
-		storage.add_media(tg_file_id=message.video.file_id, media_url=url, origin="instagram")
-		logging.info("File '%s' is uploaded successfully, tg_file_id is '%s'", local_media_path, message.video.file_id)
+		if job.media_type == "video":
+			await update.message.reply_video(**build_tg_args(job))
+		elif job.media_type == "image":
+			await update.message.reply_photo(**build_tg_args(job))
+			
+		return True
 	except error.TimedOut as e:
 		logging.error("TG timeout error!")
 		logging.exception(e)
 		await send_text(
 			update, 
 			context, 
-			effective_message_id,
+			job.message_id,
 			"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
 		)
 	except error.NetworkError as e:
@@ -121,17 +114,17 @@ async def send_video(update: Update,
 		await send_text(
 			update, 
 			context, 
-			effective_message_id,
-			"Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % media_info["filesize"]
+			job.message_id,
+			"Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
 		)
 	except Exception as e:
 		logging.error("Error occurred!")
 		logging.exception(e)
 	finally:
-		if os.path.exists(local_media_path):
-			os.unlink(local_media_path)
+		if os.path.exists(job.local_media_path):
+			os.unlink(job.local_media_path)
 
-	return True
+	return False
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
@@ -160,14 +153,14 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			if doc:
 				tg_file_id = doc["tg_file_id"]
 				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
-				await send_without_upload(update, context, tg_file_id, effective_message_id)
+				await upload_job(update, context, UploadJob(tg_file_id=tg_file_id, message_id=effective_message_id, media_type=doc["media_type"]))
 			else:
-				async def send_video_wrapper(job: UploadJob) -> None:
-					ret = await send_video(update, context, job.local_media_path, job.media_info, job.url, job.uniq_id, job.tg_file_id)
+				async def upload_wrapper(job: UploadJob) -> None:
+					await upload_job(update, context, job)
 					uploader.process_done(job.uniq_id)
-					return ret
+					storage.add_media(tg_file_id=job.tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
 
-				uploader.add_callback(effective_message_id, send_video_wrapper, update, context)
+				uploader.add_callback(effective_message_id, upload_wrapper, update, context)
 
 				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:

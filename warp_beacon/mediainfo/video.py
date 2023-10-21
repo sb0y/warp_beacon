@@ -35,11 +35,13 @@ class VideoInfo(object):
 		size = os.path.getsize(self.filename)
 		return round(size/(pow(1024,2)), 2)
 	
-	def get_finfo(self) -> dict:
+	def get_finfo(self, except_info: tuple=()) -> dict:
 		res = {}
 		res.update(self.get_demensions())
-		res["duration"] = self.get_duration()
-		res["filesize"] = self.get_filesize()
+		if "duration" not in except_info:
+			res["duration"] = self.get_duration()
+		if "filesize" not in except_info:
+			res["filesize"] = self.get_filesize()
 		return res
 	
 	def shrink_image_to_fit(self, img):

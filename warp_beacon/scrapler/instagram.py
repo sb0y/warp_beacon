@@ -64,13 +64,20 @@ class InstagramScrapler(ScraplerAbstract):
 	def download(self, url: str) -> Optional[Union[str, list[str]]]:
 		res = []
 		media_pk = self.scrap(url)
+		#media_info.thumbnail_url
 		media_info = self.cl.media_info(media_pk)
 		logging.info("video_type is '%d'", media_info.media_type)
 		logging.info("media_id is '%s'", media_pk)
 		if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
-			res.append(str(self.cl.video_download(media_pk, folder='/tmp')))
+			path = str(self.cl.video_download_by_url(media_info.video_url, folder='/tmp'))
+			res.append({"local_path": path, "type": "video", "media_info": {"duration": media_info.video_duration}})
+		elif media_info.media_type == 1: # Photo
+			self.cl.photo_download_by_url(url, folder='/tmp')
+			res.append({"local_path": path, "type": "image", "media_info":{"duration": _media_info.video_duration}})
 		elif media_info.media_type == 8: # album
 			for i in media_info.resources:
 				if i.media_type == 2: # video
-					res.append(str(self.cl.video_download(i.pk, folder='/tmp')))
+					_media_info = self.cl.media_info(i.pk)
+					path = str(self.cl.video_download_by_url(media_info.video_url, folder='/tmp'))
+					res.append({"local_path": path, "type": "video", "media_info":{"duration": _media_info.video_duration}})
 		return res
