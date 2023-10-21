@@ -76,13 +76,12 @@ class AsyncUploader(object):
 					in_process = job.in_process
 					uniq_id = job.uniq_id
 					message_id = job.message_id
-					task_failed = job.job_failed
 					if not in_process:
 						logging.info("Accepted upload job, file: '%s'", path)
 					try:
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:
-								if task_failed:
+								if job.job_failed:
 									logging.info("URL '%s' download failed. Skipping upload job ...", path)
 									if job.job_failed_msg: # we want to say something to user
 										asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
