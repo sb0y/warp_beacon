@@ -158,10 +158,17 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				await upload_job(update, context, UploadJob(tg_file_id=tg_file_id, message_id=effective_message_id, media_type=doc["media_type"]))
 			else:
 				async def upload_wrapper(job: UploadJob) -> None:
-					tg_file_id = await upload_job(update, context, job)
-					uploader.process_done(job.uniq_id)
-					storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
-					#job.tg_file_id = tg_file_id
+					try:
+						if job.job_failed and job.job_failed_msg:
+							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
+						tg_file_id = await upload_job(update, context, job)
+						storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+					except Exception as e:
+						logging.error("Exception occurred while performing upload callback!")
+						logging.exception(e)
+					finally:
+						uploader.process_done(job.uniq_id)
+						uploader.remove_callback(job.message_id)
 
 				uploader.add_callback(effective_message_id, upload_wrapper, update, context)
 
