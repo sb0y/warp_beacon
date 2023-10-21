@@ -98,7 +98,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			tg_file_id = message.video.file_id
 		elif job.media_type == "image":
 			message = await update.message.reply_photo(**build_tg_args(job))
-			tg_file_id = message.photo[-1].file_id
+			if message.photo:
+				tg_file_id = message.photo[-1].file_id
 
 	except error.TimedOut as e:
 		logging.error("TG timeout error!")
