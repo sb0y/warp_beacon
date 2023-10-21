@@ -74,9 +74,10 @@ class AsyncDownloader(object):
 									except MediaNotFound as e:
 										logging.warning("MediaNotFound occurred!")
 										logging.exception(e)
-										job.job_failed = True
-										job.job_failed_msg = "Unable to access to media under this URL. Seems like the media is private."
-										self.uploader.queue_task(job.to_upload_job())
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
+										)
 										continue
 
 								if files:
