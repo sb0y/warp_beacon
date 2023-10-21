@@ -50,7 +50,7 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if not d:
 		await update.message.reply_text("No random content yet.")
 		return
-	await upload_job(update, context, UploadJob(tg_file_id=d["tg_file_id"], message_id=update.message.message_id))
+	await upload_job(update, context, UploadJob(tg_file_id=d["tg_file_id"], media_type=d["media_type"], message_id=update.message.message_id))
 
 async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
 	try:

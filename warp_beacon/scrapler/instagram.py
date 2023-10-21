@@ -61,7 +61,7 @@ class InstagramScrapler(ScraplerAbstract):
 			
 		return video_url
 	
-	def download(self, url: str) -> Optional[Union[str, list[str]]]:
+	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
 		media_pk = self.scrap(url)
 		#media_info.thumbnail_url
@@ -72,8 +72,8 @@ class InstagramScrapler(ScraplerAbstract):
 			path = str(self.cl.video_download_by_url(media_info.video_url, folder='/tmp'))
 			res.append({"local_path": path, "type": "video", "media_info": {"duration": media_info.video_duration}})
 		elif media_info.media_type == 1: # Photo
-			self.cl.photo_download_by_url(url, folder='/tmp')
-			res.append({"local_path": path, "type": "image", "media_info":{"duration": _media_info.video_duration}})
+			path = str(self.cl.photo_download_by_url(media_info.thumbnail_url, folder='/tmp'))
+			res.append({"local_path": path, "type": "image"})
 		elif media_info.media_type == 8: # album
 			for i in media_info.resources:
 				if i.media_type == 2: # video
