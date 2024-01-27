@@ -13,7 +13,7 @@ from storage import Storage
 from uploader import AsyncUploader
 from jobs.download_job import DownloadJob, UploadJob
 
-from telegram import ForceReply, Update, Chat, error
+from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 
@@ -79,6 +79,27 @@ def build_tg_args(job: UploadJob) -> dict:
 			args["photo"] = job.tg_file_id
 		else:
 			args["photo"] = open(job.local_media_path, 'rb')
+	elif job.media_type == "collection":
+		if job.tg_file_id:
+			args["media"] = job.tg_file_id.split(',')
+		else:
+			mediafs = []
+			for j in job.media_collection:
+				if j["type"] == "video":
+					vid = InputMediaVideo(
+						media=open(j["local_media_path"], 'rb'),
+						width=j["width"], 
+						height=j["height"], 
+						duration=j["duration"],
+						thumbnail=j["thumb"]
+					)
+					mediafs.append(vid)
+				elif j["type"] == "photo":
+					photo = InputMediaPhoto(
+						media=open(j["local_media_path"], 'rb')
+					)
+					mediafs.append(photo)
+			args["media"] = mediafs
 
 	# common args
 	args["disable_notification"] = True
@@ -100,6 +121,17 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			message = await update.message.reply_photo(**build_tg_args(job))
 			if message.photo:
 				tg_file_id = message.photo[-1].file_id
+		elif job.media_type == "collection":
+			if len(job.media_collection) > 10:
+				pass
+			sent_messages = await update.message.reply_media_group(**build_tg_args(job))
+			tg_files_ids = []
+			for msg in sent_messages:
+				if msg.video:
+					tg_files_ids.append(msg.video.file_id)
+				elif msg.photo:
+					tg_files_ids.append(msg.photo[-1].file_id)
+			tg_file_id = ','.join(tg_files_ids)
 
 	except error.TimedOut as e:
 		logging.error("TG timeout error!")
@@ -123,8 +155,13 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 		logging.error("Error occurred!")
 		logging.exception(e)
 	finally:
-		if os.path.exists(job.local_media_path):
-			os.unlink(job.local_media_path)
+		if job.media_type == "collection":
+			for j in job.media_collection:
+				if os.path.exists(j["local_media_path"]):
+					os.unlink(j["local_media_path"])
+		else:
+			if os.path.exists(job.local_media_path):
+				os.unlink(job.local_media_path)
 
 	return tg_file_id
 
@@ -162,7 +199,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						if job.job_failed and job.job_failed_msg:
 							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
 						tg_file_id = await upload_job(update, context, job)
-						storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+						if tg_file_id:
+							storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)
@@ -172,9 +210,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 				uploader.add_callback(effective_message_id, upload_wrapper, update, context)
 
-				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(DownloadJob.build(url=url, 
+					downloader.queue_task(DownloadJob.build(
+						url=url, 
 						message_id=effective_message_id, 
 						in_process=uploader.is_inprocess(uniq_id), 
 						uniq_id=uniq_id
