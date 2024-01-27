@@ -57,7 +57,7 @@ class AsyncDownloader(object):
 					job = self.job_queue.get()
 					actor = None
 					try:
-						files = []
+						items = []
 						if "instagram.com/" in job.url:
 							if not job.in_process:
 								from scrapler.instagram import InstagramScrapler
@@ -65,7 +65,7 @@ class AsyncDownloader(object):
 								while True:
 									try:
 										logging.info("Downloading URL '%s'", job.url)
-										files = actor.download(job.url)
+										items = actor.download(job.url)
 										break
 									except ConnectTimeout as e:
 										logging.error("ConnectTimeout download error!")
@@ -80,16 +80,21 @@ class AsyncDownloader(object):
 										)
 										break
 
-								if files:
-									for file in files:
+								if items:
+									for item in items:
 										media_info = {}
-										if file["type"] == "video":
-											media_info = self.get_media_info(file["local_path"], file["media_info"])
-										upload_job = job.to_upload_job(
-											local_media_path=file["local_path"], 
-											media_info=media_info,
-											media_type=file["type"]
-										)
+										if item["type"] == "video":
+											media_info = self.get_media_info(item["local_path"], item["media_info"])
+										elif item["type"] == "collection":
+											for _, v in item["items"].items():
+												if v["type"] == "video":
+													v["media_info"] = self.get_media_info(v["local_path"], v["media_info"])
+
+										job_args = {"media_type": item["type"], "media_info": media_info, "local_media_path": item["local_path"]}
+										if item["type"] == "collection":
+											job_args["media_collection"] = item["items"]
+
+										upload_job = job.to_upload_job(**job_args)
 										self.uploader.queue_task(upload_job)
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
