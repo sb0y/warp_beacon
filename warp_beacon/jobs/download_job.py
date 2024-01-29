@@ -17,4 +17,7 @@ class DownloadJob(AbstractJob):
 	def to_upload_job(self, **kwargs: Unpack[JobSettings]) -> AbstractJob:
 		d = self.to_dict()
 		d.update(kwargs)
+		if "media_collection" in d:
+			for k, v in enumerate(d["media_collection"]):
+				d["media_collection"][k] = UploadJob.build(**v)
 		return UploadJob.build(**d)

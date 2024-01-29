@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict
 from typing_extensions import Unpack
-import uuid	
+import uuid
 
 class JobSettings(TypedDict):
 	job_id: uuid.UUID

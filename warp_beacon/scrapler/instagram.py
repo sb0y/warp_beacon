@@ -63,11 +63,11 @@ class InstagramScrapler(ScraplerAbstract):
 	
 	def download_video(self, url: str, media_info: dict) -> dict:
 		path = str(self.cl.video_download_by_url(url, folder='/tmp'))
-		return {"local_path": path, "type": "video", "media_info": {"duration": media_info.video_duration}}
+		return {"local_media_path": path, "media_type": "video", "media_info": {"duration": media_info.video_duration}}
 
 	def download_photo(self, url: str) -> dict:
 		path = str(self.cl.photo_download_by_url(url, folder='/tmp'))
-		return {"local_path": path, "type": "image"}
+		return {"local_media_path": path, "media_type": "image"}
 	
 	def download_album(self, media_info: dict) -> dict:
 		res = []
@@ -78,7 +78,7 @@ class InstagramScrapler(ScraplerAbstract):
 			elif i.media_type == 2: # video
 				res.append(self.download_video(url=_media_info.video_url, media_info=_media_info))
 
-		return {"type": "collection", "items": res}
+		return {"media_type": "collection", "items": res}
 
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
