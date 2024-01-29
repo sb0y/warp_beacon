@@ -82,19 +82,20 @@ class AsyncDownloader(object):
 
 								if items:
 									for item in items:
-										media_info = {}
-										if item["type"] == "video":
-											media_info = self.get_media_info(item["local_path"], item["media_info"])
-										elif item["type"] == "collection":
+										media_info = {"filesize": 0}
+										if item["media_type"] == "video":
+											media_info = self.get_media_info(item["local_media_path"], item["media_info"])
+										elif item["media_type"] == "collection":
 											for v in item["items"]:
-												if v["type"] == "video":
-													v["media_info"] = self.get_media_info(v["local_path"], v["media_info"])
+												if v["media_type"] == "video":
+													v["media_info"] = self.get_media_info(v["local_media_path"], v["media_info"])
+													media_info["filesize"] += v["mediainfo"]["filesize"]
 
-										job_args = {"media_type": item["type"], "media_info": media_info}
-										if item["type"] == "collection":
+										job_args = {"media_type": item["media_type"], "media_info": media_info}
+										if item["media_type"] == "collection":
 											job_args["media_collection"] = item["items"]
 										else:
-											job_args["local_media_path"] = item["local_path"]
+											job_args["local_media_path"] = item["local_media_path"]
 
 										upload_job = job.to_upload_job(**job_args)
 										self.uploader.queue_task(upload_job)
