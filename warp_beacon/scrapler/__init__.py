@@ -88,8 +88,8 @@ class AsyncDownloader(object):
 										elif item["media_type"] == "collection":
 											for v in item["items"]:
 												if v["media_type"] == "video":
-													v["media_info"] = self.get_media_info(v["local_media_path"], v["media_info"])
-													media_info["filesize"] += int(v.get("mediainfo", {}).get("filesize", 0))
+													col_media_info = self.get_media_info(v["local_media_path"], v["media_info"])
+													media_info["filesize"] += int(col_media_info.get("filesize", 0))
 
 										job_args = {"media_type": item["media_type"], "media_info": media_info}
 										if item["media_type"] == "collection":
