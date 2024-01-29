@@ -87,7 +87,7 @@ def build_tg_args(job: UploadJob) -> dict:
 			for j in job.media_collection:
 				if j["type"] == "video":
 					vid = InputMediaVideo(
-						media=open(j["local_media_path"], 'rb'),
+						media=open(j["local_path"], 'rb'),
 						width=j["width"], 
 						height=j["height"], 
 						duration=j["duration"],
@@ -96,7 +96,7 @@ def build_tg_args(job: UploadJob) -> dict:
 					mediafs.append(vid)
 				elif j["type"] == "photo":
 					photo = InputMediaPhoto(
-						media=open(j["local_media_path"], 'rb')
+						media=open(j["local_path"], 'rb')
 					)
 					mediafs.append(photo)
 			args["media"] = mediafs
