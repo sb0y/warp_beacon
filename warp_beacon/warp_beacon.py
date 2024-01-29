@@ -100,7 +100,7 @@ def build_tg_args(job: UploadJob) -> dict:
 					mediafs.append(vid)
 				elif j.media_type == "image":
 					photo = InputMediaPhoto(
-						media=open(j["local_media_path"], 'rb')
+						media=open(j.local_media_path, 'rb')
 					)
 					mediafs.append(photo)
 			args["media"] = mediafs
