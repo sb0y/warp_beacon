@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TypedDict
 from typing_extensions import Unpack
-import uuid	
+import uuid
 
 class JobSettings(TypedDict):
 	job_id: uuid.UUID
@@ -15,6 +15,7 @@ class JobSettings(TypedDict):
 	job_failed: bool
 	media_type: str
 	job_failed_msg: str
+	media_collection: list
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -28,6 +29,7 @@ class AbstractJob(ABC):
 	in_process: bool = False
 	job_failed: bool = False
 	job_failed_msg: str = ""
+	media_collection: list = []
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

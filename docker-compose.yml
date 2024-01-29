@@ -15,6 +15,7 @@ services:
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
   warp_beacon:
+    restart: always
     build: ./docker_app
     env_file:
       - 'variables.env'

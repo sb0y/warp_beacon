@@ -9,10 +9,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "APT::Get::Assume-Yes \"true\";" > /etc/apt/apt.conf.d/90assumeyes 
 
-RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse\n \
-deb http://us.archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse\n \
-deb http://us.archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse\n \
-deb http://security.ubuntu.com/ubuntu focal-security main restricted universe multiverse\n" /etc/apt/sources.list
+RUN echo "deb http://us.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse\n \
+deb http://us.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse\n \
+deb http://us.archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse\n \
+deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse\n" /etc/apt/sources.list
 
 RUN set -x \
 	&& apt-get update -y \
@@ -22,7 +22,8 @@ RUN set -x \
 	&& mkdir -p /app/ /var/warp_beacon/ /var/warp_beacon/videos/
 
 RUN set -x \
-	&& pip install python-telegram-bot urlextract instagrapi pillow pymongo --upgrade
+	&& pip install python-telegram-bot urlextract instagrapi pillow pymongo --upgrade \
+	&& pip install instagrapi==2.0.0
 
 #WORKDIR /app
 
