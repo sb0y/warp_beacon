@@ -61,6 +61,25 @@ class InstagramScrapler(ScraplerAbstract):
 			
 		return video_url
 	
+	def download_video(self, url: str, media_info: dict) -> dict:
+		path = str(self.cl.video_download_by_url(url, folder='/tmp'))
+		return {"local_media_path": path, "media_type": "video", "media_info": {"duration": media_info.video_duration}}
+
+	def download_photo(self, url: str) -> dict:
+		path = str(self.cl.photo_download_by_url(url, folder='/tmp'))
+		return {"local_media_path": path, "media_type": "image"}
+	
+	def download_album(self, media_info: dict) -> dict:
+		res = []
+		for i in media_info.resources:
+			_media_info = self.cl.media_info(i.pk)
+			if i.media_type == 1: # photo
+				res.append(self.download_photo(url=_media_info.thumbnail_url))
+			elif i.media_type == 2: # video
+				res.append(self.download_video(url=_media_info.video_url, media_info=_media_info))
+
+		return {"media_type": "collection", "items": res}
+
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
 		media_pk = self.scrap(url)
@@ -69,15 +88,9 @@ class InstagramScrapler(ScraplerAbstract):
 		logging.info("video_type is '%d'", media_info.media_type)
 		logging.info("media_id is '%s'", media_pk)
 		if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
-			path = str(self.cl.video_download_by_url(media_info.video_url, folder='/tmp'))
-			res.append({"local_path": path, "type": "video", "media_info": {"duration": media_info.video_duration}})
+			res.append(self.download_video(url=media_info.video_url, media_info=media_info))
 		elif media_info.media_type == 1: # Photo
-			path = str(self.cl.photo_download_by_url(media_info.thumbnail_url, folder='/tmp'))
-			res.append({"local_path": path, "type": "image"})
+			res.append(self.download_photo(url=media_info.thumbnail_url))
 		elif media_info.media_type == 8: # album
-			for i in media_info.resources:
-				if i.media_type == 2: # video
-					_media_info = self.cl.media_info(i.pk)
-					path = str(self.cl.video_download_by_url(media_info.video_url, folder='/tmp'))
-					res.append({"local_path": path, "type": "video", "media_info":{"duration": _media_info.video_duration}})
+			res.append(self.download_album(media_info=media_info))
 		return res

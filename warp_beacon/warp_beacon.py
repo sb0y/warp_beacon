@@ -13,7 +13,8 @@ from storage import Storage
 from uploader import AsyncUploader
 from jobs.download_job import DownloadJob, UploadJob
 
-from telegram import ForceReply, Update, Chat, error
+#from telegram.constants import ParseMode
+from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto, InputMediaDocument
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 
@@ -70,7 +71,7 @@ def build_tg_args(job: UploadJob) -> dict:
 		else:
 			args["video"] = open(job.local_media_path, 'rb')
 			args["supports_streaming"] = True
-			args["duration"] = job.media_info["duration"]
+			args["duration"] = int(job.media_info["duration"])
 			args["width"] = job.media_info["width"]
 			args["height"] = job.media_info["height"]
 			args["thumbnail"] = job.media_info["thumb"]
@@ -79,6 +80,30 @@ def build_tg_args(job: UploadJob) -> dict:
 			args["photo"] = job.tg_file_id
 		else:
 			args["photo"] = open(job.local_media_path, 'rb')
+	elif job.media_type == "collection":
+		if job.tg_file_id:
+			args["media"] = []
+			for i in job.tg_file_id.split(','):
+				args["media"].append(InputMediaDocument(media=i))
+		else:
+			mediafs = []
+			for j in job.media_collection:
+				if j.media_type == "video":
+					vid = InputMediaVideo(
+						media=open(j.local_media_path, 'rb'),
+						supports_streaming=True,
+						width=j.media_info["width"], 
+						height=j.media_info["height"], 
+						duration=int(j.media_info["duration"]),
+						thumbnail=j.media_info["thumb"]
+					)
+					mediafs.append(vid)
+				elif j.media_type == "photo":
+					photo = InputMediaPhoto(
+						media=open(j["local_media_path"], 'rb')
+					)
+					mediafs.append(photo)
+			args["media"] = mediafs
 
 	# common args
 	args["disable_notification"] = True
@@ -100,6 +125,17 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			message = await update.message.reply_photo(**build_tg_args(job))
 			if message.photo:
 				tg_file_id = message.photo[-1].file_id
+		elif job.media_type == "collection":
+			if len(job.media_collection) > 10:
+				pass
+			sent_messages = await update.message.reply_media_group(**build_tg_args(job))
+			tg_files_ids = []
+			for msg in sent_messages:
+				if msg.video:
+					tg_files_ids.append(msg.video.file_id)
+				elif msg.photo:
+					tg_files_ids.append(msg.photo[-1].file_id)
+			tg_file_id = ','.join(tg_files_ids)
 
 	except error.TimedOut as e:
 		logging.error("TG timeout error!")
@@ -113,18 +149,28 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 	except error.NetworkError as e:
 		logging.error("Failed to upload due telegram limits :(")
 		logging.exception(e)
+		msg = ""
+		if e.message:
+			msg = str(e.message)
+		else:
+			msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
 		await send_text(
 			update, 
 			context, 
 			job.message_id,
-			"Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
+			msg
 		)
 	except Exception as e:
 		logging.error("Error occurred!")
 		logging.exception(e)
 	finally:
-		if os.path.exists(job.local_media_path):
-			os.unlink(job.local_media_path)
+		if job.media_type == "collection":
+			for j in job.media_collection:
+				if os.path.exists(j.local_media_path):
+					os.unlink(j.local_media_path)
+		else:
+			if os.path.exists(job.local_media_path):
+				os.unlink(job.local_media_path)
 
 	return tg_file_id
 
@@ -162,7 +208,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						if job.job_failed and job.job_failed_msg:
 							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
 						tg_file_id = await upload_job(update, context, job)
-						storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+						if tg_file_id:
+							storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)
@@ -172,9 +219,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 				uploader.add_callback(effective_message_id, upload_wrapper, update, context)
 
-				logging.info("Downloading URL '%s' from instagram ...", url)
 				try:
-					downloader.queue_task(DownloadJob.build(url=url, 
+					downloader.queue_task(DownloadJob.build(
+						url=url, 
 						message_id=effective_message_id, 
 						in_process=uploader.is_inprocess(uniq_id), 
 						uniq_id=uniq_id
