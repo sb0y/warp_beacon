@@ -98,7 +98,7 @@ def build_tg_args(job: UploadJob) -> dict:
 						thumbnail=j.media_info["thumb"]
 					)
 					mediafs.append(vid)
-				elif j.media_type == "photo":
+				elif j.media_type == "image":
 					photo = InputMediaPhoto(
 						media=open(j["local_media_path"], 'rb')
 					)
