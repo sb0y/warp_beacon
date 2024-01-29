@@ -72,7 +72,12 @@ class AsyncUploader(object):
 			try:
 				try:
 					job = self.job_queue.get()
-					path = job.local_media_path
+					path = ""
+					if job.media_type == "collection":
+						for i in job.media_collection:
+							path += "%s; " % i.local_media_path
+					else:
+						path = job.local_media_path
 					in_process = job.in_process
 					uniq_id = job.uniq_id
 					message_id = job.message_id
