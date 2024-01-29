@@ -91,7 +91,7 @@ def build_tg_args(job: UploadJob) -> dict:
 						supports_streaming=True,
 						width=j["media_info"]["width"], 
 						height=j["media_info"]["height"], 
-						duration=j["media_info"]["duration"],
+						duration=int(j["media_info"]["duration"]),
 						thumbnail=j["media_info"]["thumb"]
 					)
 					mediafs.append(vid)
