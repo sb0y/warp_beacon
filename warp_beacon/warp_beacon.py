@@ -13,8 +13,8 @@ from storage import Storage
 from uploader import AsyncUploader
 from jobs.download_job import DownloadJob, UploadJob
 
-from telegram.constants import ParseMode
-from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto
+#from telegram.constants import ParseMode
+from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto, InputMediaDocument
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 
@@ -82,9 +82,9 @@ def build_tg_args(job: UploadJob) -> dict:
 			args["photo"] = open(job.local_media_path, 'rb')
 	elif job.media_type == "collection":
 		if job.tg_file_id:
-			args["media"] = job.tg_file_id.split(',')
-			args["parse_mode"] = ParseMode.HTML
-			logging.info("media: %s", args["media"])
+			args["media"] = []
+			for i in job.tg_file_id.split(','):
+				args["media"].append(InputMediaDocument(media=i))
 		else:
 			mediafs = []
 			for j in job.media_collection:
