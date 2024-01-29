@@ -149,11 +149,16 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 	except error.NetworkError as e:
 		logging.error("Failed to upload due telegram limits :(")
 		logging.exception(e)
+		msg = ""
+		if e.message:
+			msg = str(e.message)
+		else:
+			msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
 		await send_text(
 			update, 
 			context, 
 			job.message_id,
-			"Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
+			msg
 		)
 	except Exception as e:
 		logging.error("Error occurred!")
