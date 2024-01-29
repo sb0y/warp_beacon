@@ -83,7 +83,7 @@ def build_tg_args(job: UploadJob) -> dict:
 	elif job.media_type == "collection":
 		if job.tg_file_id:
 			args["media"] = job.tg_file_id.split(',')
-			args["parse_mode"] = "html"
+			args["parse_mode"] = ParseMode.HTML
 			logging.debug("media: %s", args["media"])
 		else:
 			mediafs = []
