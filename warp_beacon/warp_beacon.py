@@ -13,8 +13,7 @@ from storage import Storage
 from uploader import AsyncUploader
 from jobs.download_job import DownloadJob, UploadJob
 
-#from telegram.constants import ParseMode
-from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto, InputMedia
+from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 
@@ -84,7 +83,13 @@ def build_tg_args(job: UploadJob) -> dict:
 		if job.tg_file_id:
 			args["media"] = []
 			for i in job.tg_file_id.split(','):
-				args["media"].append(InputMedia(media=i))
+				tg_id, mtype = i.split(':')
+				ptr = None
+				if mtype == "video":
+					ptr = InputMediaVideo(media=tg_id)
+				elif mtype == "image":
+					ptr = InputMediaPhoto(media=tg_id)
+				args["media"].append(ptr)
 		else:
 			mediafs = []
 			for j in job.media_collection:
@@ -132,9 +137,9 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			tg_files_ids = []
 			for msg in sent_messages:
 				if msg.video:
-					tg_files_ids.append(msg.video.file_id)
+					tg_files_ids.append(msg.video.file_id + ':video')
 				elif msg.photo:
-					tg_files_ids.append(msg.photo[-1].file_id)
+					tg_files_ids.append(msg.photo[-1].file_id + ':image')
 			tg_file_id = ','.join(tg_files_ids)
 
 	except error.TimedOut as e:
