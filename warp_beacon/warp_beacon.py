@@ -88,6 +88,7 @@ def build_tg_args(job: UploadJob) -> dict:
 				if j["type"] == "video":
 					vid = InputMediaVideo(
 						media=open(j["local_path"], 'rb'),
+						supports_streaming=True,
 						width=j["width"], 
 						height=j["height"], 
 						duration=j["duration"],
