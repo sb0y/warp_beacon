@@ -89,10 +89,10 @@ def build_tg_args(job: UploadJob) -> dict:
 					vid = InputMediaVideo(
 						media=open(j["local_path"], 'rb'),
 						supports_streaming=True,
-						width=j["width"], 
-						height=j["height"], 
-						duration=j["duration"],
-						thumbnail=j["thumb"]
+						width=j["media_info"]["width"], 
+						height=j["media_info"]["height"], 
+						duration=j["media_info"]["duration"],
+						thumbnail=j["media_info"]["thumb"]
 					)
 					mediafs.append(vid)
 				elif j["type"] == "photo":
@@ -158,8 +158,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 	finally:
 		if job.media_type == "collection":
 			for j in job.media_collection:
-				if os.path.exists(j["local_media_path"]):
-					os.unlink(j["local_media_path"])
+				if os.path.exists(j["local_path"]):
+					os.unlink(j["local_path"])
 		else:
 			if os.path.exists(job.local_media_path):
 				os.unlink(job.local_media_path)
