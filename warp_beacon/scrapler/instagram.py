@@ -1,4 +1,5 @@
 import os
+import time
 import json
 from typing import Optional, Callable, Union
 import logging
@@ -48,11 +49,6 @@ class InstagramScrapler(ScraplerAbstract):
 			return int(media_id)
 		try:
 			video_url = _scrap()
-		except PleaseWaitFewMinutes as e:
-			logging.warning("Please wait a few minutes error. Trying to relogin...")
-			logging.exception(e)
-			#os.unlink(INST_SESSION_FILE)
-			return self.scrap(url)
 		except LoginRequired as e:
 			logging.warning("Session error. Trying to relogin...")
 			logging.exception(e)
@@ -82,15 +78,34 @@ class InstagramScrapler(ScraplerAbstract):
 
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
-		media_pk = self.scrap(url)
-		#media_info.thumbnail_url
-		media_info = self.cl.media_info(media_pk)
-		logging.info("video_type is '%d'", media_info.media_type)
-		logging.info("media_id is '%s'", media_pk)
-		if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
-			res.append(self.download_video(url=media_info.video_url, media_info=media_info))
-		elif media_info.media_type == 1: # Photo
-			res.append(self.download_photo(url=media_info.thumbnail_url))
-		elif media_info.media_type == 8: # album
-			res.append(self.download_album(media_info=media_info))
+		while True:
+			try:
+				media_pk = self.scrap(url)
+				media_info = self.cl.media_info(media_pk)
+				logging.info("video_type is '%d'", media_info.media_type)
+				logging.info("media_id is '%s'", media_pk)
+				if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
+					res.append(self.download_video(url=media_info.video_url, media_info=media_info))
+				elif media_info.media_type == 1: # Photo
+					res.append(self.download_photo(url=media_info.thumbnail_url))
+				elif media_info.media_type == 8: # Album
+					res.append(self.download_album(media_info=media_info))
+				break
+			except PleaseWaitFewMinutes as e:
+				logging.warning("Please wait a few minutes error. Trying to relogin ...")
+				logging.exception(e)
+				wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=5))
+				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT`", wait_timeout)
+				time.sleep(wait_timeout)
+				if res:
+					for i in res:
+						if i["media_type"] == "collection":
+							for j in i["items"]:
+								if os.path.exists(j["local_media_path"]):
+									os.unlink(j["local_media_path"])
+						else:
+							if os.path.exists(i["local_media_path"]):
+								os.unlink(i["local_media_path"])
+				os.unlink(INST_SESSION_FILE)
+		
 		return res
