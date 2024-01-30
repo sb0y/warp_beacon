@@ -123,48 +123,58 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	tg_file_id = None
 	try:
-		if job.media_type == "video":
-			message = await update.message.reply_video(**build_tg_args(job))
-			tg_file_id = message.video.file_id
-		elif job.media_type == "image":
-			message = await update.message.reply_photo(**build_tg_args(job))
-			if message.photo:
-				tg_file_id = message.photo[-1].file_id
-		elif job.media_type == "collection":
-			if len(job.media_collection) > 10:
-				pass
-			sent_messages = await update.message.reply_media_group(**build_tg_args(job))
-			tg_files_ids = []
-			for msg in sent_messages:
-				if msg.video:
-					tg_files_ids.append(msg.video.file_id + ':video')
-				elif msg.photo:
-					tg_files_ids.append(msg.photo[-1].file_id + ':image')
-			tg_file_id = ','.join(tg_files_ids)
+		retry_amount = 0
+		max_retries = int(os.environ.get("TG_MAX_RETRIES", default=5))
+		while not retry_amount >= max_retries:
+			try:
+				if job.media_type == "video":
+					message = await update.message.reply_video(**build_tg_args(job))
+					tg_file_id = message.video.file_id
+				elif job.media_type == "image":
+					message = await update.message.reply_photo(**build_tg_args(job))
+					if message.photo:
+						tg_file_id = message.photo[-1].file_id
+				elif job.media_type == "collection":
+					if len(job.media_collection) > 10:
+						pass
+					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
+					tg_files_ids = []
+					for msg in sent_messages:
+						if msg.video:
+							tg_files_ids.append(msg.video.file_id + ':video')
+						elif msg.photo:
+							tg_files_ids.append(msg.photo[-1].file_id + ':image')
+					tg_file_id = ','.join(tg_files_ids)
 
-	except error.TimedOut as e:
-		logging.error("TG timeout error!")
-		logging.exception(e)
-		await send_text(
-			update, 
-			context, 
-			job.message_id,
-			"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
-		)
-	except error.NetworkError as e:
-		logging.error("Failed to upload due telegram limits :(")
-		logging.exception(e)
-		msg = ""
-		if e.message:
-			msg = str(e.message)
-		else:
-			msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
-		await send_text(
-			update, 
-			context, 
-			job.message_id,
-			msg
-		)
+			except error.TimedOut as e:
+				logging.error("TG timeout error!")
+				logging.exception(e)
+				await send_text(
+					update, 
+					context, 
+					job.message_id,
+					"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
+				)
+				break
+			except error.NetworkError as e:
+				logging.error("Failed to upload due telegram limits :(")
+				logging.exception(e)
+				logging.info("Upload will be retried %d times. Configuration `TG_MAX_RETRIES` values is %d.", retry_amount, max_retries)
+				
+				if retry_amount+1 >= max_retries:
+					msg = ""
+					if e.message:
+						msg = "Telegram error: %s" % str(e.message)
+					else:
+						msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
+					await send_text(
+						update, 
+						context, 
+						job.message_id,
+						msg
+					)
+					break
+			retry_amount += 1
 	except Exception as e:
 		logging.error("Error occurred!")
 		logging.exception(e)
