@@ -136,7 +136,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 						tg_file_id = message.photo[-1].file_id
 				elif job.media_type == "collection":
 					if len(job.media_collection) > 10:
-						pass
+						logging.warning("Telegram is not supporting more than 10 files in media group")
 					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
 					tg_files_ids = []
 					for msg in sent_messages:
