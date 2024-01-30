@@ -163,6 +163,12 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 				if not "Request Entity Too Large" in e.message:
 					logging.info("TG upload will be retried. Configuration `TG_MAX_RETRIES` values is %d.", max_retries)
 				
+				if "Message to reply not found" in e.message:
+					logging.warning("No message to reply found. Looks like original message was deleted by author.")
+					job.message_id = None
+					continue
+
+				# todo send without reply
 				if retry_amount+1 >= max_retries or "Request Entity Too Large" in e.message:
 					msg = ""
 					if e.message:
