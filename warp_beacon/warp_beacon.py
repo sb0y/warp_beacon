@@ -145,7 +145,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 						elif msg.photo:
 							tg_files_ids.append(msg.photo[-1].file_id + ':image')
 					tg_file_id = ','.join(tg_files_ids)
-
+				logging.info("Uploaded to Telegram")
+				break
 			except error.TimedOut as e:
 				logging.error("TG timeout error!")
 				logging.exception(e)
