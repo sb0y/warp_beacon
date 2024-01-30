@@ -33,6 +33,7 @@ class InstagramScrapler(ScraplerAbstract):
 			self.login()
 
 	def login(self) -> None:
+		self.cl = Client()
 		username = os.environ.get("INSTAGRAM_LOGIN", default=None)
 		password = os.environ.get("INSTAGRAM_PASSWORD", default=None)
 		verification_code = os.environ.get("INSTAGRAM_VERIFICATION_CODE", default="")
@@ -96,7 +97,6 @@ class InstagramScrapler(ScraplerAbstract):
 				logging.exception(e)
 				wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=5))
 				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT`", wait_timeout)
-				time.sleep(wait_timeout)
 				if res:
 					for i in res:
 						if i["media_type"] == "collection":
@@ -107,5 +107,5 @@ class InstagramScrapler(ScraplerAbstract):
 							if os.path.exists(i["local_media_path"]):
 								os.unlink(i["local_media_path"])
 				os.unlink(INST_SESSION_FILE)
-		
+				time.sleep(wait_timeout)
 		return res
