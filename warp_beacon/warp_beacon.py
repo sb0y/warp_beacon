@@ -162,7 +162,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 				logging.exception(e)
 				logging.info("Upload will be retried %d times. Configuration `TG_MAX_RETRIES` values is %d.", retry_amount+1, max_retries)
 				
-				if retry_amount+1 >= max_retries:
+				logging.info(e.args)
+				if retry_amount+1 >= max_retries or "Request Entity Too Large" in e.message:
 					msg = ""
 					if e.message:
 						msg = "Telegram error: %s" % str(e.message)
