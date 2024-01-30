@@ -1,10 +1,9 @@
-import os
 from typing import Optional, Callable
 import multiprocessing
 import time
 import logging
 from requests.exceptions import ConnectTimeout, HTTPError
-from instagrapi.exceptions import MediaNotFound, PleaseWaitFewMinutes
+from instagrapi.exceptions import MediaNotFound
 
 from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
