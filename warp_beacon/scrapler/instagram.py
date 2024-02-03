@@ -90,10 +90,10 @@ class InstagramScrapler(ScraplerAbstract):
 	
 	def download_story(self, story_info: dict) -> dict:
 		path, media_type, media_info = "", "", {}
-		if story_info.story_type == 1: # photo
+		if story_info.media_type == 1: # photo
 			path = str(self.cl.story_download_by_url(url=story_info.thumbnail_url, folder='/tmp'))
 			media_type = "image"
-		elif story_info.story_type == 2: # video
+		elif story_info.media_type == 2: # video
 			path = str(self.cl.story_download_by_url(url=story_info.video_url, folder='/tmp'))
 			media_type = "video"
 			media_info["duration"] = story_info.video_duration
@@ -127,7 +127,7 @@ class InstagramScrapler(ScraplerAbstract):
 						res.append(self.download_album(media_info=media_info))
 				elif scrap_type == "stories":
 					story_info = self.cl.story_info(media_pk)
-					logging.info("story_type is '%d'", story_info.story_type)
+					logging.info("media_type for story is '%d'", story_info.media_type)
 					res.append(self.download_story(story_info=story_info))
 				break
 			except PleaseWaitFewMinutes as e:
