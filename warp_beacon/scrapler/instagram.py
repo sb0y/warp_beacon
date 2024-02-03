@@ -41,22 +41,44 @@ class InstagramScrapler(ScraplerAbstract):
 			self.cl.login(username=username, password=password, verification_code=verification_code)
 		self.safe_write_session()
 
-	def scrap(self, url: str) -> str:
+	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
-		video_url = None
+		if "stories" in url:
+			return "stories", self.scrap_story(url)
+		else:
+			return "media", self.scrap_media(url)
+
+	def scrap_story(self, url: str) -> str:
+		story_url = None
 		def _scrap() -> int:
-			media_id = self.cl.media_pk_from_url(url)
-			logging.info("media_id is '%s'", media_id)
-			return int(media_id)
+			story_id = self.cl.story_pk_from_url(url)
+			logging.info("story_id is '%s'", story_id)
+			return story_id
 		try:
-			video_url = _scrap()
+			story_url = _scrap()
 		except LoginRequired as e:
 			logging.warning("Session error. Trying to relogin...")
 			logging.exception(e)
 			self.login()
-			video_url = _scrap()
+			story_url = _scrap()
 			
-		return video_url
+		return story_url
+
+	def scrap_media(self, url: str) -> str:
+		media_url = None
+		def _scrap() -> int:
+			media_id = self.cl.media_pk_from_url(url)
+			logging.info("media_id is '%s'", media_id)
+			return media_id
+		try:
+			media_url = _scrap()
+		except LoginRequired as e:
+			logging.warning("Session error. Trying to relogin...")
+			logging.exception(e)
+			self.login()
+			media_url = _scrap()
+			
+		return media_url
 	
 	def download_video(self, url: str, media_info: dict) -> dict:
 		path = str(self.cl.video_download_by_url(url, folder='/tmp'))
@@ -66,6 +88,18 @@ class InstagramScrapler(ScraplerAbstract):
 		path = str(self.cl.photo_download_by_url(url, folder='/tmp'))
 		return {"local_media_path": path, "media_type": "image"}
 	
+	def download_story(self, story_info: dict) -> dict:
+		path, media_type, media_info = "", "", {}
+		if story_info.story_type == 1: # photo
+			path = str(self.cl.story_download_by_url(url=story_info.thumbnail_url, folder='/tmp'))
+			media_type = "image"
+		elif story_info.story_type == 2: # video
+			path = str(self.cl.story_download_by_url(url=story_info.video_url, folder='/tmp'))
+			media_type = "video"
+			media_info["duration"] = story_info.video_duration
+
+		return {"local_media_path": path, "media_type": media_type, "media_info": media_info}
+
 	def download_album(self, media_info: dict) -> dict:
 		res = []
 		for i in media_info.resources:
@@ -81,16 +115,20 @@ class InstagramScrapler(ScraplerAbstract):
 		res = []
 		while True:
 			try:
-				media_pk = self.scrap(url)
-				media_info = self.cl.media_info(media_pk)
-				logging.info("video_type is '%d'", media_info.media_type)
-				logging.info("media_id is '%s'", media_pk)
-				if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
-					res.append(self.download_video(url=media_info.video_url, media_info=media_info))
-				elif media_info.media_type == 1: # Photo
-					res.append(self.download_photo(url=media_info.thumbnail_url))
-				elif media_info.media_type == 8: # Album
-					res.append(self.download_album(media_info=media_info))
+				scrap_type, media_pk = self.scrap(url)
+				if scrap_type == "media":
+					media_info = self.cl.media_info(media_pk)
+					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
+					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
+						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
+					elif media_info.media_type == 1: # Photo
+						res.append(self.download_photo(url=media_info.thumbnail_url))
+					elif media_info.media_type == 8: # Album
+						res.append(self.download_album(media_info=media_info))
+				elif scrap_type == "stories":
+					story_info = self.cl.story_info(media_pk)
+					logging.info("story_type is '%d'", story_info.story_type)
+					res.append(self.download_story(story_info=story_info))
 				break
 			except PleaseWaitFewMinutes as e:
 				logging.warning("Please wait a few minutes error. Trying to relogin ...")
