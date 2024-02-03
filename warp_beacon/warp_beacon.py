@@ -168,7 +168,6 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 					job.message_id = None
 					continue
 
-				# todo send without reply
 				if retry_amount+1 >= max_retries or "Request Entity Too Large" in e.message:
 					msg = ""
 					if e.message:
