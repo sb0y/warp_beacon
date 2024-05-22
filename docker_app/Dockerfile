@@ -27,6 +27,6 @@ RUN set -x \
 
 #WORKDIR /app
 
-COPY ./entrypoint.sh .
+#COPY ./entrypoint.sh .
 
 ENTRYPOINT [ "/app/warp_beacon.py" ]
