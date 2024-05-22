@@ -1,4 +1,4 @@
-# warp_beacon
+# warp_beacon [![Docker Image CI](https://github.com/sb0y/warp_beacon/actions/workflows/docker-image.yml/badge.svg)](https://github.com/sb0y/warp_beacon/actions/workflows/docker-image.yml)
 
 Telegram bot for external social networks media scrapling.
 Works with links in personal messages and also with group chats.
