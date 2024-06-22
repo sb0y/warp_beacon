@@ -15,6 +15,8 @@ class JobSettings(TypedDict):
 	job_failed: bool
 	media_type: str
 	job_failed_msg: str
+	effective_url: str
+	save_items: bool
 	media_collection: list
 
 class AbstractJob(ABC):
@@ -29,6 +31,8 @@ class AbstractJob(ABC):
 	in_process: bool = False
 	job_failed: bool = False
 	job_failed_msg: str = ""
+	effective_url: str = ""
+	save_items: bool = False
 	media_collection: list = []
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:

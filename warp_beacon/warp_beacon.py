@@ -119,9 +119,9 @@ def build_tg_args(job: UploadJob) -> dict:
 
 	return args
 
-async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> str:
+async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> list[str]:
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
-	tg_file_id = None
+	tg_file_ids = []
 	try:
 		retry_amount = 0
 		max_retries = int(os.environ.get("TG_MAX_RETRIES", default=5))
@@ -129,22 +129,20 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			try:
 				if job.media_type == "video":
 					message = await update.message.reply_video(**build_tg_args(job))
-					tg_file_id = message.video.file_id
+					tg_file_ids.append(message.video.file_id)
 				elif job.media_type == "image":
 					message = await update.message.reply_photo(**build_tg_args(job))
 					if message.photo:
-						tg_file_id = message.photo[-1].file_id
+						tg_file_ids.append(message.photo[-1].file_id)
 				elif job.media_type == "collection":
 					if len(job.media_collection) > 10:
 						logging.warning("Telegram is not supporting more than 10 files in media group")
 					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
-					tg_files_ids = []
 					for msg in sent_messages:
 						if msg.video:
-							tg_files_ids.append(msg.video.file_id + ':video')
+							tg_file_ids.append(msg.video.file_id + ':video')
 						elif msg.photo:
-							tg_files_ids.append(msg.photo[-1].file_id + ':image')
-					tg_file_id = ','.join(tg_files_ids)
+							tg_file_ids.append(msg.photo[-1].file_id + ':image')
 				logging.info("Uploaded to Telegram")
 				break
 			except error.TimedOut as e:
@@ -194,7 +192,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			if os.path.exists(job.local_media_path):
 				os.unlink(job.local_media_path)
 
-	return tg_file_id
+	return tg_file_ids
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
@@ -229,9 +227,13 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					try:
 						if job.job_failed and job.job_failed_msg:
 							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
-						tg_file_id = await upload_job(update, context, job)
-						if tg_file_id:
-							storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+						tg_file_ids = await upload_job(update, context, job)
+						if tg_file_ids:
+							if job.media_type == "collection" and job.save_items:
+								for i in job.media_collection:
+									storage.add_media(tg_file_id=tg_file_ids, media_url=i.effective_url, media_type=i.media_type, origin="instagram")
+							else:
+								storage.add_media(tg_file_id=','.join(tg_file_ids), media_url=job.url, media_type=job.media_type, origin="instagram")
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)

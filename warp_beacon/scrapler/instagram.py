@@ -1,9 +1,10 @@
 import os
 import time
 import json
-from typing import Optional, Callable, Union
+from typing import Optional
 import logging
 
+from instagrapi.mixins.story import Story
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes
 
@@ -43,42 +44,37 @@ class InstagramScrapler(ScraplerAbstract):
 
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
-		if "stories" in url:
-			return "stories", self.scrap_story(url)
-		else:
-			return "media", self.scrap_media(url)
+		def _scrap() -> tuple[str]:
+			if "stories" in url:
+				url_last_part = url.split('/')[-1]
+				if url_last_part.isnumeric():
+					return "story", self.scrap_story(url)
+				else:
+					return "stories", url_last_part
+			else:
+				return "media", self.scrap_media(url)
+		try:
+			return _scrap()
+		except LoginRequired as e:
+			logging.warning("Session error. Trying to relogin...")
+			logging.exception(e)
+			self.login()
+			return _scrap()
+
+	def scrap_stories(self, username: str) -> list[Story]:
+		user_info = self.cl.user_info_by_username(username)
+		logging.info("user_id is '%s'", user_info.pk)
+		return self.cl.user_stories(user_id=user_info.pk)
 
 	def scrap_story(self, url: str) -> str:
-		story_url = None
-		def _scrap() -> int:
-			story_id = self.cl.story_pk_from_url(url)
-			logging.info("story_id is '%s'", story_id)
-			return story_id
-		try:
-			story_url = _scrap()
-		except LoginRequired as e:
-			logging.warning("Session error. Trying to relogin...")
-			logging.exception(e)
-			self.login()
-			story_url = _scrap()
-			
-		return story_url
+		story_id = self.cl.story_pk_from_url(url)
+		logging.info("story_id is '%s'", story_id)
+		return story_id
 
 	def scrap_media(self, url: str) -> str:
-		media_url = None
-		def _scrap() -> int:
-			media_id = self.cl.media_pk_from_url(url)
-			logging.info("media_id is '%s'", media_id)
-			return media_id
-		try:
-			media_url = _scrap()
-		except LoginRequired as e:
-			logging.warning("Session error. Trying to relogin...")
-			logging.exception(e)
-			self.login()
-			media_url = _scrap()
-			
-		return media_url
+		media_id = self.cl.media_pk_from_url(url)
+		logging.info("media_id is '%s'", media_id)
+		return media_id
 	
 	def download_video(self, url: str, media_info: dict) -> dict:
 		path = str(self.cl.video_download_by_url(url, folder='/tmp'))
@@ -88,8 +84,9 @@ class InstagramScrapler(ScraplerAbstract):
 		path = str(self.cl.photo_download_by_url(url, folder='/tmp'))
 		return {"local_media_path": path, "media_type": "image"}
 	
-	def download_story(self, story_info: dict) -> dict:
+	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", "", {}
+		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, story_info.id)
 		if story_info.media_type == 1: # photo
 			path = str(self.cl.story_download_by_url(url=story_info.thumbnail_url, folder='/tmp'))
 			media_type = "image"
@@ -98,7 +95,14 @@ class InstagramScrapler(ScraplerAbstract):
 			media_type = "video"
 			media_info["duration"] = story_info.video_duration
 
-		return {"local_media_path": path, "media_type": media_type, "media_info": media_info}
+		return {"local_media_path": path, "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
+
+	def download_stories(self, stories: list[Story]) -> dict:
+		res = []
+		for story in stories:
+			res.append(self.download_story(story_info=story))
+
+		return {"media_type": "collection", "save_items": True, "items": res}
 
 	def download_album(self, media_info: dict) -> dict:
 		res = []
@@ -115,9 +119,9 @@ class InstagramScrapler(ScraplerAbstract):
 		res = []
 		while True:
 			try:
-				scrap_type, media_pk = self.scrap(url)
+				scrap_type, media_id = self.scrap(url)
 				if scrap_type == "media":
-					media_info = self.cl.media_info(media_pk)
+					media_info = self.cl.media_info(media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
@@ -125,10 +129,13 @@ class InstagramScrapler(ScraplerAbstract):
 						res.append(self.download_photo(url=media_info.thumbnail_url))
 					elif media_info.media_type == 8: # Album
 						res.append(self.download_album(media_info=media_info))
-				elif scrap_type == "stories":
-					story_info = self.cl.story_info(media_pk)
+				elif scrap_type == "story":
+					story_info = self.cl.story_info(media_id)
 					logging.info("media_type for story is '%d'", story_info.media_type)
 					res.append(self.download_story(story_info=story_info))
+				elif scrap_type == "stories":
+					logging.info("Stories download mode")
+					res.append(self.download_stories(self.scrap_stories(media_id)))
 				break
 			except PleaseWaitFewMinutes as e:
 				logging.warning("Please wait a few minutes error. Trying to relogin ...")
