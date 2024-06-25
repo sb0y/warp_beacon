@@ -54,7 +54,7 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
 	try:
 		await update.message.reply_text(
-			text, 
+			text,
 			reply_to_message_id=reply_id
 		)
 	except Exception as e:
@@ -135,8 +135,6 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 					if message.photo:
 						tg_file_ids.append(message.photo[-1].file_id)
 				elif job.media_type == "collection":
-					if len(job.media_collection) > 10:
-						logging.warning("Telegram is not supporting more than 10 files in media group")
 					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
 					for msg in sent_messages:
 						if msg.video:
@@ -149,8 +147,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 				logging.error("TG timeout error!")
 				logging.exception(e)
 				await send_text(
-					update, 
-					context, 
+					update,
+					context,
 					job.message_id,
 					"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
 				)
@@ -173,8 +171,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 					else:
 						msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
 					await send_text(
-						update, 
-						context, 
+						update,
+						context,
 						job.message_id,
 						msg
 					)
@@ -210,18 +208,38 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			if "instagram.com" not in url:
 				logging.info("Only instagram.com is now supported. Skipping.")
 				continue
-			doc = None
-			tg_file_id = ""
+			entities, tg_file_ids = [], []
 			uniq_id = Storage.compute_uniq(url)
 			try:
-				doc = storage.db_lookup_id(uniq_id)
+				entities = storage.db_lookup_id(uniq_id)
 			except Exception as e:
 				logging.error("Failed to search link in DB!")
 				logging.exception(e)
-			if doc:
-				tg_file_id = doc["tg_file_id"]
-				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
-				await upload_job(update, context, UploadJob(tg_file_id=tg_file_id, message_id=effective_message_id, media_type=doc["media_type"]))
+			if entities:
+				tg_file_ids = ["%s:%s" % (i["tg_file_id"], i["media_type"]) for i in entities]
+				logging.info("URL '%s' is found in DB. Sending with tg_file_ids = '%s'", url, str(tg_file_ids))
+				ent_len = len(entities)
+				if ent_len > 1:
+					await upload_job(
+						update,
+						context,
+						UploadJob(
+							tg_file_id=",".join(tg_file_ids),
+							message_id=effective_message_id,
+							media_type="collection"
+						)
+					)
+				elif ent_len:
+					media_type = entities.pop()["media_type"]
+					await upload_job(
+						update,
+						context,
+						UploadJob(
+							tg_file_id=tg_file_ids.pop().replace(":%s" % media_type, ''),
+							message_id=effective_message_id,
+							media_type=media_type
+						)
+					)
 			else:
 				async def upload_wrapper(job: UploadJob) -> None:
 					try:
@@ -231,9 +249,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						if tg_file_ids:
 							if job.media_type == "collection" and job.save_items:
 								for i in job.media_collection:
-									storage.add_media(tg_file_id=tg_file_ids, media_url=i.effective_url, media_type=i.media_type, origin="instagram")
+									storage.add_media(tg_file_ids=tg_file_ids, media_url=i.effective_url, media_type=i.media_type, origin="instagram")
 							else:
-								storage.add_media(tg_file_id=','.join(tg_file_ids), media_url=job.url, media_type=job.media_type, origin="instagram")
+								storage.add_media(tg_file_ids=tg_file_ids, media_url=job.url, media_type=job.media_type, origin="instagram")
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)
@@ -286,7 +304,8 @@ def main() -> None:
 		uploader.start()
 
 		# Create the Application and pass it your bot's token.
-		application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
+		tg_token = os.environ.get("TG_TOKEN", default=None)
+		application = Application.builder().token(tg_token).concurrent_updates(True).build()
 
 		# on different commands - answer in Telegram
 		application.add_handler(CommandHandler("start", start))

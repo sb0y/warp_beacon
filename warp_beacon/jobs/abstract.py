@@ -23,7 +23,7 @@ class AbstractJob(ABC):
 	job_id: uuid.UUID = None
 	message_id: int = 0
 	local_media_path: str = ""
-	media_info: dict = ""
+	media_info: dict = {}
 	url: str = ""
 	uniq_id: str = ""
 	tg_file_id: str = ""
