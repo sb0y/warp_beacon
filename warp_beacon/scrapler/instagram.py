@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 import time
 import json
-from typing import Optional
+from typing import Callable, Optional
 import logging
 
+import urllib3
 from instagrapi.mixins.story import Story
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes
@@ -16,7 +18,7 @@ class InstagramScrapler(ScraplerAbstract):
 	cl = None
 
 	def __init__(self) -> None:
-		super(InstagramScrapler, self).__init__()
+		super().__init__()
 		self.cl = Client()
 
 	def safe_write_session(self) -> None:
@@ -76,26 +78,45 @@ class InstagramScrapler(ScraplerAbstract):
 		logging.info("media_id is '%s'", media_id)
 		return media_id
 	
+	def __download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Path:
+		ret_val = {}
+		max_retries = int(os.environ.get("IG_MAX_RETRIES", default=5))
+		retries = 0
+		while max_retries >= retries:
+			try:
+				ret_val = func(*args, **kwargs)
+				break
+			except urllib3.exceptions.ReadTimeoutError as e:
+				logging.warning("Instagram read timeout! Retrying ...")
+				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
+				logging.exception(e)
+				if max_retries == retries:
+					raise e
+				retries += 1
+
+		return ret_val
+
+	
 	def download_video(self, url: str, media_info: dict) -> dict:
-		path = str(self.cl.video_download_by_url(url, folder='/tmp'))
-		return {"local_media_path": path, "media_type": "video", "media_info": {"duration": media_info.video_duration}}
+		path = self.__download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
+		return {"local_media_path": str(path), "media_type": "video", "media_info": {"duration": media_info.video_duration}}
 
 	def download_photo(self, url: str) -> dict:
-		path = str(self.cl.photo_download_by_url(url, folder='/tmp'))
-		return {"local_media_path": path, "media_type": "image"}
+		path = self.__download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp')
+		return {"local_media_path": str(path), "media_type": "image"}
 	
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", "", {}
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, story_info.id)
 		if story_info.media_type == 1: # photo
-			path = str(self.cl.story_download_by_url(url=story_info.thumbnail_url, folder='/tmp'))
+			path = self.__download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp')
 			media_type = "image"
 		elif story_info.media_type == 2: # video
-			path = str(self.cl.story_download_by_url(url=story_info.video_url, folder='/tmp'))
+			path = self.__download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp')
 			media_type = "video"
 			media_info["duration"] = story_info.video_duration
 
-		return {"local_media_path": path, "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
+		return {"local_media_path": str(path), "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
 
 	def download_stories(self, stories: list[Story]) -> dict:
 		res = []
