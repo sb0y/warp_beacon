@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+#from typing import Optional
 import logging
 
 from urllib.parse import urlparse
@@ -31,13 +31,13 @@ class Storage(object):
 		path = urlparse(url).path.strip('/')
 		return path
 	
-	def db_find(self, uniq_id: str) -> dict:
+	def db_find(self, uniq_id: str) -> list[dict]:
 		document = None
-		ret = {}
+		ret = []
 		try:
-			document = self.db.find_one({"uniq_id": uniq_id})
-			if document:
-				ret = {"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"], "media_type": document["media_type"]}
+			cursor = self.db.find({"uniq_id": uniq_id})
+			for document in cursor:
+				ret.append({"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"], "media_type": document["media_type"]})
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
@@ -48,13 +48,16 @@ class Storage(object):
 		doc = self.db_find(uniq_id)
 		return doc
 	
-	def db_lookup_id(self, uniq_id: str) -> dict:
+	def db_lookup_id(self, uniq_id: str) -> list[dict]:
 		return self.db_find(uniq_id)
 	
-	def add_media(self, tg_file_id: str, media_url: str, media_type: str, origin: str) -> int:
+	def add_media(self, tg_file_ids: list[str], media_url: str, media_type: str, origin: str) -> list[int]:
 		uniq_id = self.compute_uniq(media_url)
-		media_id = self.db.insert_one({"uniq_id": uniq_id, "media_type": media_type, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
-		return media_id
+		media_ids = []
+		for tg_file_id in tg_file_ids:
+			media_ids += self.db.insert_one({"uniq_id": uniq_id, "media_type": media_type, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
+
+		return media_ids
 	
 	def get_random(self) -> dict:
 		ret = {}
