@@ -48,7 +48,7 @@ class InstagramScrapler(ScraplerAbstract):
 		self.load_session()
 		def _scrap() -> tuple[str]:
 			if "stories" in url:
-				url_last_part = url.split('/')[-1]
+				url_last_part = list(filter(None, url.split('/')))[-1]
 				if url_last_part.isnumeric():
 					return "story", self.scrap_story(url)
 				else:
