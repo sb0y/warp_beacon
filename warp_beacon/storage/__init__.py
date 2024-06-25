@@ -55,7 +55,7 @@ class Storage(object):
 		uniq_id = self.compute_uniq(media_url)
 		media_ids = []
 		for tg_file_id in tg_file_ids:
-			media_ids += self.db.insert_one({"uniq_id": uniq_id, "media_type": media_type, "tg_file_id": tg_file_id, "origin": origin}).inserted_id
+			media_ids += str(self.db.insert_one({"uniq_id": uniq_id, "media_type": media_type, "tg_file_id": tg_file_id, "origin": origin}).inserted_id)
 
 		return media_ids
 	
