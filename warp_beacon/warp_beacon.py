@@ -139,12 +139,12 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 				elif job.media_type == "collection":
 					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
 					for msg, i in enumerate(sent_messages):
-						if msg.video:
-							tg_file_ids.append(msg.video.file_id + ':video')
-							job.media_collection[i].tg_file_id = msg.video.file_id + ':video'
-						elif msg.photo:
-							tg_file_ids.append(msg.photo[-1].file_id + ':image')
-							job.media_collection[i].tg_file_id = msg.photo[-1].file_id + ':image'
+						if msg[i].video:
+							tg_file_ids.append(msg[i].video.file_id + ':video')
+							job.media_collection[i].tg_file_id = msg[i].video.file_id + ':video'
+						elif msg[i].photo:
+							tg_file_ids.append(msg[i].photo[-1].file_id + ':image')
+							job.media_collection[i].tg_file_id = msg[i].photo[-1].file_id + ':image'
 				logging.info("Uploaded to Telegram")
 				break
 			except error.TimedOut as e:
