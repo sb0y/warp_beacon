@@ -97,8 +97,8 @@ def build_tg_args(job: UploadJob) -> dict:
 					vid = InputMediaVideo(
 						media=open(j.local_media_path, 'rb'),
 						supports_streaming=True,
-						width=j.media_info["width"], 
-						height=j.media_info["height"], 
+						width=j.media_info["width"],
+						height=j.media_info["height"],
 						duration=int(j.media_info["duration"]),
 						thumbnail=j.media_info["thumb"]
 					)
@@ -138,13 +138,13 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 						job.tg_file_id = message.photo[-1].file_id
 				elif job.media_type == "collection":
 					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
-					for msg in sent_messages:
+					for msg, i in enumerate(sent_messages):
 						if msg.video:
 							tg_file_ids.append(msg.video.file_id + ':video')
-							job.tg_file_id = msg.video.file_id + ':video'
+							job.media_collection[i].tg_file_id = msg.video.file_id + ':video'
 						elif msg.photo:
 							tg_file_ids.append(msg.photo[-1].file_id + ':image')
-							job.tg_file_id = msg.photo[-1].file_id + ':image'
+							job.media_collection[i].tg_file_id = msg.photo[-1].file_id + ':image'
 				logging.info("Uploaded to Telegram")
 				break
 			except error.TimedOut as e:
@@ -239,7 +239,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						update,
 						context,
 						UploadJob(
-							tg_file_id=tg_file_ids.pop().replace(":%s" % media_type, ''),
+							tg_file_id=tg_file_ids.pop(),
 							message_id=effective_message_id,
 							media_type=media_type
 						)
@@ -253,7 +253,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						if tg_file_ids:
 							if job.media_type == "collection" and job.save_items:
 								for i in job.media_collection:
-									storage.add_media(tg_file_ids=i.tg_file_id, media_url=i.effective_url, media_type=i.media_type, origin="instagram")
+									logging.info("col tg_file_id = '%s'", i.tg_file_id)
+									storage.add_media(tg_file_ids=[i.tg_file_id], media_url=i.effective_url, media_type=i.media_type, origin="instagram")
 							else:
 								storage.add_media(tg_file_ids=tg_file_ids, media_url=job.url, media_type=job.media_type, origin="instagram")
 					except Exception as e:
