@@ -3,9 +3,11 @@ from pathlib import Path
 import time
 import json
 from typing import Callable, Optional, Union
+
+import requests
+import urllib3
 import logging
 
-import urllib3
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
 from instagrapi import Client
@@ -88,6 +90,7 @@ class InstagramScrapler(ScraplerAbstract):
 				ret_val = func(*args, **kwargs)
 				break
 			except urllib3.exceptions.ReadTimeoutError as e:
+			except requests.exceptions.ReadTimeout as e:
 				logging.warning("Instagram read timeout! Retrying ...")
 				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
 				logging.exception(e)
