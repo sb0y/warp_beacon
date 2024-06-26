@@ -89,8 +89,7 @@ class InstagramScrapler(ScraplerAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
-			except urllib3.exceptions.ReadTimeoutError as e:
-			except requests.exceptions.ReadTimeout as e:
+			except (requests.exceptions.ReadTimeout, urllib3.exceptions.ReadTimeoutError) as e:
 				logging.warning("Instagram read timeout! Retrying ...")
 				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
 				logging.exception(e)
