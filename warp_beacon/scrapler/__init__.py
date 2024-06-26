@@ -1,9 +1,9 @@
-from typing import Optional, Callable
+from typing import Optional
 import multiprocessing
 import time
 import logging
 from requests.exceptions import ConnectTimeout, HTTPError
-from instagrapi.exceptions import MediaNotFound
+from instagrapi.exceptions import MediaNotFound, UnknownError
 
 from mediainfo.video import VideoInfo
 from uploader import AsyncUploader
@@ -77,6 +77,20 @@ class AsyncDownloader(object):
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
 											job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
+										)
+										break
+									except (UnknownError, Exception) as e:
+										logging.warning("UnknownError occurred!")
+										logging.exception(e)
+										if "geoblock_required" in e.message:
+											self.uploader.queue_task(job.to_upload_job(
+												job_failed=True,
+												job_failed_msg="This content does not accessible for bot account. Seems like author blocked certain region.")
+											)
+											break
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="WOW, unknown error occured! Please send service logs to developer via email: andrey@bagrintsev.me.")
 										)
 										break
 

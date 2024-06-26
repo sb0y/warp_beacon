@@ -321,13 +321,22 @@ def main() -> None:
 		# on non command i.e message - echo the message on Telegram
 		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 
+		allow_loop = True
 		try:
 			loop.run_until_complete(application.initialize())
 			if application.post_init:
 				loop.run_until_complete(application.post_init(application))
 			loop.run_until_complete(application.updater.start_polling())
 			loop.run_until_complete(application.start())
-			loop.run_forever()
+			while allow_loop:
+				try:
+					loop.run_forever()
+				except (KeyboardInterrupt, SystemExit) as e:
+					allow_loop = False
+					raise e
+				except Exception as e:
+					logging.error("Main loop Telegram error!")
+					logging.exception(e)
 		except (KeyboardInterrupt, SystemExit):
 			logging.debug("Application received stop signal. Shutting down.")
 		finally:
