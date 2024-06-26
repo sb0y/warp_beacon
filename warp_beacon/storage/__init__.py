@@ -35,7 +35,7 @@ class Storage(object):
 		document = None
 		ret = []
 		try:
-			logging.debug("uniq_id to search is '%s'", uniq_id)
+			logging.info("uniq_id to search is '%s'", uniq_id)
 			cursor = self.db.find({"uniq_id": uniq_id})
 			for document in cursor:
 				ret.append({"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"], "media_type": document["media_type"]})
