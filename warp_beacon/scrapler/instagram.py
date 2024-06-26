@@ -2,11 +2,12 @@ import os
 from pathlib import Path
 import time
 import json
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 import logging
 
 import urllib3
 from instagrapi.mixins.story import Story
+from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes
 
@@ -78,7 +79,7 @@ class InstagramScrapler(ScraplerAbstract):
 		logging.info("media_id is '%s'", media_id)
 		return media_id
 	
-	def __download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Path:
+	def __download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[Path, Media]:
 		ret_val = {}
 		max_retries = int(os.environ.get("IG_MAX_RETRIES", default=5))
 		retries = 0
@@ -142,7 +143,7 @@ class InstagramScrapler(ScraplerAbstract):
 			try:
 				scrap_type, media_id = self.scrap(url)
 				if scrap_type == "media":
-					media_info = self.cl.media_info(media_id)
+					media_info = self.__download_hndlr(self.cl.media_info, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
