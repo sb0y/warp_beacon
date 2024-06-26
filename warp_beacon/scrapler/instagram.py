@@ -90,12 +90,13 @@ class InstagramScrapler(ScraplerAbstract):
 				ret_val = func(*args, **kwargs)
 				break
 			except (requests.exceptions.ReadTimeout, urllib3.exceptions.ReadTimeoutError) as e:
-				logging.warning("Instagram read timeout! Retrying ...")
+				logging.warning("Instagram read timeout! Retrying in 2 seconds ...")
 				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
 				logging.exception(e)
 				if max_retries == retries:
 					raise e
 				retries += 1
+				time.sleep(2)
 
 		return ret_val
 
@@ -110,6 +111,7 @@ class InstagramScrapler(ScraplerAbstract):
 	
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", "", {}
+		logging.info("Story id is '%s'", story_info.id)
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, story_info.id)
 		if story_info.media_type == 1: # photo
 			path = self.__download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp')
