@@ -45,9 +45,9 @@ class AbstractJob(ABC):
 
 	def __str__(self) -> str:
 		return str(self.to_dict())
-	
-	def __dict__(self) -> dict:
-		return self.to_dict()
+
+	def __repr__(self) -> str:
+		return str(self.to_dict())
 
 	def to_dict(self) -> dict:
 		d = {}
