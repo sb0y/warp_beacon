@@ -31,7 +31,7 @@ class Storage(object):
 		path = urlparse(url).path.strip('/')
 		return path
 	
-	def adb_find(self, uniq_id: str) -> list[dict]:
+	def db_find(self, uniq_id: str) -> list[dict]:
 		document = None
 		ret = []
 		try:
