@@ -43,6 +43,12 @@ class AbstractJob(ABC):
 	def __del__(self) -> None:
 		pass
 
+	def __str__(self) -> str:
+		return str(self.to_dict())
+	
+	def __dict__(self) -> dict:
+		return self.to_dict()
+
 	def to_dict(self) -> dict:
 		d = {}
 		for key in dir(self.__class__):
