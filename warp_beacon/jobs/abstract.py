@@ -15,13 +15,15 @@ class JobSettings(TypedDict):
 	job_failed: bool
 	media_type: str
 	job_failed_msg: str
+	effective_url: str
+	save_items: bool
 	media_collection: list
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
 	message_id: int = 0
 	local_media_path: str = ""
-	media_info: dict = ""
+	media_info: dict = {}
 	url: str = ""
 	uniq_id: str = ""
 	tg_file_id: str = ""
@@ -29,6 +31,8 @@ class AbstractJob(ABC):
 	in_process: bool = False
 	job_failed: bool = False
 	job_failed_msg: str = ""
+	effective_url: str = ""
+	save_items: bool = False
 	media_collection: list = []
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
@@ -38,6 +42,12 @@ class AbstractJob(ABC):
 
 	def __del__(self) -> None:
 		pass
+
+	def __str__(self) -> str:
+		return str(self.to_dict())
+
+	def __repr__(self) -> str:
+		return str(self.to_dict())
 
 	def to_dict(self) -> dict:
 		d = {}

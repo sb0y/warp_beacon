@@ -54,7 +54,7 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
 	try:
 		await update.message.reply_text(
-			text, 
+			text,
 			reply_to_message_id=reply_id
 		)
 	except Exception as e:
@@ -66,7 +66,7 @@ def build_tg_args(job: UploadJob) -> dict:
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	if job.media_type == "video":
 		if job.tg_file_id:
-			args["video"] = job.tg_file_id
+			args["video"] = job.tg_file_id.replace(":video", '')
 		else:
 			args["video"] = open(job.local_media_path, 'rb')
 			args["supports_streaming"] = True
@@ -76,7 +76,7 @@ def build_tg_args(job: UploadJob) -> dict:
 			args["thumbnail"] = job.media_info["thumb"]
 	elif job.media_type == "image":
 		if job.tg_file_id:
-			args["photo"] = job.tg_file_id
+			args["photo"] = job.tg_file_id.replace(":image", '')
 		else:
 			args["photo"] = open(job.local_media_path, 'rb')
 	elif job.media_type == "collection":
@@ -97,8 +97,8 @@ def build_tg_args(job: UploadJob) -> dict:
 					vid = InputMediaVideo(
 						media=open(j.local_media_path, 'rb'),
 						supports_streaming=True,
-						width=j.media_info["width"], 
-						height=j.media_info["height"], 
+						width=j.media_info["width"],
+						height=j.media_info["height"],
 						duration=int(j.media_info["duration"]),
 						thumbnail=j.media_info["thumb"]
 					)
@@ -119,9 +119,9 @@ def build_tg_args(job: UploadJob) -> dict:
 
 	return args
 
-async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> str:
+async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> list[str]:
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
-	tg_file_id = None
+	tg_file_ids = []
 	try:
 		retry_amount = 0
 		max_retries = int(os.environ.get("TG_MAX_RETRIES", default=5))
@@ -129,30 +129,32 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			try:
 				if job.media_type == "video":
 					message = await update.message.reply_video(**build_tg_args(job))
-					tg_file_id = message.video.file_id
+					tg_file_ids.append(message.video.file_id)
+					job.tg_file_id = message.video.file_id
 				elif job.media_type == "image":
 					message = await update.message.reply_photo(**build_tg_args(job))
 					if message.photo:
-						tg_file_id = message.photo[-1].file_id
+						tg_file_ids.append(message.photo[-1].file_id)
+						job.tg_file_id = message.photo[-1].file_id
 				elif job.media_type == "collection":
-					if len(job.media_collection) > 10:
-						logging.warning("Telegram is not supporting more than 10 files in media group")
 					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
-					tg_files_ids = []
-					for msg in sent_messages:
+					for i, msg in enumerate(sent_messages):
 						if msg.video:
-							tg_files_ids.append(msg.video.file_id + ':video')
+							tg_file_ids.append(msg.video.file_id + ':video')
+							if job.media_collection:
+								job.media_collection[i].tg_file_id = msg.video.file_id + ':video'
 						elif msg.photo:
-							tg_files_ids.append(msg.photo[-1].file_id + ':image')
-					tg_file_id = ','.join(tg_files_ids)
+							tg_file_ids.append(msg.photo[-1].file_id + ':image')
+							if job.media_collection:
+								job.media_collection[i].tg_file_id = msg.photo[-1].file_id + ':image'
 				logging.info("Uploaded to Telegram")
 				break
 			except error.TimedOut as e:
 				logging.error("TG timeout error!")
 				logging.exception(e)
 				await send_text(
-					update, 
-					context, 
+					update,
+					context,
 					job.message_id,
 					"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
 				)
@@ -175,8 +177,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 					else:
 						msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
 					await send_text(
-						update, 
-						context, 
+						update,
+						context,
 						job.message_id,
 						msg
 					)
@@ -194,7 +196,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			if os.path.exists(job.local_media_path):
 				os.unlink(job.local_media_path)
 
-	return tg_file_id
+	return tg_file_ids
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
@@ -212,26 +214,50 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 			if "instagram.com" not in url:
 				logging.info("Only instagram.com is now supported. Skipping.")
 				continue
-			doc = None
-			tg_file_id = ""
+			entities, tg_file_ids = [], []
 			uniq_id = Storage.compute_uniq(url)
 			try:
-				doc = storage.db_lookup_id(uniq_id)
+				entities = storage.db_lookup_id(uniq_id)
 			except Exception as e:
 				logging.error("Failed to search link in DB!")
 				logging.exception(e)
-			if doc:
-				tg_file_id = doc["tg_file_id"]
-				logging.info("URL '%s' is found in DB. Sending with tg_file_id = '%s'", url, tg_file_id)
-				await upload_job(update, context, UploadJob(tg_file_id=tg_file_id, message_id=effective_message_id, media_type=doc["media_type"]))
+			if entities:
+				tg_file_ids = [i["tg_file_id"] for i in entities]
+				logging.info("URL '%s' is found in DB. Sending with tg_file_ids = '%s'", url, str(tg_file_ids))
+				ent_len = len(entities)
+				if ent_len > 1:
+					await upload_job(
+						update,
+						context,
+						UploadJob(
+							tg_file_id=",".join(tg_file_ids),
+							message_id=effective_message_id,
+							media_type="collection"
+						)
+					)
+				elif ent_len:
+					media_type = entities.pop()["media_type"]
+					await upload_job(
+						update,
+						context,
+						UploadJob(
+							tg_file_id=tg_file_ids.pop(),
+							message_id=effective_message_id,
+							media_type=media_type
+						)
+					)
 			else:
 				async def upload_wrapper(job: UploadJob) -> None:
 					try:
 						if job.job_failed and job.job_failed_msg:
 							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
-						tg_file_id = await upload_job(update, context, job)
-						if tg_file_id:
-							storage.add_media(tg_file_id=tg_file_id, media_url=job.url, media_type=job.media_type, origin="instagram")
+						tg_file_ids = await upload_job(update, context, job)
+						if tg_file_ids:
+							if job.media_type == "collection" and job.save_items:
+								for i in job.media_collection:
+									storage.add_media(tg_file_ids=[i.tg_file_id], media_url=i.effective_url, media_type=i.media_type, origin="instagram")
+							else:
+								storage.add_media(tg_file_ids=[','.join(tg_file_ids)], media_url=job.url, media_type=job.media_type, origin="instagram")
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)
@@ -243,9 +269,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 				try:
 					downloader.queue_task(DownloadJob.build(
-						url=url, 
-						message_id=effective_message_id, 
-						in_process=uploader.is_inprocess(uniq_id), 
+						url=url,
+						message_id=effective_message_id,
+						in_process=uploader.is_inprocess(uniq_id),
 						uniq_id=uniq_id
 					))
 					uploader.set_inprocess(uniq_id)
@@ -284,7 +310,8 @@ def main() -> None:
 		uploader.start()
 
 		# Create the Application and pass it your bot's token.
-		application = Application.builder().token(os.environ.get("TG_TOKEN", default=None)).concurrent_updates(True).build()
+		tg_token = os.environ.get("TG_TOKEN", default=None)
+		application = Application.builder().token(tg_token).concurrent_updates(True).build()
 
 		# on different commands - answer in Telegram
 		application.add_handler(CommandHandler("start", start))
