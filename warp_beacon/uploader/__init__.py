@@ -82,7 +82,7 @@ class AsyncUploader(object):
 					uniq_id = job.uniq_id
 					message_id = job.message_id
 					if not in_process:
-						logging.info("Accepted upload job, file: '%s'", path)
+						logging.info("Accepted upload job, file(s): '%s'", path)
 					try:
 						for m_id in self.callbacks.copy():
 							if m_id == message_id:

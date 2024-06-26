@@ -95,6 +95,8 @@ class AsyncDownloader(object):
 										job_args = {"media_type": item["media_type"], "media_info": media_info}
 										if item["media_type"] == "collection":
 											job_args["media_collection"] = item["items"]
+											if item.get("save_items", None) is not None:
+												job_args["save_items"] = item.get("save_items", False)
 										else:
 											job_args["local_media_path"] = item["local_media_path"]
 
