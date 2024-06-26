@@ -112,7 +112,13 @@ class InstagramScrapler(ScraplerAbstract):
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", "", {}
 		logging.info("Story id is '%s'", story_info.id)
-		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, story_info.id)
+		effective_story_id = story_info.id
+		if '_' in effective_story_id:
+			st_parts = effective_story_id.split('_')
+			if len(st_parts) > 1:
+				effective_story_id = st_parts[0]
+		logging.info("Effective story id is '%s'", effective_story_id)
+		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
 		if story_info.media_type == 1: # photo
 			path = self.__download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp')
 			media_type = "image"
