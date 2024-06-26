@@ -216,7 +216,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				logging.error("Failed to search link in DB!")
 				logging.exception(e)
 			if entities:
-				tg_file_ids = ["%s:%s" % (i["tg_file_id"], i["media_type"]) for i in entities]
+				tg_file_ids = [i["tg_file_id"] for i in entities]
 				logging.info("URL '%s' is found in DB. Sending with tg_file_ids = '%s'", url, str(tg_file_ids))
 				ent_len = len(entities)
 				if ent_len > 1:
