@@ -82,7 +82,12 @@ class AsyncDownloader(object):
 									except (UnknownError, Exception) as e:
 										logging.warning("UnknownError occurred!")
 										logging.exception(e)
-										if "geoblock_required" in e.message:
+										exception_msg = ""
+										if hasattr(e, "message"):
+											exception_msg = e.message
+										else:
+											exception_msg = str(e)
+										if "geoblock_required" in exception_msg:
 											self.uploader.queue_task(job.to_upload_job(
 												job_failed=True,
 												job_failed_msg="This content does not accessible for bot account. Seems like author blocked certain region.")
