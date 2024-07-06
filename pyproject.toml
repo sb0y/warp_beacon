@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "warp_beacon_sb0y"
+dynamic = ["version"]
+authors = [
+  { name="Andrey (Sb0y) Bagrintsev", email="andrey@bagrintsev.me" },
+]
+description = "Telegram bot for expanding external media links"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+	"python-telegram-bot",
+	"urlextract",
+	"pillow",
+	"pymongo",
+	"instagrapi=='2.0.0'"
+]
+keywords = ["bot", "telegram", "instagram", "export"]
+classifiers = [
+	'Development Status :: 5 - Production/Stable',
+
+	'Topic :: Sociology',
+	'Topic :: Communications :: File Sharing',
+	'Topic :: Internet :: WWW/HTTP',
+	'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+	'Topic :: Scientific/Engineering :: Image Processing',
+	'Topic :: Multimedia :: Video',
+	'Topic :: Multimedia',
+
+	'License :: OSI Approved :: Apache Software License',
+
+	# Specify operating system
+	'Operating System :: POSIX :: Linux',
+
+	# Specify the Python versions you support here. In particular, ensure
+	'Programming Language :: Python :: 3.10'
+]
+
+[project.entry-points."warp_beacon"]
+warp_beacon = "warp_beacon.warp_beacon:main"
+
+[project.urls]
+Homepage = "https://github.com/sb0y/warp_beacon"
+Issues = "https://github.com/sb0y/warp_beacon/issues"
