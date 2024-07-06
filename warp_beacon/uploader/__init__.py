@@ -94,10 +94,16 @@ class AsyncUploader(object):
 									self.remove_callback(message_id)
 									continue
 								if in_process:
-									tg_id = self.storage.db_lookup_id(uniq_id).get("tg_file_id", None)
-									if tg_id:
-										logging.info("Performing waited job")
-										job.tg_file_id = tg_id
+									db_list_dicts = self.storage.db_lookup_id(uniq_id)
+									if db_list_dicts:
+										tg_file_ids = [i["tg_file_id"] for i in db_list_dicts]
+										dlds_len = len(db_list_dicts)
+										if dlds_len > 1:
+											job.tg_file_id = ",".join(tg_file_ids)
+											job.media_type = "collection"
+										elif dlds_len:
+											job.tg_file_id = ",".join(tg_file_ids)
+											job.media_type = db_list_dicts.pop()["media_type"]
 										asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
 									else:
 										self.queue_task(job)
