@@ -1,0 +1,11 @@
+Package: warp-beacon
+Version: 0.0.1
+Architecture: all
+Maintainer: Sb0y <andrey@bagrintsev.me>
+Installed-Size: 311980
+Pre-Depends: dpkg (>= 1.16.1), python3
+Section: python
+Priority: optional
+Homepage: https://github.com/sb0y/warp_beacon
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>

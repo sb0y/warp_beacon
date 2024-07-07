@@ -7,8 +7,8 @@ User=root
 Group=root
 Type=simple
 Restart=always
-ExecStart=/usr/bin/warp_beacon
 EnvironmentFile=/etc/warp_beacon/warp_beacon.conf
+ExecStart=/opt/venvs/warp-beacon/bin/warp_beacon
 
 [Install]
 WantedBy=multi-user.target

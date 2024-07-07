@@ -1,0 +1,17 @@
+Source: warp-beacon
+Section: python
+Priority: optional
+Maintainer: Sb0y <andrey@bagrintsev.me>
+Build-Depends: debhelper (>= 9), python3, dh-virtualenv (>= 1.0)
+Standards-Version: 3.9.5
+Homepage: https://github.com/sb0y/warp_beacon
+#Vcs-Browser: https://salsa.debian.org/debian/warp-beacon
+#Vcs-Git: https://salsa.debian.org/debian/warp-beacon.git
+Rules-Requires-Root: no
+
+Package: warp-beacon
+Architecture: all
+Pre-Depends: dpkg (>= 1.16.1), python3, ${misc:Pre-Depends}
+Depends: ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>

@@ -16,7 +16,7 @@ deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe mu
 
 RUN set -x \
 	&& apt-get update -y \
-	&& apt-get install python-is-python3 python3-pip python3-opencv -y
+	&& apt-get install python-is-python3 -y
 
 RUN set -x \
 	&& mkdir -p /app/ /var/warp_beacon/ /var/warp_beacon/videos/

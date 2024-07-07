@@ -14,6 +14,7 @@ license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = [
 	"python-telegram-bot",
+	"opencv-python",
 	"urlextract",
 	"pillow",
 	"pymongo",
@@ -41,6 +42,9 @@ classifiers = [
 ]
 
 [project.entry-points."warp_beacon"]
+warp_beacon = "warp_beacon.warp_beacon:main"
+
+[project.scripts]
 warp_beacon = "warp_beacon.warp_beacon:main"
 
 [project.urls]

@@ -13,7 +13,7 @@ from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes
 
-from scrapler.abstract import ScraplerAbstract
+from warp_beacon.scrapler.abstract import ScraplerAbstract
 
 INST_SESSION_FILE = "/var/warp_beacon/inst_session.json"
 
