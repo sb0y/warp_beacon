@@ -16,12 +16,12 @@ deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe mu
 
 RUN set -x \
 	&& apt-get update -y \
-	&& apt-get install python-is-python3 -y
+	&& apt-get install python-is-python3 python3-pip -y
 
 RUN set -x \
 	&& mkdir -p /var/warp_beacon/
 
 RUN set -x \
-	&& pip install warp-beacon --upgrade
+	&& python3 -m pip install warp-beacon --upgrade
 
 ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
