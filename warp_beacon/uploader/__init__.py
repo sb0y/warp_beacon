@@ -1,6 +1,6 @@
 import threading
 import multiprocessing
-from jobs.upload_job import UploadJob
+from warp_beacon.jobs.upload_job import UploadJob
 #import time
 import logging
 

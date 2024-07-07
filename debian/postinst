@@ -1,0 +1,9 @@
+#!/bin/bash
+
+systemctl daemon-reload
+systemctl unmask warp_beacon.service
+systemctl enable warp_beacon.service
+
+systemctl restart warp_beacon.service
+
+exit 0

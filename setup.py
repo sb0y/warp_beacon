@@ -56,8 +56,8 @@ setup(
 		"warp_beacon/__version__",
 		"warp_beacon/warp_beacon",
 		"warp_beacon/jobs/abstract",
-		"warp_beacon/job/download_job",
-		"warp_beacon/job/upload_job",
+		"warp_beacon/jobs/download_job",
+		"warp_beacon/jobs/upload_job",
 		"warp_beacon/mediainfo/video",
 		"warp_beacon/scrapler/abstract",
 		"warp_beacon/scrapler/instagram"
