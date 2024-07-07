@@ -1,0 +1,2 @@
+etc/warp_beacon.service /lib/systemd/system
+etc/warp_beacon.conf /etc/warp_beacon

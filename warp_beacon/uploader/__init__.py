@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes
 
 from typing import Optional, Callable, Coroutine
 
-from storage import Storage
+from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
 	threads = []
