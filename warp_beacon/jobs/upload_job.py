@@ -14,7 +14,7 @@ class UploadJob(AbstractJob):
 		return UploadJob(**kwargs)
 	
 	def to_download_job(self, **kwargs: Unpack[JobSettings]) -> AbstractJob:
-		from jobs.download_job import DownloadJob
+		from warp_beacon.jobs.download_job import DownloadJob
 		d = self.to_dict()
 		d.update(kwargs)
 		return DownloadJob.build(**d)
