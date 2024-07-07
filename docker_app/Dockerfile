@@ -19,14 +19,9 @@ RUN set -x \
 	&& apt-get install python-is-python3 -y
 
 RUN set -x \
-	&& mkdir -p /app/ /var/warp_beacon/ /var/warp_beacon/videos/
+	&& mkdir -p /var/warp_beacon/
 
 RUN set -x \
-	&& pip install python-telegram-bot urlextract pillow pymongo --upgrade \
-	&& pip install instagrapi==2.0.0
+	&& pip install warp-beacon --upgrade
 
-#WORKDIR /app
-
-#COPY ./entrypoint.sh .
-
-ENTRYPOINT [ "/app/warp_beacon.py" ]
+ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
