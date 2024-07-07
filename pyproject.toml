@@ -10,13 +10,14 @@ authors = [
 ]
 description = "Telegram bot for expanding external media links"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = [
 	"python-telegram-bot",
 	"urlextract",
 	"pillow",
 	"pymongo",
-	"instagrapi=='2.0.0'"
+	"instagrapi == 2.0.0"
 ]
 keywords = ["bot", "telegram", "instagram", "export"]
 classifiers = [

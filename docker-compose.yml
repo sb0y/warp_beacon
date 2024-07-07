@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   mongo:
-    image: mongo
+    image: mongo:4.4.18
     restart: always
     container_name: mongodb
     ports:
