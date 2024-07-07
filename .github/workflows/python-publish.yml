@@ -12,12 +12,32 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: read
-
 jobs:
-  deploy:
+  tag_version:
+    runs-on: ubuntu-latest
+    outputs:
+      sem_ver: ${{ steps.ver_tag.outputs.new_tag }}
+    name: Bump version
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
 
+      - name: Bump version and push tag
+        id: ver_tag
+        uses: anothrNick/github-tag-action@1.55.0 # Don't use @master unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: false
+          DEFAULT_BUMP: patch
+          TAG_CONTEXT: branch
+          INITIAL_VERSION: '1.0.0'
+          VERBOSE: false
+      - name: test
+        run: echo "${{ steps.ver_tag.outputs.new_tag }}"
+
+  deploy:
+    needs: [tag_version]
     runs-on: ubuntu-latest
 
     steps:
@@ -28,6 +48,8 @@ jobs:
         python-version: '3.x'
     - name: Install dependencies
       run: |
+        echo "${{ needs.tag_version.outputs.sem_ver }}"
+        echo -e '__version__ = "${{ needs.tag_version.outputs.sem_ver }}"\n' > warp_beacon/__version__.py
         python -m pip install --upgrade pip
         pip install build
     - name: Build package
