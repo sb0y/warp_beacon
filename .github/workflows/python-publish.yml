@@ -58,6 +58,12 @@ jobs:
     needs: [tag_version, build]
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/download-artifact@v3
+      with:
+        # unpacks default artifact into dist/
+        # if `name: artifact` is omitted, the action will create extra parent dir
+        name: artifact
+        path: dist
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
       with:
