@@ -1,8 +1,8 @@
 from typing import TypedDict
 from typing_extensions import Unpack
 
-from jobs.upload_job import UploadJob
-from jobs.abstract import AbstractJob, JobSettings
+from warp_beacon.jobs.upload_job import UploadJob
+from warp_beacon.jobs.abstract import AbstractJob, JobSettings
 
 class DownloadJob(AbstractJob):
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:

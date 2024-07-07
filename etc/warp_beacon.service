@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram bot for expanding external media links
+After=network-online.target syslog.target network.target remote-fs.target nss-lookup.target multi-user.target
+
+[Service]
+User=root
+Group=root
+Type=simple
+Restart=always
+EnvironmentFile=/etc/warp_beacon/warp_beacon.conf
+ExecStart=/opt/venvs/warp-beacon/bin/warp_beacon
+
+[Install]
+WantedBy=multi-user.target

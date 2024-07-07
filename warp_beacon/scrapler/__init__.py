@@ -5,12 +5,11 @@ import logging
 from requests.exceptions import ConnectTimeout, HTTPError
 from instagrapi.exceptions import MediaNotFound, UnknownError
 
-from mediainfo.video import VideoInfo
-from uploader import AsyncUploader
-from jobs.download_job import DownloadJob
+from warp_beacon.mediainfo.video import VideoInfo
+from warp_beacon.uploader import AsyncUploader
+from warp_beacon.jobs.download_job import DownloadJob
 
 CONST_CPU_COUNT = multiprocessing.cpu_count()
-
 
 class AsyncDownloader(object):
 	workers = []

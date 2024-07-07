@@ -1,6 +1,6 @@
 import threading
 import multiprocessing
-from jobs.upload_job import UploadJob
+from warp_beacon.jobs.upload_job import UploadJob
 #import time
 import logging
 
@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes
 
 from typing import Optional, Callable, Coroutine
 
-from storage import Storage
+from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
 	threads = []

@@ -8,14 +8,13 @@ import logging
 
 from urlextract import URLExtract
 
-import scrapler
-from storage import Storage
-from uploader import AsyncUploader
-from jobs.download_job import DownloadJob, UploadJob
-
 from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
+import warp_beacon.scrapler
+from warp_beacon.storage import Storage
+from warp_beacon.uploader import AsyncUploader
+from warp_beacon.jobs.download_job import DownloadJob, UploadJob
 
 # Enable logging
 logging.basicConfig(
@@ -299,11 +298,11 @@ def main() -> None:
 		
 		uploader = AsyncUploader(
 			storage=storage,
-			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=warp_beacon.scrapler.CONST_CPU_COUNT)),
 			loop=loop
 		)
-		downloader = scrapler.AsyncDownloader(
-			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=scrapler.CONST_CPU_COUNT)),
+		downloader = warp_beacon.scrapler.AsyncDownloader(
+			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=warp_beacon.scrapler.CONST_CPU_COUNT)),
 			uploader=uploader
 		)
 		downloader.start()

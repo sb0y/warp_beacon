@@ -1,7 +1,7 @@
 from typing import TypedDict
 from typing_extensions import Unpack
 
-from jobs.abstract import AbstractJob, JobSettings
+from warp_beacon.jobs.abstract import AbstractJob, JobSettings
 
 class UploadJob(AbstractJob):
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
