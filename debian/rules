@@ -29,6 +29,13 @@ override_dh_systemd_enable:
 override_dh_systemd_start:
 	dh_systemd_start --name=warp_beacon --restart-after-upgrade
 
+override_dh_strip:
+	echo "Skipping dh_strip for out app (not required) ..."
+
+override_dh_shlibdeps:
+	echo "Skipping dh_shlibdeps for out app (not required) ..."
+
+
 # dh_make generated override targets
 # This is example for Cmake (See https://bugs.debian.org/641051 )
 #override_dh_auto_configure:
