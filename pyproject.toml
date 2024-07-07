@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "warp_beacon_sb0y"
+name = "warp_beacon"
 dynamic = ["version"]
 authors = [
   { name="Andrey (Sb0y) Bagrintsev", email="andrey@bagrintsev.me" },
