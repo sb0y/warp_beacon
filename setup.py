@@ -72,9 +72,9 @@ setup(
 		)
 	],
 
-	entry_points={
-		'console_scripts': [
-			'warp_beacon = warp_beacon.warp_beacon:main'
-		]
-	}
+	#entry_points={
+	#	'console_scripts': [
+	#		'warp_beacon = warp_beacon.warp_beacon:main'
+	#	]
+	#}
 )
