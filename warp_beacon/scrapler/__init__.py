@@ -59,7 +59,7 @@ class AsyncDownloader(object):
 						items = []
 						if "instagram.com/" in job.url:
 							if not job.in_process:
-								from scrapler.instagram import InstagramScrapler
+								from warp_beacon.scrapler.instagram import InstagramScrapler
 								actor = InstagramScrapler()
 								while True:
 									try:

@@ -16,7 +16,7 @@ deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe mu
 
 RUN set -x \
 	&& apt-get update -y \
-	&& apt-get install python-is-python3 python3-pip -y
+	&& apt-get install python-is-python3 python3-pip libgl1 libglib2.0-0 -y
 
 RUN set -x \
 	&& mkdir -p /var/warp_beacon/

@@ -11,7 +11,7 @@ Rules-Requires-Root: no
 
 Package: warp-beacon
 Architecture: amd64
-Pre-Depends: dpkg (>= 1.16.1), python3, ${misc:Pre-Depends}
+Pre-Depends: dpkg (>= 1.16.1), python3, libgl1, libglib2.0-0, ${misc:Pre-Depends}
 Depends: ${misc:Depends}
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
