@@ -26,14 +26,12 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.x'
+    - uses: oprypin/find-latest-tag@v1
     - name: Get Latest Tag
-      id: latesttag
-      uses: 32teeth/action-github-tag@v1.0.7
       with:
-        # Return only the tag number (e.g., v1.0.0 -> 1.0.0)
-        numbers_only: true
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        repository: sb0y/warp_beacon  # The repository to scan.
+        releases-only: true  # We know that all relevant tags have a GitHub release for them.
+      id: latesttag  # The step ID to refer to later.
       
     - name: Install dependencies
       run: |        
