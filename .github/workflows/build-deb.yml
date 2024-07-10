@@ -28,9 +28,10 @@ jobs:
         python-version: '3.x'
     - name: Get Latest Tag
       id: latesttag
-      uses: WyriHaximus/github-action-get-previous-tag@v1.4.0
+      uses: 32teeth/action-github-tag@v1
       with:
-        fallback: 1.0.0 # Optional fallback tag to use when no tag can be found
+        # Return only the tag number (e.g., v1.0.0 -> 1.0.0)
+        numbers_only: true
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       
@@ -40,6 +41,7 @@ jobs:
         sudo apt install debhelper python3-pip python3-build python3-virtualenv dh-virtualenv dh-python -y
         python -m pip install --upgrade pip
         pip install build
+
     - name: Build package
       run: |
         DATE=`date +"%a, %d %b %Y %H:%m:%S %z"`
