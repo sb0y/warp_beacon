@@ -98,7 +98,7 @@ systemctl start warp_beacon.service
 
 ## How to build Python whl package ##
 ```bash
-sudo apt install python3-pip python3-build python3-virtualenv dh-virtualenv dh-python
+sudo apt install python3-pip python3-build python3-virtualenv dh-virtualenv
 # If you are getting build errors you probably need the latest version of python3-build
 sudo python3 -m pip install --upgrade build
 python3 -m build
@@ -108,7 +108,7 @@ python3 -m build
 
 ```bash
 sudo apt update
-sudo apt install python3-pip python3-build python3-virtualenv dh-virtualenv dh-python
+sudo apt install debhelper python3-pip python3-build python3-virtualenv dh-virtualenv dh-python
 # If you are getting build errors you probably need the latest version of python3-build
 sudo python3 -m pip install --upgrade build
 ```
