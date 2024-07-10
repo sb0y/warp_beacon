@@ -21,18 +21,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: oprypin/find-latest-tag@v1
+      with:
+        repository: sb0y/warp_beacon
+        releases-only: true  # This repository doesn't use GitHub's "release" feature.
+      id: latesttag
     - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
         python-version: '3.x'
-    - uses: oprypin/find-latest-tag@v1
-    - name: Get Latest Tag
-      with:
-        repository: sb0y/warp_beacon  # The repository to scan.
-        releases-only: true  # We know that all relevant tags have a GitHub release for them.
-      id: latesttag  # The step ID to refer to later.
-      
+    
     - name: Install dependencies
       run: |        
         sudo apt update -y
