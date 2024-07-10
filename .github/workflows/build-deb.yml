@@ -28,7 +28,7 @@ jobs:
         python-version: '3.x'
     - name: Get Latest Tag
       id: latesttag
-      uses: 32teeth/action-github-tag@v1
+      uses: 32teeth/action-github-tag@v1.0.7
       with:
         # Return only the tag number (e.g., v1.0.0 -> 1.0.0)
         numbers_only: true
