@@ -47,4 +47,5 @@ jobs:
         echo "  * test deb package" >> debian/changelog
         echo "" >> debian/changelog
         echo " -- Andrey Bagrintsev <andrey@bagrintsev.me>  ${DATE}" >> debian/changelog
+        cat debian/changelog
         dpkg-buildpackage -us -uc -b
