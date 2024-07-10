@@ -26,11 +26,25 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.x'
+    - name: Get Latest Tag
+      uses: WyriHaximus/github-action-get-previous-tag@v1.4.0
+      with:
+        fallback: 1.0.0 # Optional fallback tag to use when no tag can be found
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      
     - name: Install dependencies
-      run: |
+      run: |        
         sudo apt update -y
         sudo apt install debhelper python3-pip python3-build python3-virtualenv dh-virtualenv dh-python -y
         python -m pip install --upgrade pip
         pip install build
     - name: Build package
-      run: dpkg-buildpackage -us -uc -b
+      run: |
+        DATE=`date +"%a, %d %b %Y %H:%m:%S %z"`
+        echo "warp-beacon (""${{ steps.previoustag.outputs.tag }}"") stable; urgency=medium" > debian/changelog
+        echo "" >> debian/changelog
+        echo "  * test deb package" >> debian/changelog
+        echo "" >> debian/changelog
+        echo " -- Andrey Bagrintsev <andrey@bagrintsev.me>  ${DATE}" >> debian/changelog
+        dpkg-buildpackage -us -uc -b
