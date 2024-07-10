@@ -73,7 +73,7 @@ sudo pip install warp-beacon
 ```
 
 Your configuration file will be located at `/usr/local/lib/python3.10/dist-packages/etc/warp_beacon/warp_beacon.conf`.
-For convenience, we will move it to a common directory:
+For convenience, we will copy it to a common directory:
 
 ```bash
 mkdir /etc/warp_beacon
