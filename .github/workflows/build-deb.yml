@@ -13,7 +13,7 @@ on: [push, pull_request]
 #    types: [published]
 
 permissions:
-  contents: read
+  contents: write-all
 
 jobs:
   test_deb_build:
@@ -29,7 +29,6 @@ jobs:
     - name: Get Latest Tag
       id: latesttag
       uses: 32teeth/action-github-tag@v1.0.7
-      if: startsWith(github.ref, 'refs/tags/')
       with:
         # Return only the tag number (e.g., v1.0.0 -> 1.0.0)
         numbers_only: true
