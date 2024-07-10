@@ -5,7 +5,7 @@ Works with links in personal messages and also with group chats.
 
 Just send to bot media link and get video.
 
-All bot configuration stored in [variables.env](https://github.com/sb0y/warp_beacon/blob/main/variables.env) file.
+All bot configuration stored in [warp_beacon.conf](https://github.com/sb0y/warp_beacon/blob/main/etc/warp_beacon.conf) file.
 
 ## Configuration example ##
 
@@ -94,6 +94,14 @@ systemctl unmask warp_beacon.service
 systemctl enable warp_beacon.service
 # start the service app
 systemctl start warp_beacon.service
+```
+
+## How to build Python whl package ##
+```bash
+sudo apt install python3-pip python3-build python3-virtualenv dh-virtualenv dh-python
+# If you are getting build errors you probably need the latest version of python3-build
+sudo python3 -m pip install --upgrade build
+python3 -m build
 ```
 
 ## How to build Ubuntu deb package ##
