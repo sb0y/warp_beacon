@@ -1,4 +1,6 @@
-FROM ubuntu:22.04
+ARG BUILD_MODE
+
+FROM ubuntu:22.04 AS base
 LABEL maintainer="Andrey Bagrintsev <andrey@bagrintsev.me>"
 
 VOLUME /var/warp_beacon
@@ -21,7 +23,15 @@ RUN set -x \
 RUN set -x \
 	&& mkdir -p /var/warp_beacon/
 
+# Build dev image
+FROM base AS image-prod
 RUN set -x \
 	&& python3 -m pip install warp-beacon --upgrade
+
+# Build dev image
+FROM base AS image-dev
+RUN set -x \
+	&& python3 -m pip install warp-beacon --upgrade
+VOLUME ../warp_beacon/
 
 ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
