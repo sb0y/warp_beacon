@@ -31,7 +31,8 @@ RUN set -x \
 # Build dev image
 FROM base AS image-dev
 RUN set -x \
-	&& python3 -m pip install warp-beacon --upgrade
+	&& python3 -m pip install warp-beacon --upgrade \
+	&& ln -sf `python3 -c 'import os, warp_beacon; print(os.path.dirname(os.path.abspath(warp_beacon.__file__)))'` /var/warp_beacon/src
 VOLUME ../warp_beacon/
 
 ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]

@@ -18,9 +18,9 @@ services:
     restart: always
     build: 
       context: ./docker_app
-      target: image-prod # or image-dev
+      target: image-dev # or image-dev
     env_file:
       - 'variables.env'
     volumes:
       - /var/warp_beacon:/var/warp_beacon
-      - ./warp_beacon:/usr/local/lib/python3.10/dist-packages/warp_beacon
+      - ./warp_beacon/:/var/warp_beacon/src/
