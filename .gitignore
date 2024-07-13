@@ -1,3 +1,5 @@
+debian/warp-beacon/etc/warp_beacon/warp_beacon.conf
+warp_beacon.conf
 etc/warp_beacon.conf
 variables.env
 debian/.debhelper/
