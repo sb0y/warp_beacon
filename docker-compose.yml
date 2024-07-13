@@ -18,7 +18,7 @@ services:
     restart: always
     build: 
       context: ./docker_app
-      target: image-dev # or image-dev
+      target: image-prod # or image-dev
     env_file:
       - 'variables.env'
     volumes:
