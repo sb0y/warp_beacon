@@ -3,7 +3,7 @@ import multiprocessing
 import time
 import logging
 from requests.exceptions import ConnectTimeout, HTTPError
-from instagrapi.exceptions import MediaNotFound, UnknownError
+from instagrapi.exceptions import MediaNotFound, UnknownError, ClientNotFoundError, UserNotFound
 
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.uploader import AsyncUploader
@@ -70,8 +70,8 @@ class AsyncDownloader(object):
 										logging.error("ConnectTimeout download error!")
 										logging.exception(e)
 										time.sleep(2)
-									except MediaNotFound as e:
-										logging.warning("MediaNotFound occurred!")
+									except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
+										logging.warning("Not found error occurred!")
 										logging.exception(e)
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
@@ -118,8 +118,17 @@ class AsyncDownloader(object):
 										else:
 											job_args["local_media_path"] = item["local_media_path"]
 
+										logging.debug("local_media_path: '%s'", job_args.get("local_media_path", ""))
+										logging.debug("media_collection: '%s'", str(job_args.get("media_collection", {})))
 										upload_job = job.to_upload_job(**job_args)
-										self.uploader.queue_task(upload_job)
+										if upload_job.is_empty():
+											logging.info("Upload job is empty. Nothing to do here!")
+											self.uploader.queue_task(job.to_upload_job(
+												job_failed=True,
+												job_failed_msg="Seems like this link doesn't contains any media.")
+											)
+										else:
+											self.uploader.queue_task(upload_job)
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 								self.uploader.queue_task(job.to_upload_job())

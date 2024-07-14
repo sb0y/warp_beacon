@@ -49,6 +49,14 @@ class AbstractJob(ABC):
 	def __repr__(self) -> str:
 		return str(self.to_dict())
 
+	def is_empty(self) -> bool:
+		if self.media_type == "collection":
+			if not self.media_collection:
+				return True
+		elif not self.local_media_path:
+			return True
+		return False
+
 	def to_dict(self) -> dict:
 		d = {}
 		for key in dir(self.__class__):
