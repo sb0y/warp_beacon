@@ -28,6 +28,8 @@ FROM base AS image-prod
 RUN set -x \
 	&& python3 -m pip install warp-beacon --upgrade
 
+ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
+
 # Build dev image
 FROM base AS image-dev
 RUN set -x \
