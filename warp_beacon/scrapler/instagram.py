@@ -6,6 +6,7 @@ from typing import Callable, Optional, Union
 
 import requests
 import urllib3
+from urllib.parse import urljoin, urlparse
 import logging
 
 from instagrapi.mixins.story import Story
@@ -51,7 +52,10 @@ class InstagramScrapler(ScraplerAbstract):
 		self.load_session()
 		def _scrap() -> tuple[str]:
 			if "stories" in url:
-				url_last_part = list(filter(None, url.split('/')))[-1]
+				# remove URL options
+				_url = urljoin(url, urlparse(url).path)
+				url_last_part = list(filter(None, _url.split('/')))[-1]
+				logging.debug("url last part: '%s'", url_last_part)
 				if url_last_part.isnumeric():
 					return "story", self.scrap_story(url)
 				else:
