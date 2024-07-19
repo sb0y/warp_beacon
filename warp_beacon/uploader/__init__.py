@@ -50,8 +50,12 @@ class AsyncUploader(object):
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
-		for i in self.threads:
-			i.join()
+		if self.threads:
+			for i in self.threads:
+				t_id = i.native_id
+				logging.info("Stopping thread #'%s'", t_id)
+				i.join()
+				logging.info("Thread #'%s' stopped", t_id)
 		self.threads.clear()
 
 	def is_inprocess(self, uniq_id: str) -> bool:
@@ -80,7 +84,7 @@ class AsyncUploader(object):
 						path = job.local_media_path
 					in_process = job.in_process
 					uniq_id = job.uniq_id
-					message_id = job.message_id
+					message_id = job.placeholder_message_id
 					if not in_process:
 						logging.info("Accepted upload job, file(s): '%s'", path)
 					try:

@@ -152,7 +152,7 @@ class AsyncDownloader(object):
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)
 				proc.terminate()
-				proc.join()
+				#proc.join()
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
 

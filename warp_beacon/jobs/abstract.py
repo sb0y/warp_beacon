@@ -6,6 +6,7 @@ import uuid
 class JobSettings(TypedDict):
 	job_id: uuid.UUID
 	message_id: int
+	placeholder_message_id: int
 	local_media_path: str
 	media_info: dict
 	url: str
@@ -22,6 +23,7 @@ class JobSettings(TypedDict):
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
 	message_id: int = 0
+	placeholder_message_id: int = 0
 	local_media_path: str = ""
 	media_info: dict = {}
 	url: str = ""

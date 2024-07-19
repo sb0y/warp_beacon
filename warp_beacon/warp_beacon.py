@@ -4,12 +4,16 @@
 import os
 import signal
 import asyncio
+import time
+from io import BytesIO
 import logging
 
 from urlextract import URLExtract
 
-from telegram import ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto
+import telegram
+from telegram import Bot, ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto, MessageEntity, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.constants import ParseMode
 
 import warp_beacon.scrapler
 from warp_beacon.storage import Storage
@@ -28,6 +32,7 @@ logger = logging.getLogger(__name__)
 storage = Storage()
 uploader = None
 downloader = None
+placeholder = ("animation", None)
 
 # Define a few command handlers. These usually take the two arguments update and
 # context.
@@ -50,34 +55,158 @@ async def random(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		return
 	await upload_job(update, context, UploadJob(tg_file_id=d["tg_file_id"], media_type=d["media_type"], message_id=update.message.message_id))
 
-async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> None:
+async def remove_placeholder(update: Update, context: ContextTypes.DEFAULT_TYPE, placeholder_message_id: int) -> None:
 	try:
-		await update.message.reply_text(
+		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
+		deleted_message = await context.bot.delete_message(
+			chat_id=update.message.chat_id,
+			message_id=placeholder_message_id,
+			write_timeout=timeout,
+			read_timeout=timeout,
+			connect_timeout=timeout
+		)
+	except Exception as e:
+		logging.error("Failed to remove placeholder message!")
+		logging.exception(e)
+
+async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> int:
+	try:
+		reply = await update.message.reply_text(
 			text,
 			reply_to_message_id=reply_id
 		)
+
+		return reply.message_id
 	except Exception as e:
 		logging.error("Failed to send text message!")
 		logging.exception(e)
 
-def build_tg_args(job: UploadJob) -> dict:
+	return 0
+
+def create_default_placeholder_img(text: str, width: int = 800, height: int = 1280) -> BytesIO:
+	from PIL import Image, ImageDraw, ImageFont
+	bio = BytesIO()
+	bio.name = 'placeholder.png'
+	img = Image.new("RGB", (width, height), (255, 255, 255))
+	draw = ImageDraw.Draw(img)
+	font = ImageFont.load_default(size=48)
+	_, _, w, h = draw.textbbox((0, 0), text, font=font)
+	draw.text(((width-w)/2, (height-h)/2), text, font=font, fill="#000")
+	img.save(bio, 'PNG')
+	bio.seek(0)
+	return bio
+
+def extract_file_id(message: "Message") -> str:
+	if message.animation:
+		return message.animation.file_id
+	if message.photo:
+		return message.photo[-1].file_id
+	if message.document:
+		return message.document.file_id
+	if message.video:
+		return message.video.file_id
+
+	return None
+
+async def create_placeholder_message(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int) -> int:
+	global placeholder
+	retry_amount = 0
+	max_retries = int(os.environ.get("TG_MAX_RETRIES", default=5))
+	while not retry_amount >= max_retries:
+		try:
+			text = "*Loading, this may take a moment \.\.\.* ⏱️ "
+			reply = None
+			if placeholder[1] is None:
+				ph_found = False
+				for ph in ('/var/warp_beacon/placeholder.gif', "%s/placeholder.gif" % os.path.dirname(os.path.abspath(warp_beacon.__file__))):
+					if not os.path.exists(ph):
+						continue
+					reply = await update.message.reply_animation(
+						caption=text,
+						parse_mode="MarkdownV2",
+						show_caption_above_media=True,
+						animation=open(ph, 'rb'),
+						reply_to_message_id=reply_id
+					)
+					placeholder = ("animation", extract_file_id(reply))
+					ph_found = True
+				if not ph_found:
+					try:
+						reply = await update.message.reply_animation(
+							caption=text,
+							parse_mode="MarkdownV2",
+							show_caption_above_media=True,
+							animation="https://bagrintsev.me/warp_beacon/placeholder_that_we_deserve.mp4",
+							reply_to_message_id=reply_id
+						)
+						placeholder = ("animation", extract_file_id(reply))
+					except Exception as e:
+						logging.error("Failed to download secret placeholder!")
+						logging.exception(e)
+						img = create_default_placeholder_img("Loading, this may take a moment ...")
+						reply = await update.message.reply_photo(
+							caption=text,
+							show_caption_above_media=True,
+							parse_mode="MarkdownV2",
+							filename="placeholder.png",
+							photo=img,
+							reply_to_message_id=reply_id
+						)
+						placeholder = ("photo", extract_file_id(reply))
+			else:
+				if placeholder[0] == "animation":
+					reply = await update.message.reply_animation(
+						caption=text,
+						parse_mode="MarkdownV2",
+						show_caption_above_media=True,
+						animation=placeholder[1],
+						reply_to_message_id=reply_id
+					)
+				else:
+					reply = await update.message.reply_photo(
+						caption=text,
+						parse_mode="MarkdownV2",
+						show_caption_above_media=True,
+						photo=placeholder[1],
+						reply_to_message_id=reply_id
+					)
+			return reply.message_id
+		except telegram.error.RetryAfter as e:
+			logging.warning("RetryAfter exception!")
+			logging.exception(e)
+			await send_text(update, context, None, "Telegram error: %s" % e.message)
+			time.sleep(e.retry_after)
+		except Exception as e:
+			logging.error("Failed to create placeholder message!")
+			logging.exception(e)
+			retry_amount += 1
+			time.sleep(2)
+
+	return 0
+
+def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> dict:
 	args = {}
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	if job.media_type == "video":
 		if job.tg_file_id:
 			args["video"] = job.tg_file_id.replace(":video", '')
 		else:
-			args["video"] = open(job.local_media_path, 'rb')
-			args["supports_streaming"] = True
-			args["duration"] = int(job.media_info["duration"])
-			args["width"] = job.media_info["width"]
-			args["height"] = job.media_info["height"]
-			args["thumbnail"] = job.media_info["thumb"]
+			args["media"] = InputMediaVideo(
+				media=open(job.local_media_path, 'rb'),
+				supports_streaming=True,
+				width=job.media_info["width"],
+				height=job.media_info["height"],
+				duration=int(job.media_info["duration"]),
+				thumbnail=job.media_info["thumb"]
+			)
 	elif job.media_type == "image":
 		if job.tg_file_id:
 			args["photo"] = job.tg_file_id.replace(":image", '')
 		else:
-			args["photo"] = open(job.local_media_path, 'rb')
+			#args["photo"] = open(job.local_media_path, 'rb')
+			args["media"] = InputMediaPhoto(
+				media=open(job.local_media_path, 'rb')
+			)
 	elif job.media_type == "collection":
 		if job.tg_file_id:
 			args["media"] = []
@@ -110,12 +239,17 @@ def build_tg_args(job: UploadJob) -> dict:
 			args["media"] = mediafs
 
 	# common args
-	args["disable_notification"] = True
+	if job.placeholder_message_id and job.media_type != "collection":
+		args["message_id"] = job.placeholder_message_id
+		args["chat_id"] = update.message.chat_id
+	else:
+		args["disable_notification"] = True
+		args["reply_to_message_id"] = job.message_id
 	args["write_timeout"] = timeout
 	args["read_timeout"] = timeout
 	args["connect_timeout"] = timeout
-	args["reply_to_message_id"] = job.message_id
-
+	if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type != "collection":
+		args["reply_markup"] = InlineKeyboardMarkup([[InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E"))]])
 	return args
 
 async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: UploadJob) -> list[str]:
@@ -126,17 +260,26 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 		max_retries = int(os.environ.get("TG_MAX_RETRIES", default=5))
 		while not retry_amount >= max_retries:
 			try:
+				message = None
 				if job.media_type == "video":
-					message = await update.message.reply_video(**build_tg_args(job))
+					if job.placeholder_message_id:
+						message = await context.bot.edit_message_media(**build_tg_args(update, context, job))
+					else:
+						message = await update.message.reply_video(**build_tg_args(update, context, job))
 					tg_file_ids.append(message.video.file_id)
 					job.tg_file_id = message.video.file_id
 				elif job.media_type == "image":
-					message = await update.message.reply_photo(**build_tg_args(job))
+					if job.placeholder_message_id:
+						message = await context.bot.edit_message_media(**build_tg_args(update, context, job))
+					else:
+						message = await update.message.reply_photo(**build_tg_args(update, context, job))
 					if message.photo:
 						tg_file_ids.append(message.photo[-1].file_id)
 						job.tg_file_id = message.photo[-1].file_id
 				elif job.media_type == "collection":
-					sent_messages = await update.message.reply_media_group(**build_tg_args(job))
+					sent_messages = await update.message.reply_media_group(**build_tg_args(update, context, job))
+					if job.placeholder_message_id:
+						await remove_placeholder(update, context, job.placeholder_message_id)
 					for i, msg in enumerate(sent_messages):
 						if msg.video:
 							tg_file_ids.append(msg.video.file_id + ':video')
@@ -151,6 +294,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 			except error.TimedOut as e:
 				logging.error("TG timeout error!")
 				logging.exception(e)
+				await remove_placeholder(update, context, job.placeholder_message_id)
 				await send_text(
 					update,
 					context,
@@ -175,6 +319,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 						msg = "Telegram error: %s" % str(e.message)
 					else:
 						msg = "Unfortunately, Telegram limits were exceeded. Your video size is %.2f MB." % job.media_info["filesize"]
+					await remove_placeholder(update, context, job.placeholder_message_id)
 					await send_text(
 						update,
 						context,
@@ -249,6 +394,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 				async def upload_wrapper(job: UploadJob) -> None:
 					try:
 						if job.job_failed and job.job_failed_msg:
+							if job.placeholder_message_id:
+								await remove_placeholder(update, context, job.placeholder_message_id)
 							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
 						tg_file_ids = await upload_job(update, context, job)
 						if tg_file_ids:
@@ -264,11 +411,32 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						uploader.process_done(job.uniq_id)
 						uploader.remove_callback(job.message_id)
 
-				uploader.add_callback(effective_message_id, upload_wrapper, update, context)
-
 				try:
+					# create placeholder message for long download
+					placeholder_message_id = await create_placeholder_message(
+						update,
+						context,
+						reply_id=effective_message_id
+					)
+
+					if not placeholder_message_id:
+						await send_text(
+							update=update, 
+							context=context, 
+							reply_id=effective_message_id, 
+							text="Failed to create message placeholder. Please check your bot Internet connection.")
+						return
+
+					uploader.add_callback(
+						placeholder_message_id,
+						upload_wrapper,
+						update,
+						context
+					)
+
 					downloader.queue_task(DownloadJob.build(
 						url=url,
+						placeholder_message_id=placeholder_message_id,
 						message_id=effective_message_id,
 						in_process=uploader.is_inprocess(uniq_id),
 						uniq_id=uniq_id
@@ -291,11 +459,7 @@ def main() -> None:
 		global uploader, downloader
 
 		loop = asyncio.get_event_loop()
-		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
-		for sig in stop_signals or []:
-			loop.add_signal_handler(sig, _raise_system_exit)
-		loop.add_signal_handler(sig, _raise_system_exit)
-		
+
 		uploader = AsyncUploader(
 			storage=storage,
 			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=warp_beacon.scrapler.CONST_CPU_COUNT)),
@@ -307,6 +471,11 @@ def main() -> None:
 		)
 		downloader.start()
 		uploader.start()
+
+		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
+		for sig in stop_signals or []:
+			loop.add_signal_handler(sig, _raise_system_exit)
+		loop.add_signal_handler(sig, _raise_system_exit)
 
 		# Create the Application and pass it your bot's token.
 		tg_token = os.environ.get("TG_TOKEN", default=None)
@@ -321,38 +490,47 @@ def main() -> None:
 		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 
 		allow_loop = True
-		try:
-			loop.run_until_complete(application.initialize())
-			if application.post_init:
-				loop.run_until_complete(application.post_init(application))
-			loop.run_until_complete(application.updater.start_polling())
-			loop.run_until_complete(application.start())
-			while allow_loop:
-				try:
-					loop.run_forever()
-				except (KeyboardInterrupt, SystemExit) as e:
-					allow_loop = False
-					raise e
-				except Exception as e:
-					logging.error("Main loop Telegram error!")
-					logging.exception(e)
-		except (KeyboardInterrupt, SystemExit):
-			logging.debug("Application received stop signal. Shutting down.")
-		finally:
+		while allow_loop:
 			try:
-				if application.updater.running:  # type: ignore[union-attr]
-					loop.run_until_complete(application.updater.stop())  # type: ignore[union-attr]
-				if application.running:
-					loop.run_until_complete(application.stop())
-				if application.post_stop:
-					loop.run_until_complete(application.post_stop(application))
-				loop.run_until_complete(application.shutdown())
-				if application.post_shutdown:
-					loop.run_until_complete(application.post_shutdown(application))
+				loop.run_until_complete(application.initialize())
+				if application.post_init:
+					loop.run_until_complete(application.post_init(application))
+				loop.run_until_complete(application.updater.start_polling())
+				loop.run_until_complete(application.start())
+				while allow_loop:
+					try:
+						loop.run_forever()
+					except (KeyboardInterrupt, SystemExit) as e:
+						allow_loop = False
+						raise e
+					except Exception as e:
+						logging.error("Main loop Telegram error!")
+						logging.exception(e)
+			except (KeyboardInterrupt, SystemExit):
+				logging.debug("Application received stop signal. Shutting down.")
+			except telegram.error.TimedOut as e:
+				logging.error("Telegram connection timeout!")
+				logging.exception(e)
+				time.sleep(2)
+				continue
+			except Exception as e:
+				logging.error("Failed to start application!")
+				logging.exception(e)
 			finally:
-				loop.close()
-				downloader.stop_all()
-				uploader.stop_all()
+				try:
+					if application.updater.running:  # type: ignore[union-attr]
+						loop.run_until_complete(application.updater.stop())  # type: ignore[union-attr]
+					if application.running:
+						loop.run_until_complete(application.stop())
+					if application.post_stop:
+						loop.run_until_complete(application.post_stop(application))
+					loop.run_until_complete(application.shutdown())
+					if application.post_shutdown:
+						loop.run_until_complete(application.post_shutdown(application))
+				finally:
+					downloader.stop_all()
+					uploader.stop_all()
+					loop.close()
 	except Exception as e:
 		logging.exception(e)
 

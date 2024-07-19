@@ -69,6 +69,9 @@ setup(
 		),
 		("/etc/warp_beacon/",
 			["etc/warp_beacon.conf"]
+		),
+		("/var/warp_beacon/",
+			["assets/placeholder.gif"]
 		)
 	],
 
