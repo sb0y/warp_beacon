@@ -15,6 +15,7 @@ services:
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
   warp_beacon:
+    container_name: warp_beacon
     restart: always
     build: 
       context: ./docker_app
