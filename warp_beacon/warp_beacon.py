@@ -189,7 +189,10 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 	timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 	if job.media_type == "video":
 		if job.tg_file_id:
-			args["video"] = job.tg_file_id.replace(":video", '')
+			if job.placeholder_message_id:
+				args["media"] = InputMediaVideo(media=job.tg_file_id.replace(":video", ''), supports_streaming=True)
+			else:
+				args["video"] = job.tg_file_id.replace(":video", '')
 		else:
 			args["media"] = InputMediaVideo(
 				media=open(job.local_media_path, 'rb'),
@@ -201,7 +204,10 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 			)
 	elif job.media_type == "image":
 		if job.tg_file_id:
-			args["photo"] = job.tg_file_id.replace(":image", '')
+			if job.placeholder_message_id:
+				args["media"] = InputMediaPhoto(media=job.tg_file_id.replace(":image", ''))
+			else:
+				args["photo"] = job.tg_file_id.replace(":image", '')
 		else:
 			#args["photo"] = open(job.local_media_path, 'rb')
 			args["media"] = InputMediaPhoto(
