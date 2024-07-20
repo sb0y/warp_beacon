@@ -8,14 +8,17 @@ class JobSettings(TypedDict):
 	message_id: int
 	placeholder_message_id: int
 	local_media_path: str
+	local_compressed_media_path: str
 	media_info: dict
 	url: str
 	uniq_id: str
 	tg_file_id: str
 	in_process: bool
-	job_failed: bool
 	media_type: str
+	job_failed: bool
 	job_failed_msg: str
+	job_warning: bool
+	job_warning_message: str
 	effective_url: str
 	save_items: bool
 	media_collection: list
@@ -25,12 +28,15 @@ class AbstractJob(ABC):
 	message_id: int = 0
 	placeholder_message_id: int = 0
 	local_media_path: str = ""
+	local_compressed_media_path: str = ""
 	media_info: dict = {}
 	url: str = ""
 	uniq_id: str = ""
 	tg_file_id: str = ""
 	media_type: str = "video"
 	in_process: bool = False
+	job_warning: bool = False
+	job_warning_message: str = ""
 	job_failed: bool = False
 	job_failed_msg: str = ""
 	effective_url: str = ""

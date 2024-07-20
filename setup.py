@@ -50,7 +50,8 @@ setup(
 		'warp_beacon/storage',
 		'warp_beacon/scrapler',
 		'warp_beacon/mediainfo',
-		'warp_beacon/jobs'
+		'warp_beacon/jobs',
+		'warp_beacon/compress'
 	],
 	py_modules=[
 		"warp_beacon/__version__",
@@ -59,6 +60,7 @@ setup(
 		"warp_beacon/jobs/download_job",
 		"warp_beacon/jobs/upload_job",
 		"warp_beacon/mediainfo/video",
+		"warp_beacon/compress/video",
 		"warp_beacon/scrapler/abstract",
 		"warp_beacon/scrapler/instagram"
 	],

@@ -69,6 +69,23 @@ async def remove_placeholder(update: Update, context: ContextTypes.DEFAULT_TYPE,
 		logging.error("Failed to remove placeholder message!")
 		logging.exception(e)
 
+async def update_placeholder_text(update: Update, context: ContextTypes.DEFAULT_TYPE, placeholder_message_id: int, placeholder_text: str) -> None:
+	try:
+		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
+		await context.bot.edit_message_caption(
+			chat_id=update.message.chat_id,
+			message_id=placeholder_message_id,
+			parse_mode="MarkdownV2",
+			caption=" ⚠️ *%s*" % placeholder_text,
+			show_caption_above_media=True,
+			write_timeout=timeout,
+			read_timeout=timeout,
+			connect_timeout=timeout
+		)
+	except Exception as e:
+		logging.error("Failed to update placeholder message!")
+		logging.exception(e)
+
 async def send_text(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_id: int, text: str) -> int:
 	try:
 		reply = await update.message.reply_text(
@@ -200,7 +217,8 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 				width=job.media_info["width"],
 				height=job.media_info["height"],
 				duration=int(job.media_info["duration"]),
-				thumbnail=job.media_info["thumb"]
+				thumbnail=job.media_info["thumb"],
+				filename="downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
 			)
 	elif job.media_type == "image":
 		if job.tg_file_id:
@@ -209,9 +227,9 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 			else:
 				args["photo"] = job.tg_file_id.replace(":image", '')
 		else:
-			#args["photo"] = open(job.local_media_path, 'rb')
 			args["media"] = InputMediaPhoto(
-				media=open(job.local_media_path, 'rb')
+				media=open(job.local_media_path, 'rb'),
+				filename="downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
 			)
 	elif job.media_type == "collection":
 		if job.tg_file_id:
@@ -234,12 +252,14 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 						width=j.media_info["width"],
 						height=j.media_info["height"],
 						duration=int(j.media_info["duration"]),
-						thumbnail=j.media_info["thumb"]
+						thumbnail=j.media_info["thumb"],
+						filename="downloaded_via_warp_beacon_bot%s" % (os.path.splitext(j.local_media_path)[-1])
 					)
 					mediafs.append(vid)
 				elif j.media_type == "image":
 					photo = InputMediaPhoto(
-						media=open(j.local_media_path, 'rb')
+						media=open(j.local_media_path, 'rb'),
+						filename="downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
 					)
 					mediafs.append(photo)
 			args["media"] = mediafs
@@ -274,6 +294,7 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 						message = await update.message.reply_video(**build_tg_args(update, context, job))
 					tg_file_ids.append(message.video.file_id)
 					job.tg_file_id = message.video.file_id
+					logging.info("Uploaded video file tg_file_id is '%s'", job.tg_file_id)
 				elif job.media_type == "image":
 					if job.placeholder_message_id:
 						message = await context.bot.edit_message_media(**build_tg_args(update, context, job))
@@ -297,19 +318,8 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 								job.media_collection[i].tg_file_id = msg.photo[-1].file_id + ':image'
 				logging.info("Uploaded to Telegram")
 				break
-			except error.TimedOut as e:
-				logging.error("TG timeout error!")
-				logging.exception(e)
-				await remove_placeholder(update, context, job.placeholder_message_id)
-				await send_text(
-					update,
-					context,
-					job.message_id,
-					"Telegram timeout error occurred! Your configuration timeout value is `%d`" % timeout
-				)
-				break
-			except error.NetworkError as e:
-				logging.error("Failed to upload due telegram limits :(")
+			except (error.NetworkError, error.TimedOut) as e:
+				logging.error("Failed to upload due telegram limitations :(")
 				logging.exception(e)
 				if not "Request Entity Too Large" in e.message:
 					logging.info("TG upload will be retried. Configuration `TG_MAX_RETRIES` values is %d.", max_retries)
@@ -345,6 +355,9 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 		else:
 			if os.path.exists(job.local_media_path):
 				os.unlink(job.local_media_path)
+		if job.local_compressed_media_path:
+			if os.path.exists(job.local_compressed_media_path):
+				os.unlink(job.local_compressed_media_path)
 
 	return tg_file_ids
 
@@ -403,6 +416,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 							if job.placeholder_message_id:
 								await remove_placeholder(update, context, job.placeholder_message_id)
 							return await send_text(update, context, reply_id=job.message_id, text=job.job_failed_msg)
+						if job.job_warning and job.job_warning_msg:
+							return await update_placeholder_text(update, context, job.placeholder_message_id, job.job_warning_msg)
 						tg_file_ids = await upload_job(update, context, job)
 						if tg_file_ids:
 							if job.media_type == "collection" and job.save_items:
@@ -413,9 +428,6 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)
-					finally:
-						uploader.process_done(job.uniq_id)
-						uploader.remove_callback(job.message_id)
 
 				try:
 					# create placeholder message for long download

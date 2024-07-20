@@ -40,12 +40,13 @@ class AsyncUploader(object):
 	def add_callback(self, message_id: int, callback: Callable, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		def callback_wrap(*args, **kwargs) -> None:
 			ret = callback(*args, **kwargs)
-			self.remove_callback(message_id)
+			#self.remove_callback(message_id)
 			return ret
 		self.callbacks[message_id] = {"callback": callback_wrap, "update": update, "context": context}
 
 	def remove_callback(self, message_id: int) -> None:
 		if message_id in self.callbacks:
+			logging.debug("Removing callback with message id #%d", message_id)
 			del self.callbacks[message_id]
 
 	def stop_all(self) -> None:
@@ -85,34 +86,44 @@ class AsyncUploader(object):
 					in_process = job.in_process
 					uniq_id = job.uniq_id
 					message_id = job.placeholder_message_id
-					if not in_process:
+					if not in_process and  not job.job_failed and not job.job_warning:
 						logging.info("Accepted upload job, file(s): '%s'", path)
 					try:
-						for m_id in self.callbacks.copy():
-							if m_id == message_id:
-								if job.job_failed:
-									logging.info("URL '%s' download failed. Skipping upload job ...", job.url)
-									if job.job_failed_msg: # we want to say something to user
-										asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
+						if message_id in self.callbacks:
+							if job.job_failed:
+								logging.info("URL '%s' download failed. Skipping upload job ...", job.url)
+								if job.job_failed_msg: # we want to say something to user
+									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+								self.process_done(uniq_id)
+								self.remove_callback(message_id)
+								continue
+							if job.job_warning:
+								logging.info("Job warning occurred ...")
+								if job.job_warning_msg:
+									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+								continue
+							if in_process:
+								db_list_dicts = self.storage.db_lookup_id(uniq_id)
+								if db_list_dicts:
+									tg_file_ids = [i["tg_file_id"] for i in db_list_dicts]
+									dlds_len = len(db_list_dicts)
+									if dlds_len > 1:
+										job.tg_file_id = ",".join(tg_file_ids)
+										job.media_type = "collection"
+									elif dlds_len:
+										job.tg_file_id = ",".join(tg_file_ids)
+										job.media_type = db_list_dicts.pop()["media_type"]
+									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
 									self.process_done(uniq_id)
 									self.remove_callback(message_id)
-									continue
-								if in_process:
-									db_list_dicts = self.storage.db_lookup_id(uniq_id)
-									if db_list_dicts:
-										tg_file_ids = [i["tg_file_id"] for i in db_list_dicts]
-										dlds_len = len(db_list_dicts)
-										if dlds_len > 1:
-											job.tg_file_id = ",".join(tg_file_ids)
-											job.media_type = "collection"
-										elif dlds_len:
-											job.tg_file_id = ",".join(tg_file_ids)
-											job.media_type = db_list_dicts.pop()["media_type"]
-										asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
-									else:
-										self.queue_task(job)
 								else:
-									asyncio.ensure_future(self.callbacks[m_id]["callback"](job), loop=self.loop)
+									self.queue_task(job)
+							else:
+								asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+								self.process_done(uniq_id)
+								self.remove_callback(message_id)
+						else:
+							logging.info("No callback no call!!")
 					except Exception as e:
 						logging.exception(e)
 				except multiprocessing.Queue.empty:
