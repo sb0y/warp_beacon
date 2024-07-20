@@ -1,13 +1,17 @@
+import os
+import time
+
 from typing import Optional
 import multiprocessing
-import time
-import logging
 from requests.exceptions import ConnectTimeout, HTTPError
 from instagrapi.exceptions import MediaNotFound, UnknownError, ClientNotFoundError, UserNotFound
 
 from warp_beacon.mediainfo.video import VideoInfo
+from warp_beacon.compress.video import VideoCompress
 from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs.download_job import DownloadJob
+
+import logging
 
 CONST_CPU_COUNT = multiprocessing.cpu_count()
 
@@ -39,8 +43,8 @@ class AsyncDownloader(object):
 				video_info = VideoInfo(path)
 				media_info = video_info.get_finfo(tuple(fr_media_info.keys()))
 				media_info.update(fr_media_info)
-				logging.info("Media file info: %s", media_info)
 				media_info["thumb"] = video_info.generate_thumbnail()
+				logging.info("Media file info: %s", media_info)
 		except Exception as e:
 			logging.error("Failed to process media info!")
 			logging.exception(e)
@@ -103,6 +107,21 @@ class AsyncDownloader(object):
 										media_info = {"filesize": 0}
 										if item["media_type"] == "video":
 											media_info = self.get_media_info(item["local_media_path"], item["media_info"])
+											if media_info["filesize"] > 50.0:
+												logging.info("Detected big file. Starting compressing with ffmpeg ...")
+												self.uploader.queue_task(job.to_upload_job(
+													job_warning=True,
+													job_warning_msg="Downloaded file size is bigger than Telegram limits\! Performing video compression\. This may take a while\.")
+												)
+												ffmpeg = VideoCompress(file_path=item["local_media_path"])
+												new_filepath = ffmpeg.generate_filepath(base_filepath=item["local_media_path"])
+												if ffmpeg.compress_to(new_filepath, target_size=50 * 1000):
+													logging.info("Successfully compressed file '%s'", new_filepath)
+													os.unlink(item["local_media_path"])
+													item["local_media_path"] = new_filepath
+													item["local_compressed_media_path"] = new_filepath
+													media_info["filesize"] = VideoInfo.get_filesize(new_filepath)
+													logging.info("New file size of compressed file is '%.3f'", media_info["filesize"])
 										elif item["media_type"] == "collection":
 											for v in item["items"]:
 												if v["media_type"] == "video":
@@ -117,6 +136,8 @@ class AsyncDownloader(object):
 												job_args["save_items"] = item.get("save_items", False)
 										else:
 											job_args["local_media_path"] = item["local_media_path"]
+											if item.get("local_compressed_media_path", None):
+												job_args["local_media_path"] = item.get("local_compressed_media_path", None)
 
 										logging.debug("local_media_path: '%s'", job_args.get("local_media_path", ""))
 										logging.debug("media_collection: '%s'", str(job_args.get("media_collection", {})))
