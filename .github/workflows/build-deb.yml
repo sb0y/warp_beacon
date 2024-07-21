@@ -35,7 +35,8 @@ jobs:
     - name: Install dependencies
       run: |        
         sudo apt update -y
-        sudo apt install debhelper python3-pip python3-build python3-virtualenv dh-virtualenv dh-python -y
+        sudo apt install debhelper python3-pip python3-build python3-virtualenv dh-virtualenv dh-python pkg-config \
+	        libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev -y
         python -m pip install --upgrade pip
         pip install build
 
