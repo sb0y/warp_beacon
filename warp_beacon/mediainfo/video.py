@@ -37,15 +37,15 @@ class VideoInfo(object):
 
 	@staticmethod
 	def get_filesize(filename: str) -> float:
-		return os.stat(filename).st_size / 1024 / 1024
+		return os.stat(filename).st_size
 	
 	def get_finfo(self, except_info: tuple=()) -> dict:
 		res = {}
 		res.update(self.get_demensions())
 		if "duration" not in except_info:
-			res["duration"] = int(self.get_duration())
+			res["duration"] = round(self.get_duration())
 		if "filesize" not in except_info:
-			res["filesize"] = round(VideoInfo.get_filesize(self.filename), 2)
+			res["filesize"] = VideoInfo.get_filesize(self.filename)
 		return res
 	
 	def shrink_image_to_fit(self, image: Image, size: tuple = (320, 320)) -> Image:
@@ -63,7 +63,7 @@ class VideoInfo(object):
 				# Signal that we only want to look at keyframes.
 				stream = container.streams.video[0]
 				stream.codec_context.skip_frame = "NONKEY"
-				frame_num = 10
+				frame_num = 30
 				time_base = container.streams.video[0].time_base
 				framerate = container.streams.video[0].average_rate
 				frame_container_pts = round((frame_num / framerate) / time_base)

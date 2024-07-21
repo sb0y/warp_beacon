@@ -110,7 +110,7 @@ class InstagramScrapler(ScraplerAbstract):
 	
 	def download_video(self, url: str, media_info: dict) -> dict:
 		path = self.__download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
-		return {"local_media_path": str(path), "media_type": "video", "media_info": {"duration": media_info.video_duration}}
+		return {"local_media_path": str(path), "media_type": "video", "media_info": {"duration": round(media_info.video_duration)}}
 
 	def download_photo(self, url: str) -> dict:
 		path = self.__download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp')
