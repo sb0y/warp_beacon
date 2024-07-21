@@ -3,6 +3,7 @@ warp_beacon.conf
 etc/warp_beacon.conf
 variables.env
 debian/.debhelper/
+debian/warp-beacon/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
