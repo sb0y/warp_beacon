@@ -44,7 +44,6 @@ class AsyncDownloader(object):
 				media_info = video_info.get_finfo(tuple(fr_media_info.keys()))
 				media_info.update(fr_media_info)
 				media_info["thumb"] = video_info.generate_thumbnail()
-				logging.info("Media file info: %s", media_info)
 		except Exception as e:
 			logging.error("Failed to process media info!")
 			logging.exception(e)
@@ -106,8 +105,11 @@ class AsyncDownloader(object):
 									for item in items:
 										media_info = {"filesize": 0}
 										if item["media_type"] == "video":
+											logging.info("Instagram media_info: %s", item["media_info"])
 											media_info = self.get_media_info(item["local_media_path"], item["media_info"])
-											if media_info["filesize"] > 50.0:
+											logging.info("Final media info: %s", media_info)
+											if media_info["filesize"] > 52428800:
+												logging.info("Filesize is '%d' MiB", round(media_info["filesize"] / 1024 / 1024))
 												logging.info("Detected big file. Starting compressing with ffmpeg ...")
 												self.uploader.queue_task(job.to_upload_job(
 													job_warning=True,
