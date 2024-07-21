@@ -43,13 +43,17 @@ class VideoInfo(object):
 		res = {}
 		res.update(self.get_demensions())
 		if "duration" not in except_info:
-			res["duration"] = self.get_duration()
+			res["duration"] = int(self.get_duration())
 		if "filesize" not in except_info:
-			res["filesize"] = VideoInfo.get_filesize(self.filename)
+			res["filesize"] = round(VideoInfo.get_filesize(self.filename), 2)
 		return res
 	
 	def shrink_image_to_fit(self, image: Image, size: tuple = (320, 320)) -> Image:
 		image.thumbnail(size, Image.Resampling.LANCZOS)
+		#image.save(
+		#	"/tmp/test.th.jpg",
+		#	quality=80,
+		#)
 		return image
 	
 	def generate_thumbnail(self) -> Union[io.BytesIO, None]:
@@ -59,17 +63,26 @@ class VideoInfo(object):
 				# Signal that we only want to look at keyframes.
 				stream = container.streams.video[0]
 				stream.codec_context.skip_frame = "NONKEY"
-				time_base = stream.time_base
-				framerate = stream.average_rate
-				frame_container_pts = round((60 / framerate) / time_base)
-				container.seek(frame_container_pts, backward=True, stream=stream)
-				frame = next(container.decode(video=0))
+				frame_num = 10
+				time_base = container.streams.video[0].time_base
+				framerate = container.streams.video[0].average_rate
+				frame_container_pts = round((frame_num / framerate) / time_base)
+					
+				container.seek(frame_container_pts, backward=True, stream=container.streams.video[0])
+				frame = next(container.decode(stream))
+				
 				image = frame.to_image()
-			image = self.shrink_image_to_fit(image)
-			io_buf = io.BytesIO()
-			io_buf.seek(0)
-			image.save(io_buf, format='JPEG')
-			return io_buf
+				#image.save(
+				#	"/tmp/test.{:04d}.jpg".format(frame.pts),
+				#	quality=80,
+	 			#)
+					#break
+			if image:
+				image = self.shrink_image_to_fit(image)
+				io_buf = io.BytesIO()
+				image.save(io_buf, format='JPEG')
+				io_buf.seek(0)
+				return io_buf
 		except Exception as e:
 			logging.error("Failed to generate thumbnail!")
 			logging.exception(e)
