@@ -3,12 +3,13 @@ import time
 
 from typing import Optional
 import multiprocessing
-from requests.exceptions import ConnectTimeout, HTTPError
-from instagrapi.exceptions import MediaNotFound, UnknownError, ClientNotFoundError, UserNotFound
+from queue import Empty
 
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.compress.video import VideoCompress
 from warp_beacon.uploader import AsyncUploader
+from warp_beacon.jobs import Origin
 from warp_beacon.jobs.download_job import DownloadJob
 
 import logging
@@ -16,6 +17,7 @@ import logging
 CONST_CPU_COUNT = multiprocessing.cpu_count()
 
 class AsyncDownloader(object):
+	__JOE_BIDEN_WAKEUP = None
 	workers = []
 	allow_loop = None
 	job_queue = multiprocessing.Queue()
@@ -57,28 +59,39 @@ class AsyncDownloader(object):
 				job = None
 				try:
 					job = self.job_queue.get()
+					if job is self.__JOE_BIDEN_WAKEUP:
+						continue
 					actor = None
 					try:
 						items = []
-						if "instagram.com/" in job.url:
+						if job.job_origin is not Origin.UNKNOWN:
 							if not job.in_process:
-								from warp_beacon.scrapler.instagram import InstagramScrapler
-								actor = InstagramScrapler()
+								actor = None
+								if job.job_origin is Origin.INSTAGRAM:
+									from warp_beacon.scraper.instagram import InstagramScraper
+									actor = InstagramScraper()
+								elif job.job_origin is Origin.YT_SHORTS:
+									from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
+									actor = YoutubeShortsScraper()
 								while True:
 									try:
 										logging.info("Downloading URL '%s'", job.url)
 										items = actor.download(job.url)
 										break
-									except ConnectTimeout as e:
-										logging.error("ConnectTimeout download error!")
-										logging.exception(e)
-										time.sleep(2)
-									except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
-										logging.warning("Not found error occurred!")
+									except (NotFound, Unavailable) as e:
+										logging.warning("Not found or unavailable error occurred!")
 										logging.exception(e)
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
 											job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
+										)
+										break
+									except TimeOut as e:
+										logging.warning("Timeout error occurred!")
+										logging.exception(e)
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="Failed to download content. Please check you Internet connection or retry amount bot configuration settings.")
 										)
 										break
 									except (UnknownError, Exception) as e:
@@ -105,8 +118,7 @@ class AsyncDownloader(object):
 									for item in items:
 										media_info = {"filesize": 0}
 										if item["media_type"] == "video":
-											logging.info("Instagram media_info: %s", item["media_info"])
-											media_info = self.get_media_info(item["local_media_path"], item["media_info"])
+											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}))
 											logging.info("Final media info: %s", media_info)
 											if media_info["filesize"] > 52428800:
 												logging.info("Filesize is '%d' MiB", round(media_info["filesize"] / 1024 / 1024))
@@ -155,27 +167,27 @@ class AsyncDownloader(object):
 							else:
 								logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 								self.uploader.queue_task(job.to_upload_job())
-					except HTTPError as e:
-						logging.error("HTTP error inside download worker!")
-						logging.exception(e)
 					except Exception as e:
 						logging.error("Error inside download worker!")
 						logging.exception(e)
 						self.notify_task_failed(job)
 						#self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
-				except multiprocessing.Queue.empty:
+				except Empty:
 					pass
 			except Exception as e:
 				logging.error("Exception occurred inside worker!")
 				logging.exception(e)
+
+		logging.info("Process done")
 
 	def stop_all(self) -> None:
 		self.allow_loop.value = 0
 		for proc in self.workers:
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)
+				self.job_queue.put_nowait(self.__JOE_BIDEN_WAKEUP)
+				proc.join()
 				proc.terminate()
-				#proc.join()
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
 

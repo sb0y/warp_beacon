@@ -6,7 +6,6 @@ import signal
 import asyncio
 import time
 from io import BytesIO
-import logging
 
 from urlextract import URLExtract
 
@@ -15,10 +14,14 @@ from telegram import Bot, ForceReply, Update, Chat, error, InputMediaVideo, Inpu
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from telegram.constants import ParseMode
 
-import warp_beacon.scrapler
+import warp_beacon.scraper
 from warp_beacon.storage import Storage
 from warp_beacon.uploader import AsyncUploader
-from warp_beacon.jobs.download_job import DownloadJob, UploadJob
+from warp_beacon.jobs.download_job import DownloadJob
+from warp_beacon.jobs.upload_job import UploadJob
+from warp_beacon.jobs import Origin
+
+import logging
 
 # Enable logging
 logging.basicConfig(
@@ -361,6 +364,15 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 
 	return tg_file_ids
 
+def extract_origin(url: str) -> Origin:
+	if "instagram.com/" in url:
+		return Origin.INSTAGRAM
+
+	if "youtube.com/" in url and "shorts/" in url:
+		return Origin.YT_SHORTS
+
+	return Origin.UNKNOWN
+
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	if update.message is None:
 		return
@@ -374,8 +386,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		reply_text = "Your message should contains URLs"
 	else:
 		for url in urls:
-			if "instagram.com" not in url:
-				logging.info("Only instagram.com is now supported. Skipping.")
+			origin = extract_origin(url)
+			if origin is Origin.UNKNOWN:
+				logging.info("Only Instagram and YouTube Shorts are now supported. Skipping.")
 				continue
 			entities, tg_file_ids = [], []
 			uniq_id = Storage.compute_uniq(url)
@@ -422,9 +435,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						if tg_file_ids:
 							if job.media_type == "collection" and job.save_items:
 								for i in job.media_collection:
-									storage.add_media(tg_file_ids=[i.tg_file_id], media_url=i.effective_url, media_type=i.media_type, origin="instagram")
+									storage.add_media(tg_file_ids=[i.tg_file_id], media_url=i.effective_url, media_type=i.media_type, origin=origin.value)
 							else:
-								storage.add_media(tg_file_ids=[','.join(tg_file_ids)], media_url=job.url, media_type=job.media_type, origin="instagram")
+								storage.add_media(tg_file_ids=[','.join(tg_file_ids)], media_url=job.url, media_type=job.media_type, origin=origin.value)
 					except Exception as e:
 						logging.error("Exception occurred while performing upload callback!")
 						logging.exception(e)
@@ -457,7 +470,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 						placeholder_message_id=placeholder_message_id,
 						message_id=effective_message_id,
 						in_process=uploader.is_inprocess(uniq_id),
-						uniq_id=uniq_id
+						uniq_id=uniq_id,
+						job_origin = origin
 					))
 					uploader.set_inprocess(uniq_id)
 				except Exception as e:
@@ -476,25 +490,6 @@ def main() -> None:
 	try:
 		global uploader, downloader
 
-		loop = asyncio.get_event_loop()
-
-		uploader = AsyncUploader(
-			storage=storage,
-			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=warp_beacon.scrapler.CONST_CPU_COUNT)),
-			loop=loop
-		)
-		downloader = warp_beacon.scrapler.AsyncDownloader(
-			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=warp_beacon.scrapler.CONST_CPU_COUNT)),
-			uploader=uploader
-		)
-		downloader.start()
-		uploader.start()
-
-		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
-		for sig in stop_signals or []:
-			loop.add_signal_handler(sig, _raise_system_exit)
-		loop.add_signal_handler(sig, _raise_system_exit)
-
 		# Create the Application and pass it your bot's token.
 		tg_token = os.environ.get("TG_TOKEN", default=None)
 		application = Application.builder().token(tg_token).concurrent_updates(True).build()
@@ -508,8 +503,25 @@ def main() -> None:
 		application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handler))
 
 		allow_loop = True
+		loop = None
 		while allow_loop:
 			try:
+				loop = asyncio.get_event_loop()
+
+				stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
+				for sig in stop_signals or []:
+					loop.add_signal_handler(sig, _raise_system_exit)
+				loop.add_signal_handler(sig, _raise_system_exit)
+
+				uploader = AsyncUploader(
+					storage=storage,
+					pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=warp_beacon.scraper.CONST_CPU_COUNT)),
+					loop=loop
+				)
+				downloader = warp_beacon.scraper.AsyncDownloader(
+					workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=warp_beacon.scraper.CONST_CPU_COUNT)),
+					uploader=uploader
+				)
 				loop.run_until_complete(application.initialize())
 				if application.post_init:
 					loop.run_until_complete(application.post_init(application))
@@ -517,10 +529,12 @@ def main() -> None:
 				loop.run_until_complete(application.start())
 				while allow_loop:
 					try:
+						downloader.start()
+						uploader.start()
 						loop.run_forever()
 					except (KeyboardInterrupt, SystemExit) as e:
 						allow_loop = False
-						raise e
+						raise
 					except Exception as e:
 						logging.error("Main loop Telegram error!")
 						logging.exception(e)
@@ -546,11 +560,13 @@ def main() -> None:
 					if application.post_shutdown:
 						loop.run_until_complete(application.post_shutdown(application))
 				finally:
+					loop.close()
 					downloader.stop_all()
 					uploader.stop_all()
-					loop.close()
 	except Exception as e:
 		logging.exception(e)
+
+	logging.info("Warp Beacon terminated.")
 
 if __name__ == "__main__":
 	main()

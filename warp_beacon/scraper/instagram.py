@@ -1,10 +1,11 @@
 import os
-from pathlib import Path
 import time
-import json
 from typing import Callable, Optional, Union
+from pathlib import Path
+import json
 
 import requests
+from requests.exceptions import ConnectTimeout, HTTPError
 import urllib3
 from urllib.parse import urljoin, urlparse
 import logging
@@ -12,13 +13,14 @@ import logging
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
 from instagrapi import Client
-from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes
+from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, UnknownError as IGUnknownError
 
-from warp_beacon.scrapler.abstract import ScraplerAbstract
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
+from warp_beacon.scraper.abstract import ScraperAbstract
 
 INST_SESSION_FILE = "/var/warp_beacon/inst_session.json"
 
-class InstagramScrapler(ScraplerAbstract):
+class InstagramScraper(ScraperAbstract):
 	cl = None
 
 	def __init__(self) -> None:
@@ -85,7 +87,7 @@ class InstagramScrapler(ScraplerAbstract):
 		logging.info("media_id is '%s'", media_id)
 		return media_id
 	
-	def __download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[Path, Media]:
+	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
 		ret_val = {}
 		max_retries = int(os.environ.get("IG_MAX_RETRIES", default=5))
 		retries = 0
@@ -96,12 +98,14 @@ class InstagramScrapler(ScraplerAbstract):
 			except (requests.exceptions.ConnectionError,
 					requests.exceptions.ReadTimeout,
 					urllib3.exceptions.ReadTimeoutError,
-					urllib3.exceptions.ConnectionError) as e:
+					urllib3.exceptions.ConnectionError,
+					ConnectTimeout,
+					HTTPError) as e:
 				logging.warning("Instagram read timeout! Retrying in 2 seconds ...")
 				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
 				logging.exception(e)
 				if max_retries == retries:
-					raise e
+					raise TimeOut(extract_exception_message(e))
 				retries += 1
 				time.sleep(2)
 
@@ -109,11 +113,11 @@ class InstagramScrapler(ScraplerAbstract):
 
 	
 	def download_video(self, url: str, media_info: dict) -> dict:
-		path = self.__download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
+		path = self._download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
 		return {"local_media_path": str(path), "media_type": "video", "media_info": {"duration": round(media_info.video_duration)}}
 
 	def download_photo(self, url: str) -> dict:
-		path = self.__download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp')
+		path = self._download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp')
 		return {"local_media_path": str(path), "media_type": "image"}
 	
 	def download_story(self, story_info: Story) -> dict:
@@ -127,10 +131,10 @@ class InstagramScrapler(ScraplerAbstract):
 		logging.info("Effective story id is '%s'", effective_story_id)
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
 		if story_info.media_type == 1: # photo
-			path = self.__download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp')
+			path = self._download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp')
 			media_type = "image"
 		elif story_info.media_type == 2: # video
-			path = self.__download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp')
+			path = self._download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp')
 			media_type = "video"
 			media_info["duration"] = story_info.video_duration
 
@@ -160,7 +164,7 @@ class InstagramScrapler(ScraplerAbstract):
 			try:
 				scrap_type, media_id = self.scrap(url)
 				if scrap_type == "media":
-					media_info = self.__download_hndlr(self.cl.media_info, media_id)
+					media_info = self._download_hndlr(self.cl.media_info, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
@@ -192,4 +196,8 @@ class InstagramScrapler(ScraplerAbstract):
 								os.unlink(i["local_media_path"])
 				os.unlink(INST_SESSION_FILE)
 				time.sleep(wait_timeout)
+			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
+				raise NotFound(extract_exception_message(e))
+			except IGUnknownError as e:
+				raise UnknownError(extract_exception_message(e))
 		return res
