@@ -49,7 +49,7 @@ setup(
 		'warp_beacon/uploader',
 		'warp_beacon/storage',
 		'warp_beacon/scraper',
-		'warp_beacon/scraper/youtube'
+		'warp_beacon/scraper/youtube',
 		'warp_beacon/mediainfo',
 		'warp_beacon/jobs',
 		'warp_beacon/compress'
