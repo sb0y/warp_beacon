@@ -15,6 +15,7 @@ requires-python = ">=3.10"
 dependencies = [
 	"ffmpeg-python",
 	"python-telegram-bot",
+	"pytubefix",
 	"av",
 	"urlextract",
 	"pillow",

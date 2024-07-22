@@ -187,7 +187,7 @@ class AsyncDownloader(object):
 				logging.info("stopping process #%d", proc.pid)
 				self.job_queue.put_nowait(self.__JOE_BIDEN_WAKEUP)
 				proc.join()
-				proc.terminate()
+				#proc.terminate()
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
 

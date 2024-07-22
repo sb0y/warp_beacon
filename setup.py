@@ -48,7 +48,8 @@ setup(
 		'warp_beacon',
 		'warp_beacon/uploader',
 		'warp_beacon/storage',
-		'warp_beacon/scrapler',
+		'warp_beacon/scraper',
+		'warp_beacon/scraper/youtube'
 		'warp_beacon/mediainfo',
 		'warp_beacon/jobs',
 		'warp_beacon/compress'
@@ -61,8 +62,10 @@ setup(
 		"warp_beacon/jobs/upload_job",
 		"warp_beacon/mediainfo/video",
 		"warp_beacon/compress/video",
-		"warp_beacon/scrapler/abstract",
-		"warp_beacon/scrapler/instagram"
+		"warp_beacon/scraper/abstract",
+		"warp_beacon/scraper/exceptions",
+		"warp_beacon/scraper/instagram",
+		"warp_beacon/scraper/youtube/shorts"
 	],
 	#scripts=['scripts/wait_dc_update.py'],
 	data_files=[

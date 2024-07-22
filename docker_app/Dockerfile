@@ -27,6 +27,7 @@ RUN set -x \
 	&& python3 -m pip install warp-beacon --upgrade
 
 VOLUME /tmp
+
 ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
 
 # Build dev image
