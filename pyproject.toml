@@ -29,7 +29,7 @@ classifiers = [
 	'Topic :: Sociology',
 	'Topic :: Communications :: File Sharing',
 	'Topic :: Internet :: WWW/HTTP',
-	'Topic :: Internet :: WWW/HTTP ::xw Dynamic Content',
+	'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
 	'Topic :: Scientific/Engineering :: Image Processing',
 	'Topic :: Multimedia :: Video',
 	'Topic :: Multimedia',
