@@ -1,6 +1,8 @@
+ffmpeg-python
 python-telegram-bot
+pytubefix
+av
 urlextract
-opencv-python
 pillow
 pymongo
 instagrapi==2.0.0

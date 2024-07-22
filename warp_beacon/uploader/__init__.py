@@ -13,6 +13,7 @@ from typing import Optional, Callable, Coroutine
 from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
+	__JOE_BIDEN_WAKEUP = None
 	threads = []
 	allow_loop = True
 	job_queue = None
@@ -34,8 +35,8 @@ class AsyncUploader(object):
 	def start(self) -> None:
 		for _ in range(self.pool_size):
 			thread = threading.Thread(target=self.do_work)
-			self.threads.append(thread)
 			thread.start()
+			self.threads.append(thread)
 
 	def add_callback(self, message_id: int, callback: Callable, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		def callback_wrap(*args, **kwargs) -> None:
@@ -55,6 +56,7 @@ class AsyncUploader(object):
 			for i in self.threads:
 				t_id = i.native_id
 				logging.info("Stopping thread #'%s'", t_id)
+				self.job_queue.put(self.__JOE_BIDEN_WAKEUP)
 				i.join()
 				logging.info("Thread #'%s' stopped", t_id)
 		self.threads.clear()
@@ -77,6 +79,8 @@ class AsyncUploader(object):
 			try:
 				try:
 					job = self.job_queue.get()
+					if job is self.__JOE_BIDEN_WAKEUP:
+						continue
 					path = ""
 					if job.media_type == "collection":
 						for i in job.media_collection:
@@ -131,3 +135,4 @@ class AsyncUploader(object):
 			except Exception as e:
 				logging.error("Exception occurred inside upload worker!")
 				logging.exception(e)
+		logging.info("Thread done")

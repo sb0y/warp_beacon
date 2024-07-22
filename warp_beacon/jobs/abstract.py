@@ -3,6 +3,8 @@ from typing import TypedDict
 from typing_extensions import Unpack
 import uuid
 
+from warp_beacon.jobs import Origin
+
 class JobSettings(TypedDict):
 	job_id: uuid.UUID
 	message_id: int
@@ -22,6 +24,7 @@ class JobSettings(TypedDict):
 	effective_url: str
 	save_items: bool
 	media_collection: list
+	job_origin: Origin
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -42,6 +45,7 @@ class AbstractJob(ABC):
 	effective_url: str = ""
 	save_items: bool = False
 	media_collection: list = []
+	job_origin: Origin = Origin.UNKNOWN
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

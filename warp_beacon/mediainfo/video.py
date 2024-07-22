@@ -10,24 +10,31 @@ class VideoInfo(object):
 	width = 0
 	height = 0
 	duration = 0.0
-	ffmpeg = None
 	filename = ""
+	container = None
 
 	def __init__(self, filename: str) -> None:
 		self.filename = filename
-		with av.open(file=self.filename, mode='r') as container:
-			stream = container.streams.video[0]
+		self.container = av.open(file=self.filename, mode='r')
+		
+		if self.container:
+			stream = self.container.streams.video[0]
 			time_base = stream.time_base
 			self.duration = float(stream.duration * time_base)
 			framerate = stream.average_rate
 			frame_container_pts = round((1 / framerate) / time_base)
-			container.seek(frame_container_pts, backward=True, stream=stream)
-			frame = next(container.decode(video=0))
+			# !
+			self.container.seek(frame_container_pts, backward=True, stream=stream)
+			#
+			frame = next(self.container.decode(stream))
 			self.width = frame.width
 			self.height = frame.height
+			# restore original position after previous frame search
+			self.container.seek(0, backward=False, stream=stream)
 		
 	def __del__(self) -> None:
-		pass
+		if self.container:
+			self.container.close()
 
 	def get_demensions(self) -> dict:
 		return {"width": self.width, "height": self.height}
@@ -59,17 +66,17 @@ class VideoInfo(object):
 	def generate_thumbnail(self) -> Union[io.BytesIO, None]:
 		try:
 			image = None
-			with av.open(file=self.filename, mode='r') as container:
+			if self.container:
 				# Signal that we only want to look at keyframes.
-				stream = container.streams.video[0]
+				stream = self.container.streams.video[0]
 				stream.codec_context.skip_frame = "NONKEY"
 				frame_num = 30
-				time_base = container.streams.video[0].time_base
-				framerate = container.streams.video[0].average_rate
+				time_base = stream.time_base
+				framerate = stream.average_rate
 				frame_container_pts = round((frame_num / framerate) / time_base)
 					
-				container.seek(frame_container_pts, backward=True, stream=container.streams.video[0])
-				frame = next(container.decode(stream))
+				self.container.seek(frame_container_pts, backward=True, stream=stream)
+				frame = next(self.container.decode(stream))
 				
 				image = frame.to_image()
 				#image.save(
