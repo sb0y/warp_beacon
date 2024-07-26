@@ -7,6 +7,7 @@ from queue import Empty
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable
 from warp_beacon.mediainfo.video import VideoInfo
+from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.compress.video import VideoCompress
 from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs import Origin
@@ -38,14 +39,18 @@ class AsyncDownloader(object):
 			self.workers.append(proc)
 			proc.start()
 
-	def get_media_info(self, path: str, fr_media_info: dict={}) -> Optional[dict]:
+	def get_media_info(self, path: str, fr_media_info: dict={}, media_type: str = "video") -> Optional[dict]:
 		media_info = None
 		try:
 			if path:
-				video_info = VideoInfo(path)
-				media_info = video_info.get_finfo(tuple(fr_media_info.keys()))
-				media_info.update(fr_media_info)
-				media_info["thumb"] = video_info.generate_thumbnail()
+				if media_type == "video":
+					video_info = VideoInfo(path)
+					media_info = video_info.get_finfo(tuple(fr_media_info.keys()))
+					media_info.update(fr_media_info)
+					media_info["thumb"] = video_info.generate_thumbnail()
+				elif media_type == "audio":
+					audio_info = AudioInfo(path)
+					media_info = audio_info.get_finfo(tuple(fr_media_info.keys()))
 		except Exception as e:
 			logging.error("Failed to process media info!")
 			logging.exception(e)
@@ -73,6 +78,9 @@ class AsyncDownloader(object):
 								elif job.job_origin is Origin.YT_SHORTS:
 									from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
 									actor = YoutubeShortsScraper()
+								elif job.job_origin is Origin.YT_MUSIC:
+									from warp_beacon.scraper.youtube.music import YoutubeMusicScraper
+									actor = YoutubeMusicScraper()
 								while True:
 									try:
 										logging.info("Downloading URL '%s'", job.url)
@@ -136,6 +144,9 @@ class AsyncDownloader(object):
 													item["local_compressed_media_path"] = new_filepath
 													media_info["filesize"] = VideoInfo.get_filesize(new_filepath)
 													logging.info("New file size of compressed file is '%.3f'", media_info["filesize"])
+										elif item["media_type"] == "audio":
+											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}), "audio")
+											logging.info("Final media info: %s", media_info)
 										elif item["media_type"] == "collection":
 											for v in item["items"]:
 												if v["media_type"] == "video":
@@ -152,6 +163,8 @@ class AsyncDownloader(object):
 											job_args["local_media_path"] = item["local_media_path"]
 											if item.get("local_compressed_media_path", None):
 												job_args["local_media_path"] = item.get("local_compressed_media_path", None)
+
+										job_args["canonical_name"] = item.get("canonical_name", "")
 
 										logging.debug("local_media_path: '%s'", job_args.get("local_media_path", ""))
 										logging.debug("media_collection: '%s'", str(job_args.get("media_collection", {})))

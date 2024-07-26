@@ -10,7 +10,7 @@ from io import BytesIO
 from urlextract import URLExtract
 
 import telegram
-from telegram import Bot, ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto, MessageEntity, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Bot, ForceReply, Update, Chat, error, InputMediaVideo, InputMediaPhoto, InputMediaAudio, MessageEntity, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from telegram.constants import ParseMode
 
@@ -234,6 +234,17 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 				media=open(job.local_media_path, 'rb'),
 				filename="downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
 			)
+	elif job.media_type == "audio":
+		if job.tg_file_id:
+			if job.placeholder_message_id:
+				args["media"] = InputMediaAudio(media=job.tg_file_id.replace(":audio", ''))
+			else:
+				args["audio"] = job.tg_file_id.replace(":audio", '')
+		else:
+			args["media"] = InputMediaAudio(
+				media=open(job.local_media_path, 'rb'),
+				filename="%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1])
+			)
 	elif job.media_type == "collection":
 		if job.tg_file_id:
 			args["media"] = []
@@ -306,6 +317,14 @@ async def upload_job(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Up
 					if message.photo:
 						tg_file_ids.append(message.photo[-1].file_id)
 						job.tg_file_id = message.photo[-1].file_id
+				elif job.media_type == "audio":
+					if job.placeholder_message_id:
+						message = await context.bot.edit_message_media(**build_tg_args(update, context, job))
+					else:
+						message = await update.message.reply_audio(**build_tg_args(update, context, job))
+					if message.audio:
+						tg_file_ids.append(message.audio.file_id)
+						job.tg_file_id = message.audio.file_id
 				elif job.media_type == "collection":
 					sent_messages = await update.message.reply_media_group(**build_tg_args(update, context, job))
 					if job.placeholder_message_id:
@@ -371,6 +390,9 @@ def extract_origin(url: str) -> Origin:
 	if "youtube.com/" in url and "shorts/" in url:
 		return Origin.YT_SHORTS
 
+	if "youtube.com/" in url and "music." in url:
+		return Origin.YT_MUSIC
+
 	return Origin.UNKNOWN
 
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -388,7 +410,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 		for url in urls:
 			origin = extract_origin(url)
 			if origin is Origin.UNKNOWN:
-				logging.info("Only Instagram and YouTube Shorts are now supported. Skipping.")
+				logging.info("Only Instagram, YouTube Shorts and YouTube Music are now supported. Skipping.")
 				continue
 			entities, tg_file_ids = [], []
 			uniq_id = Storage.compute_uniq(url)

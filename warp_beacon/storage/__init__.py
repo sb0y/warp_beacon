@@ -2,7 +2,7 @@ import os
 #from typing import Optional
 import logging
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from pymongo import MongoClient
 
@@ -28,6 +28,15 @@ class Storage(object):
 
 	@staticmethod
 	def compute_uniq(url: str) -> str:
+		if "music.youtube.com" in url:
+			qs = parse_qs(urlparse(url).query)
+			yt_vid_id = qs.get('v', None)
+			if yt_vid_id:
+				path = urlparse(url).path.strip('/').replace("watch", "yt_music")
+				return "%s/%s" % (path, yt_vid_id)
+			else:
+				raise ValueError("Failed to generate uniq_id for url '%s'", url)
+			
 		path = urlparse(url).path.strip('/')
 		return path
 	

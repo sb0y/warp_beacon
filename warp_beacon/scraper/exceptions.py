@@ -30,7 +30,9 @@ class UnknownError(ScraperError):
 
 def extract_exception_message(e: Exception) -> str:
 	msg = ""
-	if hasattr(e, "error_string"):
+	if hasattr(e, "expected"):
+		msg = "Expected bytes: %d" % int(e.expected)
+	elif hasattr(e, "error_string"):
 		msg = e.error_string
 	elif hasattr(e, "message"):
 		msg = e.message

@@ -25,6 +25,7 @@ class JobSettings(TypedDict):
 	save_items: bool
 	media_collection: list
 	job_origin: Origin
+	canonical_name: str
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -46,6 +47,7 @@ class AbstractJob(ABC):
 	save_items: bool = False
 	media_collection: list = []
 	job_origin: Origin = Origin.UNKNOWN
+	canonical_name: str = ""
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:
