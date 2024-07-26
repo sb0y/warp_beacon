@@ -14,7 +14,7 @@ import http.client
 from pytubefix import YouTube
 from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 
 import logging
@@ -92,6 +92,10 @@ class YoutubeMusicScraper(ScraperAbstract):
 		yt = YouTube(url)
 		stream = yt.streams.get_audio_only()
 		if stream:
+			logging.info("Announced audio file size: '%d'", stream.filesize)
+			if stream.filesize > 5e+7:
+				logging.warning("Downloading size reported by YouTube is over than 50 mb!")
+				raise FileTooBig("YouTube file is larger than 50 mb")
 			logging.info("Operation timeout is '%d'", timeout)
 			local_file = stream.download(
 				output_path=DOWNLOAD_DIR,

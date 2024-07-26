@@ -19,6 +19,9 @@ class ScraperError(Exception):
 class TimeOut(ScraperError):
 	pass
 
+class FileTooBig(ScraperError):
+	pass
+
 class NotFound(ScraperError):
 	pass
 
