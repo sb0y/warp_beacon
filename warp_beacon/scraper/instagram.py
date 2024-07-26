@@ -1,14 +1,17 @@
 import os
 import time
+
+import socket
+import ssl
+
 from typing import Callable, Optional, Union
+
 from pathlib import Path
 import json
 
 import requests
-from requests.exceptions import ConnectTimeout, HTTPError
 import urllib3
 from urllib.parse import urljoin, urlparse
-import logging
 
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
@@ -17,6 +20,8 @@ from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotF
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
+
+import logging
 
 INST_SESSION_FILE = "/var/warp_beacon/inst_session.json"
 
@@ -95,16 +100,18 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
-			except (requests.exceptions.ConnectionError,
+			except (socket.timeout,
+					ssl.SSLError,
+					requests.exceptions.ConnectionError,
 					requests.exceptions.ReadTimeout,
+					requests.exceptions.ConnectTimeout,
+					requests.exceptions.HTTPError,
 					urllib3.exceptions.ReadTimeoutError,
-					urllib3.exceptions.ConnectionError,
-					ConnectTimeout,
-					HTTPError) as e:
+					urllib3.exceptions.ConnectionError) as e:
 				logging.warning("Instagram read timeout! Retrying in 2 seconds ...")
 				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
 				logging.exception(e)
-				if max_retries == retries:
+				if max_retries <= retries:
 					raise TimeOut(extract_exception_message(e))
 				retries += 1
 				time.sleep(2)

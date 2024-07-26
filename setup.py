@@ -60,12 +60,15 @@ setup(
 		"warp_beacon/jobs/abstract",
 		"warp_beacon/jobs/download_job",
 		"warp_beacon/jobs/upload_job",
+		"warp_beacon/mediainfo/abstract",
 		"warp_beacon/mediainfo/video",
+		"warp_beacon/mediainfo/audio",
 		"warp_beacon/compress/video",
 		"warp_beacon/scraper/abstract",
 		"warp_beacon/scraper/exceptions",
 		"warp_beacon/scraper/instagram",
-		"warp_beacon/scraper/youtube/shorts"
+		"warp_beacon/scraper/youtube/shorts",
+		"warp_beacon/scraper/youtube/music"
 	],
 	#scripts=['scripts/wait_dc_update.py'],
 	data_files=[

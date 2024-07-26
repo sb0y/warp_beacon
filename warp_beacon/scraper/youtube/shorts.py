@@ -2,18 +2,19 @@ import os
 import pathlib
 import time
 
+import socket
+import ssl
+
 from typing import Callable, Union
 
-from socket import timeout
-from ssl import SSLError
-from requests.exceptions import RequestException
-from urllib.error import URLError
-from http.client import HTTPException
+import requests
+import urllib
+import http.client
 
 from pytubefix import YouTube
 from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 
 import logging
@@ -24,6 +25,11 @@ class YoutubeShortsScraper(ScraperAbstract):
 
 	def __del__(self) -> None:
 		pass
+
+	def remove_tmp_files(self) -> None:
+		for i in os.listdir(DOWNLOAD_DIR):
+			if "yt_download_" in i:
+				os.unlink("%s/%s" % (DOWNLOAD_DIR, i))
 
 	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
 		ret_val = ''
@@ -37,11 +43,14 @@ class YoutubeShortsScraper(ScraperAbstract):
 			except MaxRetriesExceeded:
 				# do noting, not interested
 				pass
-			except (timeout, SSLError, HTTPException, RequestException, URLError) as e:
+			except (socket.timeout, ssl.SSLError, http.client.HTTPException, requests.RequestException, urllib.error.URLError) as e:
+				if hasattr(e, "code") and int(e.code) == 403:
+					raise Unavailable(extract_exception_message(e))
 				logging.warning("Youtube read timeout! Retrying in %d seconds ...", pause_secs)
 				logging.info("Your `YT_MAX_RETRIES` values is %d", max_retries)
 				logging.exception(extract_exception_message(e))
-				if max_retries >= retries:
+				if max_retries <= retries:
+					self.remove_tmp_files()
 					raise TimeOut(extract_exception_message(e))
 				retries += 1
 				time.sleep(pause_secs)
@@ -74,8 +83,10 @@ class YoutubeShortsScraper(ScraperAbstract):
 				output_path="/tmp",
 				max_retries=0,
 				timeout=timeout,
-				skip_existing=False
+				skip_existing=False,
+				filename_prefix="yt_download_"
 			)
+			logging.debug("Temp filename: '%s'", local_file)
 			res.append({"local_media_path": self.rename_local_file(local_file), "media_type": "video"})
 
 		return res

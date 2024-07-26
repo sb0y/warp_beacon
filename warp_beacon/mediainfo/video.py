@@ -2,20 +2,17 @@ import io, os
 
 from typing import Union
 from PIL import Image
-import av
+
+from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 
 import logging
 
-class VideoInfo(object):
+class VideoInfo(MediaInfoAbstract):
 	width = 0
 	height = 0
-	duration = 0.0
-	filename = ""
-	container = None
 
 	def __init__(self, filename: str) -> None:
-		self.filename = filename
-		self.container = av.open(file=self.filename, mode='r')
+		super(VideoInfo, self).__init__(filename)
 		
 		if self.container:
 			stream = self.container.streams.video[0]
@@ -31,21 +28,10 @@ class VideoInfo(object):
 			self.height = frame.height
 			# restore original position after previous frame search
 			self.container.seek(0, backward=False, stream=stream)
-		
-	def __del__(self) -> None:
-		if self.container:
-			self.container.close()
 
 	def get_demensions(self) -> dict:
 		return {"width": self.width, "height": self.height}
 
-	def get_duration(self) -> float:
-		return self.duration
-
-	@staticmethod
-	def get_filesize(filename: str) -> float:
-		return os.stat(filename).st_size
-	
 	def get_finfo(self, except_info: tuple=()) -> dict:
 		res = {}
 		res.update(self.get_demensions())
