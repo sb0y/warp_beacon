@@ -1,6 +1,8 @@
 import os
 from abc import ABC, abstractmethod
 
+from PIL import Image
+
 import av
 
 class MediaInfoAbstract(ABC):
@@ -26,3 +28,12 @@ class MediaInfoAbstract(ABC):
 	@abstractmethod
 	def get_finfo(cls, except_info: tuple=()) -> dict:
 		raise NotImplementedError
+
+	@staticmethod
+	def shrink_image_to_fit(image: Image, size: tuple = (320, 320)) -> Image:
+		image.thumbnail(size, Image.Resampling.LANCZOS)
+		#image.save(
+		#	"/tmp/test.th.jpg",
+		#	quality=80,
+		#)
+		return image

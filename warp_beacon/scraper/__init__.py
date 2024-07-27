@@ -154,6 +154,8 @@ class AsyncDownloader(object):
 													logging.info("New file size of compressed file is '%.3f'", media_info["filesize"])
 										elif item["media_type"] == "audio":
 											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}), "audio")
+											media_info["performer"] = item.get("performer", None)
+											media_info["thumb"] = item.get("thumb", None)
 											logging.info("Final media info: %s", media_info)
 										elif item["media_type"] == "collection":
 											for v in item["items"]:
