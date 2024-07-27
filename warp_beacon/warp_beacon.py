@@ -237,13 +237,17 @@ def build_tg_args(update: Update, context: ContextTypes.DEFAULT_TYPE, job: Uploa
 	elif job.media_type == "audio":
 		if job.tg_file_id:
 			if job.placeholder_message_id:
-				args["media"] = InputMediaAudio(media=job.tg_file_id.replace(":audio", ''))
+				args["media"] = InputMediaAudio(
+					media=job.tg_file_id.replace(":audio", '')
+				)
 			else:
 				args["audio"] = job.tg_file_id.replace(":audio", '')
 		else:
 			args["media"] = InputMediaAudio(
 				media=open(job.local_media_path, 'rb'),
-				filename="%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1])
+				filename="%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1]),
+				performer=job.media_info["performer"],
+				thumbnail=job.media_info["thumb"]
 			)
 	elif job.media_type == "collection":
 		if job.tg_file_id:

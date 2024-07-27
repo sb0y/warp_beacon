@@ -1,4 +1,5 @@
 import os
+import io
 import pathlib
 import time
 
@@ -11,9 +12,12 @@ import requests
 import urllib
 import http.client
 
+from PIL import Image
+
 from pytubefix import YouTube
 from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
 
+from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 
@@ -87,9 +91,28 @@ class YoutubeMusicScraper(ScraperAbstract):
 
 		return new_filepath
 
+	def download_thumbnail(self, url: str) -> Union[io.BytesIO, None]:
+		try:
+			reply = requests.get(url, stream=True)
+			if reply.ok and reply.status_code == 200:
+				image = Image.open(io.BytesIO(reply.content))
+				image = MediaInfoAbstract.shrink_image_to_fit(image)
+				io_buf = io.BytesIO()
+				image.save(io_buf, format='JPEG')
+				io_buf.seek(0)
+				return io_buf
+		except Exception as e:
+			logging.error("Failed to download download thumbnail!")
+			logging.exception(e)
+
+		return None
+
 	def _download(self, url: str, timeout: int = 0) -> list:
 		res = []
+		thumbnail = None
 		yt = YouTube(url)
+		if yt and yt.thumbnail_url:
+			thumbnail = self.download_thumbnail(yt.thumbnail_url)
 		stream = yt.streams.get_audio_only()
 		if stream:
 			logging.info("Announced audio file size: '%d'", stream.filesize)
@@ -105,8 +128,14 @@ class YoutubeMusicScraper(ScraperAbstract):
 				filename_prefix='yt_download_',
 				mp3=True
 			)
-			logging.info("Temp filename: '%s'", local_file)
-			res.append({"local_media_path": self.rename_local_file(local_file), "canonical_name": stream.title, "media_type": "audio"})
+			logging.debug("Temp filename: '%s'", local_file)
+			res.append({
+				"local_media_path": self.rename_local_file(local_file),
+				"performer": yt.author,
+				"thumb": thumbnail,
+				"canonical_name": stream.title,
+				"media_type": "audio"
+			})
 
 		return res
 

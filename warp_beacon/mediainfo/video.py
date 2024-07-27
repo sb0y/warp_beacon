@@ -41,14 +41,6 @@ class VideoInfo(MediaInfoAbstract):
 			res["filesize"] = VideoInfo.get_filesize(self.filename)
 		return res
 	
-	def shrink_image_to_fit(self, image: Image, size: tuple = (320, 320)) -> Image:
-		image.thumbnail(size, Image.Resampling.LANCZOS)
-		#image.save(
-		#	"/tmp/test.th.jpg",
-		#	quality=80,
-		#)
-		return image
-	
 	def generate_thumbnail(self) -> Union[io.BytesIO, None]:
 		try:
 			image = None
@@ -71,7 +63,7 @@ class VideoInfo(MediaInfoAbstract):
 	 			#)
 					#break
 			if image:
-				image = self.shrink_image_to_fit(image)
+				image = VideoInfo.shrink_image_to_fit(image)
 				io_buf = io.BytesIO()
 				image.save(io_buf, format='JPEG')
 				io_buf.seek(0)
