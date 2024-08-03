@@ -1,10 +1,18 @@
 import os
 #from typing import Optional
-import logging
+from enum import Enum
 
 from urllib.parse import urlparse, parse_qs
 
 from pymongo import MongoClient
+
+import logging
+
+class UrlParseMode(Enum):
+	OTHER = 0
+	YT_MUSIC = 1
+	YT_SHORTS = 2
+	YOUTUBE = 3
 
 VIDEO_STORAGE_DIR = os.environ.get("VIDEO_STORAGE_DIR", default="/var/warp_beacon/videos")
 
@@ -28,12 +36,22 @@ class Storage(object):
 
 	@staticmethod
 	def compute_uniq(url: str) -> str:
-		if "music.youtube.com" in url:
-			qs = parse_qs(urlparse(url).query)
-			yt_vid_id = qs.get('v', None)
+		parse_mode = UrlParseMode.OTHER
+		if "music.youtube.com/" in url:
+			parse_mode = UrlParseMode.YT_MUSIC
+		elif "youtube.com/shorts/" in url:
+			parse_mode = UrlParseMode.YT_SHORTS
+		elif "youtube.com/" in url:
+			parse_mode = UrlParseMode.YOUTUBE
+
+		if parse_mode is not UrlParseMode.OTHER and parse_mode is not UrlParseMode.YT_SHORTS:
+			purl = urlparse(url)
+			qs = parse_qs(purl.query)
+			yt_vid_id_list = qs.get('v', None)
+			yt_vid_id = yt_vid_id_list.pop() if yt_vid_id_list else ""
 			if yt_vid_id:
-				path = urlparse(url).path.strip('/').replace("watch", "yt_music")
-				return "%s/%s" % (path, yt_vid_id)
+				path = urlparse(url).path.strip('/').replace("watch", ("yt_music" if parse_mode is UrlParseMode.YT_MUSIC else "youtube"))
+				return ("%s/%s" % (path, yt_vid_id)).strip('/')
 			else:
 				raise ValueError("Failed to generate uniq_id for url '%s'", url)
 			
@@ -65,6 +83,9 @@ class Storage(object):
 		uniq_id = self.compute_uniq(media_url)
 		media_ids = []
 		for tg_file_id in tg_file_ids:
+			if not tg_file_id:
+				logging.warning("Passed empty `tg_file_id`! Skipping.")
+				continue
 			if self.db_lookup_id(uniq_id):
 				logging.info("Detected existing uniq_id, skipping storage write operation")
 				continue

@@ -20,6 +20,8 @@ from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotF
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
+from warp_beacon.jobs.types import JobType
+from warp_beacon.telegram.utils import Utils
 
 import logging
 
@@ -118,17 +120,18 @@ class InstagramScraper(ScraperAbstract):
 
 		return ret_val
 
-	
 	def download_video(self, url: str, media_info: dict) -> dict:
 		path = self._download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
-		return {"local_media_path": str(path), "media_type": "video", "media_info": {"duration": round(media_info.video_duration)}}
+		return {"local_media_path": str(path), "media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration)}}
 
 	def download_photo(self, url: str) -> dict:
-		path = self._download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp')
-		return {"local_media_path": str(path), "media_type": "image"}
+		path = str(self._download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
+		if ".webp" in path:
+			path = InstagramScraper.convert_webp_to_png(path)
+		return {"local_media_path": path, "media_type": JobType.IMAGE}
 	
 	def download_story(self, story_info: Story) -> dict:
-		path, media_type, media_info = "", "", {}
+		path, media_type, media_info = "", JobType.UNKNOWN, {}
 		logging.info("Story id is '%s'", story_info.id)
 		effective_story_id = story_info.id
 		if '_' in effective_story_id:
@@ -138,32 +141,40 @@ class InstagramScraper(ScraperAbstract):
 		logging.info("Effective story id is '%s'", effective_story_id)
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
 		if story_info.media_type == 1: # photo
-			path = self._download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp')
-			media_type = "image"
+			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
+			if ".webp" in path:
+				path = InstagramScraper.convert_webp_to_png(path)
+			media_type = JobType.IMAGE
 		elif story_info.media_type == 2: # video
-			path = self._download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp')
-			media_type = "video"
+			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp'))
+			media_type = JobType.VIDEO
 			media_info["duration"] = story_info.video_duration
 
-		return {"local_media_path": str(path), "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
+		return {"local_media_path": path, "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
 
 	def download_stories(self, stories: list[Story]) -> dict:
-		res = []
-		for story in stories:
-			res.append(self.download_story(story_info=story))
+		chunks = []
+		for stories_chunk in Utils.chunker(stories, 10):
+			chunk = []
+			for story in stories_chunk:
+				chunk.append(self.download_story(story_info=story))
+			chunks.append(chunk)
 
-		return {"media_type": "collection", "save_items": True, "items": res}
+		return {"media_type": JobType.COLLECTION, "save_items": True, "items": chunks}
 
 	def download_album(self, media_info: dict) -> dict:
-		res = []
-		for i in media_info.resources:
-			_media_info = self.cl.media_info(i.pk)
-			if i.media_type == 1: # photo
-				res.append(self.download_photo(url=_media_info.thumbnail_url))
-			elif i.media_type == 2: # video
-				res.append(self.download_video(url=_media_info.video_url, media_info=_media_info))
+		chunks = []
+		for media_chunk in Utils.chunker(media_info.resources, 10):
+			chunk = []
+			for media in media_chunk:
+				_media_info = self.cl.media_info(media.pk)
+				if media.media_type == 1: # photo
+					chunk.append(self.download_photo(url=_media_info.thumbnail_url))
+				elif media.media_type == 2: # video
+					chunk.append(self.download_video(url=_media_info.video_url, media_info=_media_info))
+			chunks.append(chunk)
 
-		return {"media_type": "collection", "items": res}
+		return {"media_type": JobType.COLLECTION, "items": chunks}
 
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
@@ -194,7 +205,7 @@ class InstagramScraper(ScraperAbstract):
 				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT`", wait_timeout)
 				if res:
 					for i in res:
-						if i["media_type"] == "collection":
+						if i["media_type"] == JobType.COLLECTION:
 							for j in i["items"]:
 								if os.path.exists(j["local_media_path"]):
 									os.unlink(j["local_media_path"])

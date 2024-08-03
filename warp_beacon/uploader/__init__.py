@@ -5,12 +5,11 @@ from warp_beacon.jobs.upload_job import UploadJob
 import logging
 
 import asyncio
-from telegram import Update
-from telegram.ext import ContextTypes
 
 from typing import Optional, Callable, Coroutine
 
 from warp_beacon.storage import Storage
+from warp_beacon.jobs.types import JobType
 
 class AsyncUploader(object):
 	__JOE_BIDEN_WAKEUP = None
@@ -38,12 +37,12 @@ class AsyncUploader(object):
 			thread.start()
 			self.threads.append(thread)
 
-	def add_callback(self, message_id: int, callback: Callable, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+	def add_callback(self, message_id: int, callback: Callable) -> None:
 		def callback_wrap(*args, **kwargs) -> None:
 			ret = callback(*args, **kwargs)
 			#self.remove_callback(message_id)
 			return ret
-		self.callbacks[message_id] = {"callback": callback_wrap, "update": update, "context": context}
+		self.callbacks[message_id] = {"callback": callback_wrap}
 
 	def remove_callback(self, message_id: int) -> None:
 		if message_id in self.callbacks:
@@ -82,15 +81,16 @@ class AsyncUploader(object):
 					if job is self.__JOE_BIDEN_WAKEUP:
 						continue
 					path = ""
-					if job.media_type == "collection":
+					if job.media_type == JobType.COLLECTION:
 						for i in job.media_collection:
-							path += "%s; " % i.local_media_path
+							for j in i:
+								path += "%s; " % j.local_media_path
 					else:
 						path = job.local_media_path
 					in_process = job.in_process
 					uniq_id = job.uniq_id
 					message_id = job.placeholder_message_id
-					if not in_process and  not job.job_failed and not job.job_warning:
+					if not in_process and not job.job_failed and not job.job_warning:
 						logging.info("Accepted upload job, file(s): '%s'", path)
 					try:
 						if message_id in self.callbacks:
@@ -113,10 +113,10 @@ class AsyncUploader(object):
 									dlds_len = len(db_list_dicts)
 									if dlds_len > 1:
 										job.tg_file_id = ",".join(tg_file_ids)
-										job.media_type = "collection"
+										job.media_type = JobType.COLLECTION
 									elif dlds_len:
 										job.tg_file_id = ",".join(tg_file_ids)
-										job.media_type = db_list_dicts.pop()["media_type"]
+										job.media_type = JobType[db_list_dicts.pop()["media_type"].upper()]
 									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
 									self.process_done(uniq_id)
 									self.remove_callback(message_id)

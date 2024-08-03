@@ -8,14 +8,14 @@ from queue import Empty
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
+from warp_beacon.mediainfo.silencer import Silencer
 from warp_beacon.compress.video import VideoCompress
 from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.download_job import DownloadJob
+from warp_beacon.jobs.types import JobType
 
 import logging
-
-CONST_CPU_COUNT = multiprocessing.cpu_count()
 
 class AsyncDownloader(object):
 	__JOE_BIDEN_WAKEUP = None
@@ -23,9 +23,9 @@ class AsyncDownloader(object):
 	allow_loop = None
 	job_queue = multiprocessing.Queue()
 	uploader = None
-	workers_count = CONST_CPU_COUNT
+	workers_count = 0
 
-	def __init__(self, uploader: AsyncUploader, workers_count: int=CONST_CPU_COUNT) -> None:
+	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
 		self.workers_count = workers_count
@@ -39,16 +39,18 @@ class AsyncDownloader(object):
 			self.workers.append(proc)
 			proc.start()
 
-	def get_media_info(self, path: str, fr_media_info: dict={}, media_type: str = "video") -> Optional[dict]:
+	def get_media_info(self, path: str, fr_media_info: dict={}, media_type: JobType = JobType.VIDEO) -> Optional[dict]:
 		media_info = None
 		try:
 			if path:
-				if media_type == "video":
+				if media_type == JobType.VIDEO:
 					video_info = VideoInfo(path)
 					media_info = video_info.get_finfo(tuple(fr_media_info.keys()))
 					media_info.update(fr_media_info)
-					media_info["thumb"] = video_info.generate_thumbnail()
-				elif media_type == "audio":
+					if not media_info.get("thumb", None):
+						media_info["thumb"] = video_info.generate_thumbnail()
+					media_info["has_sound"] = video_info.has_sound()
+				elif media_type == JobType.AUDIO:
 					audio_info = AudioInfo(path)
 					media_info = audio_info.get_finfo(tuple(fr_media_info.keys()))
 		except Exception as e:
@@ -81,6 +83,9 @@ class AsyncDownloader(object):
 								elif job.job_origin is Origin.YT_MUSIC:
 									from warp_beacon.scraper.youtube.music import YoutubeMusicScraper
 									actor = YoutubeMusicScraper()
+								elif job.job_origin is Origin.YOUTUBE:
+									from warp_beacon.scraper.youtube.youtube import YoutubeScraper
+									actor = YoutubeScraper()
 								while True:
 									try:
 										logging.info("Downloading URL '%s'", job.url)
@@ -107,7 +112,7 @@ class AsyncDownloader(object):
 										logging.exception(e)
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
-											job_failed_msg="Unfortunately, this file exceeds the telegram limit of 50 megabytes.")
+											job_failed_msg="Unfortunately this file has exceeded the Telegram limits. A file cannot be larger than 2 gigabytes.")
 										)
 										break
 									except (UnknownError, Exception) as e:
@@ -133,10 +138,10 @@ class AsyncDownloader(object):
 								if items:
 									for item in items:
 										media_info = {"filesize": 0}
-										if item["media_type"] == "video":
-											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}))
+										if item["media_type"] == JobType.VIDEO:
+											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}), JobType.VIDEO)
 											logging.info("Final media info: %s", media_info)
-											if media_info["filesize"] > 52428800:
+											if media_info["filesize"] > 2e+9:
 												logging.info("Filesize is '%d' MiB", round(media_info["filesize"] / 1024 / 1024))
 												logging.info("Detected big file. Starting compressing with ffmpeg ...")
 												self.uploader.queue_task(job.to_upload_job(
@@ -145,27 +150,37 @@ class AsyncDownloader(object):
 												)
 												ffmpeg = VideoCompress(file_path=item["local_media_path"])
 												new_filepath = ffmpeg.generate_filepath(base_filepath=item["local_media_path"])
-												if ffmpeg.compress_to(new_filepath, target_size=50 * 1000):
+												if ffmpeg.compress_to(new_filepath, target_size=2000 * 1000):
 													logging.info("Successfully compressed file '%s'", new_filepath)
 													os.unlink(item["local_media_path"])
 													item["local_media_path"] = new_filepath
 													item["local_compressed_media_path"] = new_filepath
 													media_info["filesize"] = VideoInfo.get_filesize(new_filepath)
 													logging.info("New file size of compressed file is '%.3f'", media_info["filesize"])
-										elif item["media_type"] == "audio":
-											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}), "audio")
+											if not media_info["has_sound"]:
+												item["media_type"] = JobType.ANIMATION
+										elif item["media_type"] == JobType.AUDIO:
+											media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}), JobType.AUDIO)
 											media_info["performer"] = item.get("performer", None)
 											media_info["thumb"] = item.get("thumb", None)
 											logging.info("Final media info: %s", media_info)
-										elif item["media_type"] == "collection":
-											for v in item["items"]:
-												if v["media_type"] == "video":
-													col_media_info = self.get_media_info(v["local_media_path"], v["media_info"])
-													media_info["filesize"] += int(col_media_info.get("filesize", 0))
-													v["media_info"] = col_media_info
+										elif item["media_type"] == JobType.COLLECTION:
+											for chunk in item["items"]:
+												for v in chunk:
+													if v["media_type"] == JobType.VIDEO:
+														col_media_info = self.get_media_info(v["local_media_path"], v["media_info"])
+														media_info["filesize"] += int(col_media_info.get("filesize", 0))
+														v["media_info"] = col_media_info
+														if not v["media_info"]["has_sound"]:
+															silencer = Silencer(v["local_media_path"])
+															silent_video_path = silencer.add_silent_audio()
+															os.unlink(j["local_media_path"])
+															v["local_media_path"] = silent_video_path
+															v["media_info"].update(silencer.get_finfo())
+															v["media_info"]["has_sound"] = True
 
 										job_args = {"media_type": item["media_type"], "media_info": media_info}
-										if item["media_type"] == "collection":
+										if item["media_type"] == JobType.COLLECTION:
 											job_args["media_collection"] = item["items"]
 											if item.get("save_items", None) is not None:
 												job_args["save_items"] = item.get("save_items", False)
@@ -178,6 +193,7 @@ class AsyncDownloader(object):
 
 										logging.debug("local_media_path: '%s'", job_args.get("local_media_path", ""))
 										logging.debug("media_collection: '%s'", str(job_args.get("media_collection", {})))
+										#logging.info(job_args)
 										upload_job = job.to_upload_job(**job_args)
 										if upload_job.is_empty():
 											logging.info("Upload job is empty. Nothing to do here!")
@@ -194,7 +210,6 @@ class AsyncDownloader(object):
 						logging.error("Error inside download worker!")
 						logging.exception(e)
 						self.notify_task_failed(job)
-						#self.queue_task(url=item["url"], message_id=item["message_id"], item_in_process=item["in_process"], uniq_id=item["uniq_id"])
 				except Empty:
 					pass
 			except Exception as e:
