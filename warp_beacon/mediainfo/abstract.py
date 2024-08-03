@@ -1,4 +1,5 @@
 import os
+import pathlib
 from abc import ABC, abstractmethod
 
 from PIL import Image
@@ -37,3 +38,12 @@ class MediaInfoAbstract(ABC):
 		#	quality=80,
 		#)
 		return image
+
+	def generate_filepath(self, base_filepath: str, postfix: str = "silenced") -> str:
+		path_info = pathlib.Path(base_filepath)
+		ext = path_info.suffix
+		old_filename = path_info.stem
+		new_filename = "%s_%s%s" % (old_filename, postfix, ext)
+		new_filepath = "%s/%s" % (os.path.dirname(base_filepath), new_filename)
+
+		return new_filepath

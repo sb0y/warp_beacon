@@ -15,7 +15,7 @@ class VideoInfo(MediaInfoAbstract):
 		super(VideoInfo, self).__init__(filename)
 		
 		if self.container:
-			stream = self.container.streams.video[0]
+			stream = next(s for s in self.container.streams if s.type == 'video')
 			time_base = stream.time_base
 			self.duration = float(stream.duration * time_base)
 			framerate = stream.average_rate
@@ -73,3 +73,15 @@ class VideoInfo(MediaInfoAbstract):
 			logging.exception(e)
 
 		return None
+
+	def has_sound(self) -> bool:
+		try:
+			if self.container:
+				stream_list = self.container.streams.get(audio=0)
+				if len(stream_list) > 0:
+					return True
+		except Exception as e:
+			logging.warning("An exception occurred while detection audio track!")
+			#logging.exception(e)
+
+		return False

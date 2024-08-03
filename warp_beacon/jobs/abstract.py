@@ -1,13 +1,16 @@
+import os
 from abc import ABC, abstractmethod
 from typing import TypedDict
 from typing_extensions import Unpack
 import uuid
 
 from warp_beacon.jobs import Origin
+from warp_beacon.jobs.types import JobType
 
 class JobSettings(TypedDict):
 	job_id: uuid.UUID
 	message_id: int
+	chat_id: int
 	placeholder_message_id: int
 	local_media_path: str
 	local_compressed_media_path: str
@@ -16,7 +19,7 @@ class JobSettings(TypedDict):
 	uniq_id: str
 	tg_file_id: str
 	in_process: bool
-	media_type: str
+	media_type: JobType
 	job_failed: bool
 	job_failed_msg: str
 	job_warning: bool
@@ -30,6 +33,7 @@ class JobSettings(TypedDict):
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
 	message_id: int = 0
+	chat_id: int = 0
 	placeholder_message_id: int = 0
 	local_media_path: str = ""
 	local_compressed_media_path: str = ""
@@ -37,7 +41,7 @@ class AbstractJob(ABC):
 	url: str = ""
 	uniq_id: str = ""
 	tg_file_id: str = ""
-	media_type: str = "video"
+	media_type: JobType = JobType.VIDEO
 	in_process: bool = False
 	job_warning: bool = False
 	job_warning_message: str = ""
@@ -64,7 +68,7 @@ class AbstractJob(ABC):
 		return str(self.to_dict())
 
 	def is_empty(self) -> bool:
-		if self.media_type == "collection":
+		if self.media_type == JobType.COLLECTION:
 			if not self.media_collection:
 				return True
 		elif not self.local_media_path:
@@ -80,3 +84,16 @@ class AbstractJob(ABC):
 					d[key] = value
 					
 		return d
+
+	def remove_files(self) -> bool:
+		if self.media_type == JobType.COLLECTION:
+			for i in self.media_collection:
+				for j in i:
+					if os.path.exists(j.local_media_path):
+						os.unlink(j.local_media_path)
+		else:
+			if os.path.exists(self.local_media_path):
+				os.unlink(self.local_media_path)
+			if self.local_compressed_media_path:
+				if os.path.exists(self.local_compressed_media_path):
+					os.unlink(self.local_compressed_media_path)

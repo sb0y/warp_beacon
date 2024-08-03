@@ -1,5 +1,7 @@
 ffmpeg-python
-python-telegram-bot
+tgcrypto
+uvloop
+pyrogram
 pytubefix
 av
 urlextract

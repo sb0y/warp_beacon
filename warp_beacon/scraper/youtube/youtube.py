@@ -5,8 +5,8 @@ from pytubefix import YouTube
 
 import logging
 
-class YoutubeMusicScraper(YoutubeAbstract):
-	YT_MAX_RETRIES_DEFAULT = 6
+class YoutubeScraper(YoutubeAbstract):
+	YT_MAX_RETRIES_DEFAULT = 8
 	YT_PAUSE_BEFORE_RETRY_DEFAULT = 3
 	YT_TIMEOUT_DEFAULT = 2
 	YT_TIMEOUT_INCREMENT_DEFAULT = 60
@@ -17,20 +17,14 @@ class YoutubeMusicScraper(YoutubeAbstract):
 		yt = YouTube(url)
 		if yt and yt.thumbnail_url:
 			thumbnail = self.download_thumbnail(yt.thumbnail_url)
-		stream = yt.streams.get_audio_only()
+		stream = yt.streams.get_highest_resolution()
 		if stream:
-			logging.info("Announced audio file size: '%d'", stream.filesize)
-			if stream.filesize > 2e+9:
-				logging.warning("Downloading size reported by YouTube is over than 2 GB!")
-				raise FileTooBig("YouTube file is larger than 2 GB")
-			logging.info("Operation timeout is '%d'", timeout)
 			local_file = stream.download(
 				output_path=self.DOWNLOAD_DIR,
 				max_retries=0,
 				timeout=timeout,
 				skip_existing=False,
-				filename_prefix='yt_download_',
-				mp3=True
+				filename_prefix="yt_download_"
 			)
 			logging.debug("Temp filename: '%s'", local_file)
 			res.append({
@@ -38,7 +32,7 @@ class YoutubeMusicScraper(YoutubeAbstract):
 				"performer": yt.author,
 				"thumb": thumbnail,
 				"canonical_name": stream.title,
-				"media_type": JobType.AUDIO
+				"media_type": JobType.VIDEO
 			})
 
 		return res
