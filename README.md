@@ -1,9 +1,16 @@
 # warp_beacon [![Upload Python Package](https://github.com/sb0y/warp_beacon/actions/workflows/python-publish.yml/badge.svg)](https://github.com/sb0y/warp_beacon/actions/workflows/python-publish.yml) [![Docker Image CI](https://github.com/sb0y/warp_beacon/actions/workflows/docker-image.yml/badge.svg)](https://github.com/sb0y/warp_beacon/actions/workflows/docker-image.yml) [![Build DEB package](https://github.com/sb0y/warp_beacon/actions/workflows/build-deb.yml/badge.svg)](https://github.com/sb0y/warp_beacon/actions/workflows/build-deb.yml)
 
-Telegram bot for external social networks media scrapling.
+Telegram bot for external social networks media expanding.
 Works with links in personal messages and also with group chats.
 
 Just send to bot media link and get video.
+
+<img width="549" alt="image" src="https://github.com/user-attachments/assets/6d1cf0d8-4aa9-4852-90c9-6817974a7dd9">
+
+In order to setup your own instance, you will need:
+
+1. Obtain your own brand new `TG_TOKEN`. To do that, write to [@BotFather](https://t.me/BotFather).
+2. Obtain `TG_API_ID`, `TG_API_HASH`, `TG_BOT_NAME`. Learn more [here](https://core.telegram.org/api/obtaining_api_id).
 
 All bot configuration stored in [warp_beacon.conf](https://github.com/sb0y/warp_beacon/blob/main/etc/warp_beacon.conf) file.
 
@@ -11,6 +18,13 @@ All bot configuration stored in [warp_beacon.conf](https://github.com/sb0y/warp_
 
 ```env
 TG_TOKEN="you telegram token received from @BotFather"
+# these 3 settings should be obtained at https://my.telegram.org/apps
+# learn more: https://core.telegram.org/api/obtaining_api_id
+###
+TG_API_ID=""
+TG_API_HASH=""
+TG_BOT_NAME=""
+###
 INSTAGRAM_LOGIN="instagram login (email or cell phone)"
 INSTAGRAM_PASSWORD="instgram password"
 INSTAGRAM_VERIFICATION_CODE="instagram 2FA if required, default empty"
@@ -19,7 +33,13 @@ MONGODB_PORT="27017"
 MONGODB_USER="root"
 MONGODB_PASSWORD="changeme"
 VIDEO_STORAGE_DIR="/var/warp_beacon/videos"
-WORKERS_POOL_SIZE=3
+# workers settings
+# default: min(32, os.cpu_count() + 4)
+#TG_WORKERS_POOL_SIZE=3
+#UPLOAD_POOL_SIZE=3
+#WORKERS_POOL_SIZE=3
+ENABLE_DONATES=true
+DONATE_LINK="your donate link which will be shown if ENABLE_DONATES where set"
 ```
 ## Deployed example bot ##
 [Try it 🚀](https://t.me/anus_sebe_zablokiruy_bot)
