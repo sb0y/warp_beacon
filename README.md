@@ -83,6 +83,16 @@ Check logs
 ```bash
 sudo docker compose logs warp_beacon -f
 ```
+## Upgrading ##
+If you are using `image-prod` (set in `docker-compose.yml` by default), just rebuild your image:
+```bash
+cd your_warp_beacon_sources_directory/
+sudo docker compose build --no-cache
+```
+Recreate existing container:
+```bash
+sudo docker compose up -d
+```
 
 ## How to install from PIP ##
 
