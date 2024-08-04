@@ -177,7 +177,8 @@ class PlaceholderMessage(object):
 			await self.bot.client.edit_message_caption(
 				chat_id=chat_id,
 				message_id=placeholder_message_id,
-				caption=" ⚠️ *%s*" % placeholder_text
+				caption=" ⚠️ **%s**" % placeholder_text,
+				parse_mode=ParseMode.MARKDOWN
 			)
 		except Exception as e:
 			logging.error("Failed to update placeholder message!")

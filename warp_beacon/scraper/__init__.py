@@ -146,7 +146,7 @@ class AsyncDownloader(object):
 												logging.info("Detected big file. Starting compressing with ffmpeg ...")
 												self.uploader.queue_task(job.to_upload_job(
 													job_warning=True,
-													job_warning_msg="Downloaded file size is bigger than Telegram limits\! Performing video compression\. This may take a while\.")
+													job_warning_msg="Downloaded file size is bigger than Telegram limits! Performing video compression. This may take a while.")
 												)
 												ffmpeg = VideoCompress(file_path=item["local_media_path"])
 												new_filepath = ffmpeg.generate_filepath(base_filepath=item["local_media_path"])
