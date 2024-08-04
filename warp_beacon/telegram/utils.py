@@ -71,3 +71,12 @@ class Utils(object):
 	@staticmethod
 	def chunker(seq: list, size: int) -> list:
 		return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+	@staticmethod
+	def extract_message_text(message: "Message") -> str:
+		if hasattr(message, "text") and message.text:
+			return message.text
+		if hasattr(message, "caption") and message.caption:
+			return message.caption
+
+		return ''

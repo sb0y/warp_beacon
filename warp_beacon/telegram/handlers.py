@@ -17,6 +17,7 @@ import logging
 class Handlers(object):
 	storage = None
 	bot = None
+	url_extractor = URLExtract()
 
 	def __init__(self, bot: "Bot") -> None:
 		self.bot = bot
@@ -55,10 +56,14 @@ class Handlers(object):
 		)
 
 	async def handler(self, client: Client, message: Message) -> None:
+		if message is None:
+			return
+		message_text = Utils.extract_message_text(message)
+		if not message_text:
+			return
 		chat = message.chat
 		effective_message_id = message.id
-		extractor = URLExtract()
-		urls = extractor.find_urls(message.text)
+		urls = self.url_extractor.find_urls(message_text)
 
 		reply_text = "Wut?"
 		if not urls:
