@@ -8,7 +8,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import Message, InputMedia, InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InputMediaDocument, InlineKeyboardButton, InlineKeyboardMarkup
-from pyrogram.errors import RPCError, FloodWait, NetworkMigrate, BadRequest, MultiMediaTooLong
+from pyrogram.errors import RPCError, FloodWait, NetworkMigrate, BadRequest, MultiMediaTooLong, MessageIdInvalid
 
 from warp_beacon.__version__ import __version__
 from warp_beacon.telegram.handlers import Handlers
@@ -123,14 +123,23 @@ class Bot(object):
 				else:
 					args["video"] = job.tg_file_id.replace(":video", '')
 			else:
-				args["media"] = InputMediaVideo(
-					media=job.local_media_path,
-					supports_streaming=True,
-					width=job.media_info["width"],
-					height=job.media_info["height"],
-					duration=int(job.media_info["duration"]),
-					thumb=job.media_info["thumb"]
-				)
+				if job.placeholder_message_id:
+					args["media"] = InputMediaVideo(
+						media=job.local_media_path,
+						supports_streaming=True,
+						width=job.media_info["width"],
+						height=job.media_info["height"],
+						duration=job.media_info["duration"],
+						thumb=job.media_info["thumb"]
+					)
+				else:
+					args["video"] = job.local_media_path
+					args["supports_streaming"] = True
+					args["width"] = job.media_info["width"]
+					args["height"] = job.media_info["height"]
+					args["duration"] = job.media_info["duration"]
+					args["thumb"] = job.media_info["thumb"]
+
 				args["file_name"] = "downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
 		elif job.media_type == JobType.IMAGE:
 			if job.tg_file_id:
@@ -139,9 +148,12 @@ class Bot(object):
 				else:
 					args["photo"] = job.tg_file_id.replace(":image", '')
 			else:
-				args["media"] = InputMediaPhoto(
-					media=job.local_media_path
-				)
+				if job.placeholder_message_id:
+					args["media"] = InputMediaPhoto(
+						media=job.local_media_path
+					)
+				else:
+					args["photo"] = job.local_media_path
 		elif job.media_type == JobType.AUDIO:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -151,13 +163,20 @@ class Bot(object):
 				else:
 					args["audio"] = job.tg_file_id.replace(":audio", '')
 			else:
-				args["media"] = InputMediaAudio(
-					media=job.local_media_path,
-					performer=job.media_info["performer"],
-					thumb=job.media_info["thumb"],
-					duration=job.media_info["duration"],
-					title=job.canonical_name,
-				)
+				if job.placeholder_message_id:
+					args["media"] = InputMediaAudio(
+						media=job.local_media_path,
+						performer=job.media_info["performer"],
+						thumb=job.media_info["thumb"],
+						duration=job.media_info["duration"],
+						title=job.canonical_name,
+					)
+				else:
+					args["audio"] = job.local_media_path
+					args["performer"] = job.media_info["performer"]
+					args["thumb"] = job.media_info["thumb"]
+					args["duration"] = job.media_info["duration"]
+					args["title"] = job.canonical_name
 				#args["file_name"] = "%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1]),
 		elif job.media_type == JobType.ANIMATION:
 			if job.tg_file_id:
@@ -168,13 +187,20 @@ class Bot(object):
 				else:
 					args["animation"] = job.tg_file_id.replace(":animation", '')
 			else:
-				args["media"] = InputMediaAudio(
-					media=job.local_media_path,
-					performer=job.media_info["performer"],
-					thumb=job.media_info["thumb"],
-					duration=job.media_info["duration"],
-					title=job.canonical_name,
-				)
+				if job.placeholder_message_id:
+					args["media"] = InputMediaAnimation(
+						media=job.local_media_path,
+						thumb=job.media_info["thumb"],
+						duration=job.media_info["duration"],
+						width=job.media_info["width"],
+						height=job.media_info["height"]
+					)
+				else:
+					args["animation"] = job.local_media_path
+					args["width"] = job.media_info["width"]
+					args["height"] = job.media_info["height"]
+					args["duration"] = job.media_info["duration"]
+					args["thumb"] = job.media_info["thumb"]
 		elif job.media_type == JobType.COLLECTION:
 			if job.tg_file_id:
 				args["media"] = []
@@ -219,19 +245,18 @@ class Bot(object):
 		args["chat_id"] = job.chat_id
 
 		# common args
-		if job.placeholder_message_id and job.media_type != JobType.COLLECTION:
+		if job.placeholder_message_id and job.media_type is not JobType.COLLECTION:
 			args["message_id"] = job.placeholder_message_id
 		else:
 			args["disable_notification"] = True
 			args["reply_to_message_id"] = job.message_id
 
-		if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type != JobType.COLLECTION:
+		if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type is not JobType.COLLECTION:
 			args["reply_markup"] = InlineKeyboardMarkup([[InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E"))]])
 
 		return args
 
 	async def upload_job(self, job: UploadJob) -> list[str]:
-		timeout = int(os.environ.get("TG_WRITE_TIMEOUT", default=120))
 		tg_file_ids = []
 		try:
 			retry_amount = 0
@@ -241,7 +266,12 @@ class Bot(object):
 					reply_message = None
 					if job.media_type in (JobType.VIDEO, JobType.IMAGE, JobType.AUDIO):
 						if job.placeholder_message_id:
-							reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
+							try:
+								reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
+							except MessageIdInvalid:
+								logging.warning("Placeholder message not found. Looks like placeholder message was deleted by administrator.")
+								job.placeholder_message_id = None
+								continue
 						else:
 							send_funcs = {
 								JobType.VIDEO: self.client.send_video,
@@ -277,7 +307,7 @@ class Bot(object):
 							sent_messages += messages
 							if job.media_collection:
 								for j, chunk in enumerate(media_chunk):
-									tg_file_id = Utils.extract_file_id(messages[j])
+									tg_file_id = Utils.eƒƒxtract_file_id(messages[j])
 									if tg_file_id:
 										job.media_collection[i][j].tg_file_id = tg_file_id
 							if i == 0 and job.placeholder_message_id:

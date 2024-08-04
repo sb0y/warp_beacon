@@ -31,7 +31,14 @@ class Handlers(object):
 		if not d:
 			await message.reply_text("No random content yet. Try to send link first.")
 			return
-		await self.bot.upload_job(UploadJob(tg_file_id=d["tg_file_id"], media_type=d["media_type"], message_id=message.id))
+		await self.bot.upload_job(
+			UploadJob(
+				tg_file_id=d["tg_file_id"],
+				chat_id=message.chat.id,
+				media_type=JobType[d["media_type"].upper()],
+				message_id=message.id
+			)
+		)
 
 	async def start(self, client: Client, message: Message) -> None:
 		bot_name = await self.bot.client.get_me()

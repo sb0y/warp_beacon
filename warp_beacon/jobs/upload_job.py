@@ -6,6 +6,7 @@ from warp_beacon.jobs.abstract import AbstractJob, JobSettings
 class UploadJob(AbstractJob):
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		super(UploadJob, self).__init__(**kwargs)
+
 	def __del__(self) -> None:
 		pass
 
