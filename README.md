@@ -3,7 +3,7 @@
 Telegram bot for external social networks media expanding.
 Works with links in personal messages and also with group chats.
 
-Just send to bot media link and get video.
+Just send a media link to the chat with bot and get a video or audio reply.
 
 <img width="549" alt="image" src="https://github.com/user-attachments/assets/6d1cf0d8-4aa9-4852-90c9-6817974a7dd9">
 
