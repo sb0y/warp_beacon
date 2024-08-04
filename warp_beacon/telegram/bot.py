@@ -307,7 +307,7 @@ class Bot(object):
 							sent_messages += messages
 							if job.media_collection:
 								for j, chunk in enumerate(media_chunk):
-									tg_file_id = Utils.eƒƒxtract_file_id(messages[j])
+									tg_file_id = Utils.extract_file_id(messages[j])
 									if tg_file_id:
 										job.media_collection[i][j].tg_file_id = tg_file_id
 							if i == 0 and job.placeholder_message_id:
