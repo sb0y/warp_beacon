@@ -138,3 +138,7 @@ build deb file
 ```bash
 dpkg-buildpackage -us -uc -b
 ```
+
+# Support Warp Beacon project
+
+[<img src="https://cdn.cryptocloud.plus/brand/cc-group-black.png" alt="CryptoCloud Accepted" width="250px">](https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E)
