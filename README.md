@@ -5,7 +5,11 @@ Works with a links in personal messages and also with group chats.
 
 Just send a media link to the chat with bot and get a video or audio reply.
 
-<img width="549" alt="image" src="https://github.com/user-attachments/assets/6d1cf0d8-4aa9-4852-90c9-6817974a7dd9">
+| | |
+|:-------------------------:|:-------------------------:|
+|<img width="750" alt="Youtube Video usage example" src="https://github.com/user-attachments/assets/ea2ed57a-1004-4442-bb83-265566afe3c2"> Yotube Video usage example |  <img width="750" alt="Youtube Audio usage example" src="https://github.com/user-attachments/assets/13769989-6b0e-4490-ba31-82a2326d99c6"> Youtube Audio usage example |<img width="664" alt="Instagram Reels usage example" src="https://github.com/user-attachments/assets/869a2378-5e30-4add-91e5-236dfac473f6"> Instagram Reels usage example|
+|<img width="646" alt="Instagram Photo post usage example" src="https://github.com/user-attachments/assets/35aa52f8-b0b8-4254-938b-189bcd0c9fa6"> Instagram Photo post usage example| <img width="771" alt="Instagram Photo Carousel usage example" src="https://github.com/user-attachments/assets/62c716dd-e3bd-4eb7-8835-0fcb058ca06d"> Instagram Photo Carousel usage example| <img width="757" alt="Instagram Photo bulk Strories download usage example" src="https://github.com/user-attachments/assets/2c8c91ac-6ade-4d1d-a677-2b36bb40ff39"> Instagram Photo bulk Strories download usage example|
+|<img width="670" alt="Instagram specific Story download usage example" src="https://github.com/user-attachments/assets/27519994-b56c-4b92-8631-f24fe158bfcd"> Instagram specific Story download usage example|
 
 In order to setup your own instance, you will need:
 
