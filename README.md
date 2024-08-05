@@ -5,11 +5,12 @@ Works with a links in personal messages and also with group chats.
 
 Just send a media link to the chat with bot and get a video or audio reply.
 
-| | |
-|:-------------------------:|:-------------------------:|
-|<img width="700" alt="Yotube Video usage example" src="https://github.com/user-attachments/assets/280b058f-325b-4386-9556-f145f6db9cfa"> Yotube Video usage example |  <img width="700" alt="Youtube Music usage example" src="https://github.com/user-attachments/assets/3a462a3b-8c80-460f-aa66-c39db24f7a24"> Youtube Music usage example |<img width="700" alt="Instagram Reels usage example" src="https://github.com/user-attachments/assets/72463209-a441-478a-8b3d-32e495909138"> Instagram Reels usage example|
-|<img width="700" alt="Instagram Photo post usage example" src="https://github.com/user-attachments/assets/29324b94-7314-4a38-8790-3483011d355d"> Instagram Photo post usage example| <img width="700" alt="image" src="https://github.com/user-attachments/assets/2598e329-e16e-455e-91e9-a027e8994283"> Instagram Photo Carousel usage example| <img width="757" alt="Instagram Photo bulk Strories download usage example" src="https://github.com/user-attachments/assets/2c8c91ac-6ade-4d1d-a677-2b36bb40ff39"> Instagram Photo bulk Strories download usage example|
-|<img width="700" alt="Instagram specific Story download usage example" src="https://github.com/user-attachments/assets/03dc70c5-6933-4122-9c7c-5f7d734d117b"> Instagram specific Story download usage example| <img width="700" alt="image" src="https://github.com/user-attachments/assets/649fcb1e-785b-4efd-9153-69644c6d898b"> Group chat usage example|
+| | | |
+|:-------------------------:|:-------------------------:|:-------------------------:|
+|<img width="700" alt="Yotube Video usage example" src="https://github.com/user-attachments/assets/280b058f-325b-4386-9556-f145f6db9cfa"> Yotube Video usage example |<img width="700" alt="Youtube Music usage example" src="https://github.com/user-attachments/assets/3a462a3b-8c80-460f-aa66-c39db24f7a24"> Youtube Music usage example|<img width="703" alt="image" src="https://github.com/user-attachments/assets/384206ea-1371-48d5-a717-92aff06fa339"> Instagram Reels usage example |
+|<img width="700" alt="Instagram Photo post usage example" src="https://github.com/user-attachments/assets/29324b94-7314-4a38-8790-3483011d355d"> Instagram Photo post usage example|<img width="700" alt="Instagram Photo Carousel usage" src="https://github.com/user-attachments/assets/2598e329-e16e-455e-91e9-a027e8994283"> Instagram Photo Carousel usage example|<img width="757" alt="Instagram Photo bulk Strories download usage example" src="https://github.com/user-attachments/assets/2c8c91ac-6ade-4d1d-a677-2b36bb40ff39"> Instagram Photo bulk Strories download usage example|
+|<img width="700" alt="Instagram specific Story download usage example" src="https://github.com/user-attachments/assets/03dc70c5-6933-4122-9c7c-5f7d734d117b"> Instagram specific Story download usage example|<img width="700" alt="Group chat usage example" src="https://github.com/user-attachments/assets/649fcb1e-785b-4efd-9153-69644c6d898b"> Group chat usage example|
+
 
 In order to setup your own instance, you will need:
 
