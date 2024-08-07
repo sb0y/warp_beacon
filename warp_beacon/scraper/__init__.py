@@ -5,7 +5,7 @@ from typing import Optional
 import multiprocessing
 from queue import Empty
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -113,6 +113,14 @@ class AsyncDownloader(object):
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
 											job_failed_msg="Unfortunately this file has exceeded the Telegram limits. A file cannot be larger than 2 gigabytes.")
+										)
+										break
+									except YotubeLiveError as e:
+										logging.warning("Youtube Live videos are not supported. Skipping.")
+										logging.exception(e)
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="Youtube Live videos are not supported. Please wait until the live broadcast ends.")
 										)
 										break
 									except (UnknownError, Exception) as e:
