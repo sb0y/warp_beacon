@@ -126,8 +126,11 @@ class InstagramScraper(ScraperAbstract):
 
 	def download_photo(self, url: str) -> dict:
 		path = str(self._download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
-		if ".webp" in path:
+		path_lowered = path.lower()
+		if ".webp" in path_lowered:
 			path = InstagramScraper.convert_webp_to_png(path)
+		if ".heic" in path_lowered:
+			path = InstagramScraper.convert_heic_to_png(path)
 		return {"local_media_path": path, "media_type": JobType.IMAGE}
 	
 	def download_story(self, story_info: Story) -> dict:
@@ -142,8 +145,10 @@ class InstagramScraper(ScraperAbstract):
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
 		if story_info.media_type == 1: # photo
 			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
-			if ".webp" in path:
+			if ".webp" in path_lowered:
 				path = InstagramScraper.convert_webp_to_png(path)
+			if ".heic" in path_lowered:
+				path = InstagramScraper.convert_heic_to_png(path)
 			media_type = JobType.IMAGE
 		elif story_info.media_type == 2: # video
 			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp'))

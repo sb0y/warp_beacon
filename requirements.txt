@@ -1,6 +1,7 @@
 ffmpeg-python
 tgcrypto
 uvloop
+pillow-heif
 pyrogram
 pytubefix
 av

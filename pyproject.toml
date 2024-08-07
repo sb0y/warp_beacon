@@ -17,6 +17,7 @@ dependencies = [
 	"uvloop",
 	"tgcrypto",
 	"pyrogram",
+	"pillow-heif",
 	"pytubefix",
 	"av",
 	"urlextract",
