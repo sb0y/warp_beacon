@@ -368,7 +368,7 @@ class Bot(object):
 		except Exception as e:
 			logging.error("Error occurred!")
 			logging.exception(e)
-		#finally:
-			#job.remove_files()
+		finally:
+			job.remove_files()
 
 		return tg_file_ids
