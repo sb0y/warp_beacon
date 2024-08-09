@@ -10,6 +10,9 @@ from pillow_heif import register_heif_opener
 import logging
 
 class ScraperAbstract(ABC):
+	send_message_to_admin_func = None
+	auth_event = None
+
 	def __init__(self) -> None:
 		pass
 

@@ -28,7 +28,7 @@ class Silencer(VideoInfo):
 						if packet:
 							out_container.mux(packet)
 							#
-							aframe = av.AudioFrame(samples=32, format='s16')
+							aframe = av.AudioFrame(samples=64, format='s16')
 							aframe.pts = frame.pts
 							aframe.sample_rate = 16000
 							aframe.rate = 44100

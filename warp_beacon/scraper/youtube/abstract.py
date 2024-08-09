@@ -7,6 +7,8 @@ import ssl
 from abc import abstractmethod
 from typing import Callable, Union
 
+import json
+
 import requests
 import urllib
 import http.client
@@ -17,12 +19,66 @@ from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, extract_exception_message
 
+from pytubefix import YouTube
+from pytubefix.innertube import _default_clients
+from pytubefix.streams import Stream
+from pytubefix.innertube import InnerTube, _client_id, _client_secret
 from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
+from pytubefix import request
 
 import logging
 
+def patched_fetch_bearer_token(self) -> None:
+	"""Fetch an OAuth token."""
+	# Subtracting 30 seconds is arbitrary to avoid potential time discrepencies
+	start_time = int(time.time() - 30)
+	data = {
+		'client_id': _client_id,
+		'scope': 'https://www.googleapis.com/auth/youtube'
+	}
+	response = request._execute_request(
+		'https://oauth2.googleapis.com/device/code',
+		'POST',
+		headers={
+			'Content-Type': 'application/json'
+		},
+		data=data
+	)
+	response_data = json.loads(response.read())
+	verification_url = response_data['verification_url']
+	user_code = response_data['user_code']
+
+	logging.warning("Please open %s and input code '%s'", verification_url, user_code)
+	self.send_message_to_admin_func(
+		f"Please open {verification_url} and input code `{user_code}`.\n\n"
+		"Please select a Google account with verified age.\n"
+		"This will allow you to avoid error the **AgeRestrictedError** when accessing some content.")
+	self.auth_event.wait()
+
+	data = {
+		'client_id': _client_id,
+		'client_secret': _client_secret,
+		'device_code': response_data['device_code'],
+		'grant_type': 'urn:ietf:params:oauth:grant-type:device_code'
+	}
+	response = request._execute_request(
+		'https://oauth2.googleapis.com/token',
+		'POST',
+		headers={
+			'Content-Type': 'application/json'
+		},
+		data=data
+	)
+	response_data = json.loads(response.read())
+
+	self.access_token = response_data['access_token']
+	self.refresh_token = response_data['refresh_token']
+	self.expires = start_time + response_data['expires_in']
+	self.cache_tokens()
+
 class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
+	YT_SESSION_FILE = '/var/warp_beacon/yt_session.json'
 
 	def __init__(self) -> None:
 		pass
@@ -49,9 +105,9 @@ class YoutubeAbstract(ScraperAbstract):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
-	def download_thumbnail(self, url: str) -> Union[io.BytesIO, None]:
+	def download_thumbnail(self, url: str, timeout: int) -> Union[io.BytesIO, None]:
 		try:
-			reply = requests.get(url, stream=True)
+			reply = requests.get(url, timeout=(timeout, timeout))
 			if reply.ok and reply.status_code == 200:
 				image = Image.open(io.BytesIO(reply.content))
 				image = MediaInfoAbstract.shrink_image_to_fit(image)
@@ -65,7 +121,7 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return None
 
-	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
+	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict, io.BytesIO]:
 		ret_val = ''
 		max_retries = int(os.environ.get("YT_MAX_RETRIES", default=self.YT_MAX_RETRIES_DEFAULT))
 		pause_secs = int(os.environ.get("YT_PAUSE_BEFORE_RETRY", default=self.YT_PAUSE_BEFORE_RETRY_DEFAULT))
@@ -103,3 +159,22 @@ class YoutubeAbstract(ScraperAbstract):
 				raise Unavailable(extract_exception_message(e))
 
 		return ret_val
+
+	def yt_on_progress(self, stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
+		pass
+		#logging.info("bytes: %d, bytes remaining: %d", chunk, bytes_remaining)
+
+	def build_yt(self, url: str) -> YouTube:
+		InnerTube.send_message_to_admin_func = self.send_message_to_admin_func
+		InnerTube.auth_event = self.auth_event
+		InnerTube.fetch_bearer_token = patched_fetch_bearer_token
+		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
+		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]
+		return YouTube(
+			url=url,
+			#client="WEB",
+			use_oauth=True,
+			allow_oauth_cache=True,
+			token_file=self.YT_SESSION_FILE,
+			on_progress_callback = self.yt_on_progress
+		)

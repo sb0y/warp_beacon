@@ -1,8 +1,9 @@
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
-from warp_beacon.scraper.exceptions import YotubeLiveError, NotFound
+from warp_beacon.scraper.exceptions import YotubeLiveError, NotFound, YotubeAgeRestrictedError
 
 from pytubefix import YouTube
+from pytubefix.exceptions import AgeRestrictedError
 
 import logging
 
@@ -30,35 +31,40 @@ class YoutubeScraper(YoutubeAbstract):
 
 	def _download(self, url: str, timeout: int = 0) -> list:
 		res = []
-		thumbnail = None
-		yt = YouTube(url)
+		try:
+			thumbnail = None
+			yt = self.build_yt(url)
 
-		if self.is_live(yt.initial_data):
-			raise YotubeLiveError("Youtube Live is not supported")
+			if self.is_live(yt.initial_data):
+				raise YotubeLiveError("Youtube Live is not supported")
 
-		if yt and yt.thumbnail_url:
-			thumbnail = self.download_thumbnail(yt.thumbnail_url)
+			if yt and yt.thumbnail_url:
+				thumbnail = self._download_hndlr(self.download_thumbnail, yt.thumbnail_url)
 
-		stream = yt.streams.get_highest_resolution()
+			stream = yt.streams.get_highest_resolution()
 
-		if not stream:
-			raise NotFound("No suitable video stream found")
+			if not stream:
+				raise NotFound("No suitable video stream found")
 
-		local_file = stream.download(
-			output_path=self.DOWNLOAD_DIR,
-			max_retries=0,
-			timeout=timeout,
-			skip_existing=False,
-			filename_prefix="yt_download_"
-		)
-		logging.debug("Temp filename: '%s'", local_file)
-		res.append({
-			"local_media_path": self.rename_local_file(local_file),
-			"performer": yt.author,
-			"thumb": thumbnail,
-			"canonical_name": stream.title,
-			"media_type": JobType.VIDEO
-		})
+			logging.info("Starting download ...")
+
+			local_file = stream.download(
+				output_path=self.DOWNLOAD_DIR,
+				max_retries=0,
+				timeout=timeout,
+				skip_existing=False,
+				filename_prefix="yt_download_"
+			)
+			logging.debug("Temp filename: '%s'", local_file)
+			res.append({
+				"local_media_path": self.rename_local_file(local_file),
+				"performer": yt.author,
+				"thumb": thumbnail,
+				"canonical_name": stream.title,
+				"media_type": JobType.VIDEO
+			})
+		except AgeRestrictedError as e:
+			raise YotubeAgeRestrictedError("Youtube Age Restricted error")
 
 		return res
 

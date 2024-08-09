@@ -145,6 +145,7 @@ class InstagramScraper(ScraperAbstract):
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
 		if story_info.media_type == 1: # photo
 			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
+			path_lowered = path.lower()
 			if ".webp" in path_lowered:
 				path = InstagramScraper.convert_webp_to_png(path)
 			if ".heic" in path_lowered:

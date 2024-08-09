@@ -1,3 +1,4 @@
+import os
 import threading
 import multiprocessing
 from warp_beacon.jobs.upload_job import UploadJob
@@ -20,12 +21,14 @@ class AsyncUploader(object):
 	storage = None
 	in_process = set()
 	loop = None
+	admin_message_callback = None
 	pool_size = 1
 
-	def __init__(self, loop: asyncio.AbstractEventLoop, storage: Storage, pool_size: int=multiprocessing.cpu_count()) -> None:
+	def __init__(self, loop: asyncio.AbstractEventLoop, storage: Storage, admin_message_callback: Callable, pool_size: int=min(32, os.cpu_count() + 4)) -> None:
 		self.storage = storage
 		self.loop = loop
 		self.job_queue = multiprocessing.Queue()
+		self.admin_message_callback = admin_message_callback
 		self.pool_size = pool_size
 	
 	def __del__(self) -> None:
@@ -79,6 +82,9 @@ class AsyncUploader(object):
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
+						continue
+					if job.is_message_to_admin and job.message_text and self.admin_message_callback:
+						asyncio.ensure_future(self.admin_message_callback(job.message_text), loop=self.loop)
 						continue
 					path = ""
 					if job.media_type == JobType.COLLECTION:
