@@ -29,6 +29,10 @@ TG_TOKEN="you telegram token received from @BotFather"
 TG_API_ID=""
 TG_API_HASH=""
 TG_BOT_NAME=""
+# bot admin username, e.g.: @BelisariusCawl
+# Used for communication between the bot and the administrator.
+# For example, if authorization is required for YouTube, bot can send an authorization code via message to this address.
+TG_BOT_ADMIN_USERNAME=""
 ###
 INSTAGRAM_LOGIN="instagram login (email or cell phone)"
 INSTAGRAM_PASSWORD="instgram password"
