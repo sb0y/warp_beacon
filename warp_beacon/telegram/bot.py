@@ -6,7 +6,7 @@ import asyncio
 
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
-from pyrogram.handlers import MessageHandler
+from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import Message, InputMedia, InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InputMediaDocument, InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import RPCError, FloodWait, NetworkMigrate, BadRequest, MultiMediaTooLong, MessageIdInvalid
 
@@ -64,6 +64,7 @@ class Bot(object):
 
 		self.uploader = AsyncUploader(
 			storage=self.storage,
+			admin_message_callback=self.send_text_to_admin,
 			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=workers_amount)),
 			loop=self.client.loop
 		)
@@ -81,6 +82,7 @@ class Bot(object):
 		self.client.add_handler(MessageHandler(self.handlers.help, filters.command("help")))
 		self.client.add_handler(MessageHandler(self.handlers.random, filters.command("random")))
 		self.client.add_handler(MessageHandler(self.handlers.handler))
+		self.client.add_handler(CallbackQueryHandler(self.handlers.simple_button_handler))
 
 		self.placeholder = PlaceholderMessage(self)
 
@@ -110,6 +112,30 @@ class Bot(object):
 			return message_reply.id
 		except Exception as e:
 			logging.error("Failed to send text message!")
+			logging.exception(e)
+
+		return 0
+
+	async def send_text_to_admin(self, text: str) -> int:
+		try:
+			admin = os.environ.get("TG_BOT_ADMIN_USERNAME", None)
+			if not admin:
+				raise ValueError("Configuration value `TG_BOT_ADMIN_USERNAME` is empty!")
+			message_reply = await self.client.send_message(
+				chat_id=admin,
+				text=text,
+				parse_mode=ParseMode.MARKDOWN,
+				reply_markup=InlineKeyboardMarkup(
+					[
+						[
+							InlineKeyboardButton("✅ Done", callback_data="auth_process_done")
+						]
+					]
+				)
+			)
+			return message_reply.id
+		except Exception as e:
+			logging.error("Failed to send text message to admin!")
 			logging.exception(e)
 
 		return 0
@@ -342,7 +368,7 @@ class Bot(object):
 		except Exception as e:
 			logging.error("Error occurred!")
 			logging.exception(e)
-		finally:
-			job.remove_files()
+		#finally:
+			#job.remove_files()
 
 		return tg_file_ids

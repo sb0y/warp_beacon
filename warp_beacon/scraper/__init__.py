@@ -1,11 +1,12 @@
 import os
 import time
+import asyncio
 
 from typing import Optional
 import multiprocessing
 from queue import Empty
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -13,6 +14,7 @@ from warp_beacon.compress.video import VideoCompress
 from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.download_job import DownloadJob
+from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 
 import logging
@@ -24,6 +26,7 @@ class AsyncDownloader(object):
 	job_queue = multiprocessing.Queue()
 	uploader = None
 	workers_count = 0
+	auth_event = multiprocessing.Event()
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.allow_loop = multiprocessing.Value('i', 1)
@@ -86,6 +89,9 @@ class AsyncDownloader(object):
 								elif job.job_origin is Origin.YOUTUBE:
 									from warp_beacon.scraper.youtube.youtube import YoutubeScraper
 									actor = YoutubeScraper()
+								#self.auth_event = multiprocessing.Event()
+								actor.send_message_to_admin_func = self.send_message_to_admin
+								actor.auth_event = self.auth_event
 								while True:
 									try:
 										logging.info("Downloading URL '%s'", job.url)
@@ -123,6 +129,14 @@ class AsyncDownloader(object):
 											job_failed_msg="Youtube Live videos are not supported. Please wait until the live broadcast ends.")
 										)
 										break
+									except YotubeAgeRestrictedError as e:
+										logging.error("Youtube Age Restricted error")
+										logging.exception(e)
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="Youtube Age Restricted error. Check your bot Youtube account settings.")
+										)
+										break
 									except (UnknownError, Exception) as e:
 										logging.warning("UnknownError occurred!")
 										logging.exception(e)
@@ -139,7 +153,7 @@ class AsyncDownloader(object):
 											break
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
-											job_failed_msg="WOW, unknown error occured! Please send service logs to developer via email: andrey@bagrintsev.me.")
+											job_failed_msg="WOW, unknown error occured! Please [create issue](https://github.com/sb0y/warp_beacon/issues) with service logs.")
 										)
 										break
 
@@ -182,7 +196,7 @@ class AsyncDownloader(object):
 														if not v["media_info"]["has_sound"]:
 															silencer = Silencer(v["local_media_path"])
 															silent_video_path = silencer.add_silent_audio()
-															os.unlink(j["local_media_path"])
+															os.unlink(v["local_media_path"])
 															v["local_media_path"] = silent_video_path
 															v["media_info"].update(silencer.get_finfo())
 															v["media_info"]["has_sound"] = True
@@ -243,3 +257,9 @@ class AsyncDownloader(object):
 	
 	def notify_task_failed(self, job: DownloadJob) -> None:
 		self.uploader.queue_task(job.to_upload_job(job_failed=True))
+
+	def send_message_to_admin(self, text: str) -> None:
+		self.uploader.queue_task(UploadJob.build(
+			is_message_to_admin=True,
+			message_text=text
+		))

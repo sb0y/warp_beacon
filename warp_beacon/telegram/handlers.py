@@ -1,5 +1,5 @@
 from pyrogram import Client
-from pyrogram.types import Message
+from pyrogram.types import Message, CallbackQuery
 from pyrogram.enums import ChatType, ParseMode
 from pyrogram.types import Chat, BotCommand
 
@@ -166,3 +166,12 @@ class Handlers(object):
 
 		if chat.type not in (ChatType.GROUP, ChatType.SUPERGROUP) and not urls:
 			await self.bot.send_text(rext=reply_text, reply_id=effective_message_id)
+
+	async def simple_button_handler(self, client: Client, query: CallbackQuery) -> None:
+		await client.answer_callback_query(
+			callback_query_id=query.id,
+			text="Please wait, bot will try to download media with obtained credentials.\nIf authorization is not successful, the operation will be repeated.",
+			show_alert=True
+		)
+		self.bot.downloader.auth_event.set()
+		self.bot.downloader.auth_event.clear()

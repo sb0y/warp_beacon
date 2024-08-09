@@ -31,6 +31,9 @@ class Unavailable(ScraperError):
 class YotubeLiveError(ScraperError):
 	pass
 
+class YotubeAgeRestrictedError(ScraperError):
+	pass
+
 class UnknownError(ScraperError):
 	pass
 
