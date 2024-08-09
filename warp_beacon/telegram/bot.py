@@ -155,7 +155,7 @@ class Bot(object):
 						supports_streaming=True,
 						width=job.media_info["width"],
 						height=job.media_info["height"],
-						duration=job.media_info["duration"],
+						duration=round(job.media_info["duration"]),
 						thumb=job.media_info["thumb"]
 					)
 				else:
@@ -163,7 +163,7 @@ class Bot(object):
 					args["supports_streaming"] = True
 					args["width"] = job.media_info["width"]
 					args["height"] = job.media_info["height"]
-					args["duration"] = job.media_info["duration"]
+					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
 
 				args["file_name"] = "downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
@@ -194,14 +194,14 @@ class Bot(object):
 						media=job.local_media_path,
 						performer=job.media_info["performer"],
 						thumb=job.media_info["thumb"],
-						duration=job.media_info["duration"],
+						duration=round(job.media_info["duration"]),
 						title=job.canonical_name,
 					)
 				else:
 					args["audio"] = job.local_media_path
 					args["performer"] = job.media_info["performer"]
 					args["thumb"] = job.media_info["thumb"]
-					args["duration"] = job.media_info["duration"]
+					args["duration"] = round(job.media_info["duration"])
 					args["title"] = job.canonical_name
 				#args["file_name"] = "%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1]),
 		elif job.media_type == JobType.ANIMATION:
@@ -217,7 +217,7 @@ class Bot(object):
 					args["media"] = InputMediaAnimation(
 						media=job.local_media_path,
 						thumb=job.media_info["thumb"],
-						duration=job.media_info["duration"],
+						duration=round(job.media_info["duration"]),
 						width=job.media_info["width"],
 						height=job.media_info["height"]
 					)
@@ -225,7 +225,7 @@ class Bot(object):
 					args["animation"] = job.local_media_path
 					args["width"] = job.media_info["width"]
 					args["height"] = job.media_info["height"]
-					args["duration"] = job.media_info["duration"]
+					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
 		elif job.media_type == JobType.COLLECTION:
 			if job.tg_file_id:
@@ -256,7 +256,7 @@ class Bot(object):
 								supports_streaming=True,
 								width=j.media_info["width"],
 								height=j.media_info["height"],
-								duration=int(j.media_info["duration"]),
+								duration=round(j.media_info["duration"]),
 								thumb=j.media_info["thumb"],
 							)
 							tg_chunk.append(vid)
@@ -290,7 +290,7 @@ class Bot(object):
 			while not retry_amount >= max_retries:
 				try:
 					reply_message = None
-					if job.media_type in (JobType.VIDEO, JobType.IMAGE, JobType.AUDIO):
+					if job.media_type in (JobType.VIDEO, JobType.IMAGE, JobType.AUDIO, JobType.ANIMATION):
 						if job.placeholder_message_id:
 							try:
 								reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
@@ -351,16 +351,18 @@ class Bot(object):
 					await self.placeholder.remove(job.chat_id, job.placeholder_message_id)
 					await self.send_text(job.chat_id, e.MESSAGE, job.message_id)
 					break
-				except (NetworkMigrate, BadRequest) as e:
+				except (NetworkMigrate, BadRequest, AttributeError) as e:
+					import traceback
 					logging.error("Network error. Check you Internet connection.")
 					logging.exception(e)
 
 					if retry_amount+1 >= max_retries:
 						msg = ""
-						if e.MESSAGE:
+						if hasattr(e, "MESSAGE") and e.MESSAGE:
 							msg = "Telegram error: %s" % str(e.MESSAGE)
 						else:
-							msg = "Unfortunately, Telegram limits were exceeded. Your media size is %.2f MB." % job.media_info["filesize"]
+							msg = (f"Unknown Telegram error. Known information:\n```python\n{traceback.format_exc().strip()}```"
+									"\nPlease [create issue](https://github.com/sb0y/warp_beacon/issues) with this info and service logs.")
 						await self.placeholder.remove(job.chat_id, job.placeholder_message_id)
 						await self.send_text(job.chat_id, msg, job.message_id)
 						break
