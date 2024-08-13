@@ -165,7 +165,7 @@ class Handlers(object):
 						logging.exception(e)
 
 		if chat.type not in (ChatType.GROUP, ChatType.SUPERGROUP) and not urls:
-			await self.bot.send_text(rext=reply_text, reply_id=effective_message_id)
+			await self.bot.send_text(text=reply_text, reply_id=effective_message_id, chat_id=chat.id)
 
 	async def simple_button_handler(self, client: Client, query: CallbackQuery) -> None:
 		await client.answer_callback_query(
