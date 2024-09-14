@@ -1,9 +1,9 @@
-import re
+from typing import Union
 
+import re
 import requests
 
-from enum import Enum
-from typing import Union
+from pyrogram.types import Message
 
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
@@ -14,7 +14,7 @@ class Utils(object):
 	expected_patronum_compiled_re = re.compile(r'Expected ([A-Z]+), got ([A-Z]+) file id instead')
 
 	@staticmethod
-	def extract_file_id(message: "Message") -> Union[None, str]:
+	def extract_file_id(message: Message) -> Union[None, str]:
 		possible_attrs = ("video", "photo", "audio", "animation", "document")
 		for attr in possible_attrs:
 			if hasattr(message, attr):
@@ -73,10 +73,17 @@ class Utils(object):
 		return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 	@staticmethod
-	def extract_message_text(message: "Message") -> str:
+	def extract_message_text(message: Message) -> str:
 		if hasattr(message, "text") and message.text:
 			return message.text
 		if hasattr(message, "caption") and message.caption:
 			return message.caption
 
 		return ''
+
+	@staticmethod
+	def extract_message_author(message: Message) -> str:
+		if message.from_user:
+			return message.from_user
+		return ''
+

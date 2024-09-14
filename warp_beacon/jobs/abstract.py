@@ -31,6 +31,7 @@ class JobSettings(TypedDict):
 	canonical_name: str
 	is_message_to_admin: bool
 	message_text: str
+	source_username: str
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -56,6 +57,7 @@ class AbstractJob(ABC):
 	canonical_name: str = ""
 	is_message_to_admin: bool = False
 	message_text: str = ""
+	source_usename: str = ""
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:
