@@ -34,17 +34,15 @@ class InstagramScraper(ScraperAbstract):
 		#self.original_gai_family = urllib3_cn.allowed_gai_family
 		super().__init__()
 		self.cl = Client()
-		self.cl.delay_range = [1, 6]
+		self.cl.delay_range = [1, 3]
 		self.cl.set_country_code(7)
 		self.cl.set_locale("en_US")
 		self.cl.set_timezone_offset(10800)
 		self.cl.set_user_agent("Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)")
-		logging.info('=================================')
-		'''
 		self.cl.set_device({
 			"app_version": "291.0.0.31.111",
 			"android_version": 33,
-			"android_release": "14.0.0",
+			"android_release": "13.0.0",
 			"dpi": "600dpi",
 			"resolution": "1440x3044",
 			"manufacturer": "Samsung",
@@ -53,7 +51,6 @@ class InstagramScraper(ScraperAbstract):
 			"cpu": "exynos2100",
 			"version_code": "493450264"
 		})
-		'''
 
 	def force_ipv6(self) -> None:
 		def allowed_gai_family():
