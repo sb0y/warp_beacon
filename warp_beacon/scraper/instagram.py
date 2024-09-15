@@ -31,7 +31,7 @@ class InstagramScraper(ScraperAbstract):
 	original_gai_family = None
 
 	def __init__(self) -> None:
-		self.original_gai_family = urllib3_cn.allowed_gai_family
+		#self.original_gai_family = urllib3_cn.allowed_gai_family
 		super().__init__()
 		self.cl = Client()
 		self.cl.delay_range = [1, 6]
@@ -92,7 +92,7 @@ class InstagramScraper(ScraperAbstract):
 		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
-		self.force_ipv6()
+		#self.force_ipv6()
 		self.load_session()
 		try:
 			self.cl.get_timeline_feed()

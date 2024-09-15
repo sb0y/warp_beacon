@@ -270,11 +270,6 @@ class Bot(object):
 
 		args["chat_id"] = job.chat_id
 
-		if job.source_usename:
-			args["caption"] = f"Requested by **@{job.source_usename}** | "
-
-		args["caption"] += f"**[Source]({job.url})**"
-
 		# common args
 		if job.placeholder_message_id and job.media_type is not JobType.COLLECTION:
 			args["message_id"] = job.placeholder_message_id
