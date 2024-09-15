@@ -19,7 +19,7 @@ dependencies = [
 	"pyrogram",
 	"pillow-heif",
 	"pytubefix",
-	"av",
+	"av == 12.3.0",
 	"urlextract",
 	"pillow",
 	"pymongo",

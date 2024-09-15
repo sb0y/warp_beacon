@@ -23,7 +23,7 @@ RUN set -x \
 # Build dev image
 FROM base AS image-prod
 RUN set -x \
-	&& python3 -m pip install av --no-binary av \
+	&& python3 -m pip install av==12.3.0 --no-binary av \
 	&& python3 -m pip install warp-beacon --upgrade
 
 VOLUME /tmp
@@ -33,7 +33,7 @@ ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
 # Build dev image
 FROM base AS image-dev
 RUN set -x \
-	&& python3 -m pip install av --no-binary av \
+	&& python3 -m pip install av==12.3.0 --no-binary av \
 	&& python3 -m pip install warp-beacon --upgrade \
 	&& ln -sf `python3 -c 'import os, warp_beacon; print(os.path.dirname(os.path.abspath(warp_beacon.__file__)))'` /var/warp_beacon/src \
 	&& find /var/warp_beacon/src/ | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf

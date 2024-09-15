@@ -66,10 +66,10 @@ class InstagramScraper(ScraperAbstract):
 	def login(self) -> None:
 		self.cl = Client()
 		self.cl.delay_range = [1, 6]
-		self.cl.user_agent = "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)"
-		self.cl.country_code = 7
-		self.cl.locale = "en_US"
-		self.cl.timezone_offset = 10800
+		self.cl.set_user_agent("Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)")
+		self.cl.set_country_code(7)
+		self.cl.set_locale("en_US")
+		self.cl.set_timezone_offset(10800)
 		username = os.environ.get("INSTAGRAM_LOGIN", default=None)
 		password = os.environ.get("INSTAGRAM_PASSWORD", default=None)
 		verification_code = os.environ.get("INSTAGRAM_VERIFICATION_CODE", default="")
