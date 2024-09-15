@@ -1,20 +1,19 @@
 import os
 import time
-
 import socket
 import ssl
-
 from typing import Callable, Optional, Union
 
-from pathlib import Path
-import json
+import socket
+import requests.packages.urllib3.util.connection as urllib3_cn
 
+import json
 import requests
 import urllib3
 from urllib.parse import urljoin, urlparse
 
 from instagrapi.mixins.story import Story
-from instagrapi.types import Media
+#from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, UnknownError as IGUnknownError
 
@@ -29,16 +28,32 @@ INST_SESSION_FILE = "/var/warp_beacon/inst_session.json"
 
 class InstagramScraper(ScraperAbstract):
 	cl = None
+	original_gai_family = None
 
 	def __init__(self) -> None:
+		self.original_gai_family = urllib3_cn.allowed_gai_family
 		super().__init__()
 		self.cl = Client()
+
+	def force_ipv6(self) -> None:
+		def allowed_gai_family():
+			"""
+			https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
+			"""
+			family = socket.AF_INET
+			if urllib3_cn.HAS_IPV6:
+				family = socket.AF_INET6 # force ipv6 only if it is available
+			return family
+		urllib3_cn.allowed_gai_family = allowed_gai_family
+
+	def restore_gai(self) -> None:
+		urllib3_cn.allowed_gai_family = self.original_gai_family
 
 	def safe_write_session(self) -> None:
 		tmp_fname = "%s~" % INST_SESSION_FILE
 		with open(tmp_fname, 'w+') as f:
 			f.write(json.dumps(self.cl.get_settings()))
-		if os.path.isfile(INST_SESSION_FILE):
+		if os.path.exists(INST_SESSION_FILE):
 			os.unlink(INST_SESSION_FILE)
 		os.rename(tmp_fname, INST_SESSION_FILE)
 
@@ -50,6 +65,11 @@ class InstagramScraper(ScraperAbstract):
 
 	def login(self) -> None:
 		self.cl = Client()
+		self.cl.delay_range = [1, 6]
+		self.cl.user_agent = "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)"
+		self.cl.country_code = 7
+		self.cl.locale = "en_US"
+		self.cl.timezone_offset = 10800
 		username = os.environ.get("INSTAGRAM_LOGIN", default=None)
 		password = os.environ.get("INSTAGRAM_PASSWORD", default=None)
 		verification_code = os.environ.get("INSTAGRAM_VERIFICATION_CODE", default="")
@@ -58,7 +78,20 @@ class InstagramScraper(ScraperAbstract):
 		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
+		self.force_ipv6()
 		self.load_session()
+		try:
+			self.cl.get_timeline_feed()
+		except LoginRequired as e:
+			logging.error("Exception occurred while cheking IG session!")
+			logging.exception(e)
+			old_session = self.cl.get_settings()
+			self.cl.set_settings({})
+			self.cl.set_uuids(old_session["uuids"])
+			if os.path.exists(INST_SESSION_FILE):
+				os.unlink(INST_SESSION_FILE)
+			time.sleep(5)
+			return self.scrap(url)
 		def _scrap() -> tuple[str]:
 			if "stories" in url:
 				# remove URL options
@@ -218,7 +251,8 @@ class InstagramScraper(ScraperAbstract):
 						else:
 							if os.path.exists(i["local_media_path"]):
 								os.unlink(i["local_media_path"])
-				os.unlink(INST_SESSION_FILE)
+				if os.path.exists(INST_SESSION_FILE):
+					os.unlink(INST_SESSION_FILE)
 				time.sleep(wait_timeout)
 			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
 				raise NotFound(extract_exception_message(e))
