@@ -1,8 +1,7 @@
 from pyrogram import Client
 from pyrogram.types import Message, CallbackQuery
 from pyrogram.enums import ChatType, ParseMode
-from pyrogram.types import BotCommand
-from pyrogram.errors import RPCError
+from pyrogram.types import Chat, BotCommand
 
 from urlextract import URLExtract
 
@@ -57,7 +56,7 @@ class Handlers(object):
 		)
 
 	async def handler(self, client: Client, message: Message) -> None:
-		if message is None or message.outgoing:
+		if message is None:
 			return
 		message_text = Utils.extract_message_text(message)
 		if not message_text:
@@ -68,7 +67,7 @@ class Handlers(object):
 
 		reply_text = "Wut?"
 		if not urls:
-			reply_text = "Your message should contains URLs (links)."
+			reply_text = "Your message should contains URLs"
 		else:
 			for url in urls:
 				origin = Utils.extract_origin(url)
@@ -122,12 +121,6 @@ class Handlers(object):
 								return await self.bot.placeholder.update_text(chat.id, job.placeholder_message_id, job.job_warning_msg)
 							tg_file_ids = await self.bot.upload_job(job)
 							if tg_file_ids:
-								try:
-									await message.delete()
-								except RPCError as e:
-									logging.warning("Failed to delete origin message! Check chat bot permissions.")
-									logging.exception(e)
-
 								if job.media_type == JobType.COLLECTION and job.save_items:
 									for chunk in job.media_collection:
 										for i in chunk:
@@ -148,7 +141,7 @@ class Handlers(object):
 						if not placeholder_message_id:
 							await self.bot.send_text(
 								chat_id=chat.id,
-								reply_id=effective_message_id,
+								reply_id=effective_message_id, 
 								text="Failed to create message placeholder. Please check your bot Internet connection.")
 							return
 
@@ -164,8 +157,7 @@ class Handlers(object):
 							chat_id=chat.id,
 							in_process=self.bot.uploader.is_inprocess(uniq_id),
 							uniq_id=uniq_id,
-							job_origin=origin,
-							source_username=Utils.extract_message_author(message)
+							job_origin=origin
 						))
 						self.bot.uploader.set_inprocess(uniq_id)
 					except Exception as e:
