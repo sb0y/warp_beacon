@@ -34,6 +34,9 @@ class InstagramScraper(ScraperAbstract):
 		#self.original_gai_family = urllib3_cn.allowed_gai_family
 		super().__init__()
 		self.cl = Client()
+		self.setup_device()
+
+	def setup_device(self) -> None:
 		self.cl.delay_range = [1, 3]
 		self.cl.set_country_code(7)
 		self.cl.set_locale("en_US")
@@ -98,6 +101,7 @@ class InstagramScraper(ScraperAbstract):
 			logging.exception(e)
 			old_session = self.cl.get_settings()
 			self.cl.set_settings({})
+			self.setup_device()
 			self.cl.set_uuids(old_session["uuids"])
 			if os.path.exists(INST_SESSION_FILE):
 				os.unlink(INST_SESSION_FILE)
