@@ -2,11 +2,14 @@ import os
 import time
 import socket
 import ssl
+import re
 from typing import Callable, Optional, Union
 
 import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
-
+import random
+import email
+import imaplib
 import json
 import requests
 import urllib3
@@ -15,6 +18,7 @@ from urllib.parse import urljoin, urlparse
 from instagrapi.mixins.story import Story
 #from instagrapi.types import Media
 from instagrapi import Client
+from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, UnknownError as IGUnknownError
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
@@ -35,6 +39,8 @@ class InstagramScraper(ScraperAbstract):
 		super().__init__()
 		self.cl = Client()
 		self.setup_device()
+		self.cl.challenge_code_handler = self.challenge_code_handler
+		self.cl.change_password_handler = self.change_password_handler
 
 	def setup_device(self) -> None:
 		self.cl.delay_range = [1, 3]
@@ -274,3 +280,63 @@ class InstagramScraper(ScraperAbstract):
 			except IGUnknownError as e:
 				raise UnknownError(extract_exception_message(e))
 		return res
+	
+	def email_challenge_resolver(self, username: str) -> Optional[str]:
+		logging.info("Started email challenge resolver")
+		mail = imaplib.IMAP4_SSL(os.environ.get("MAIL_SERVER", default="imap.bagrintsev.me"))
+		mail.login(os.environ.get("MAIL_LOGIN", default=""), os.environ.get("MAIL_PASSWORD", default="")) # email server creds
+		mail.select("inbox")
+		result, data = mail.search(None, "(UNSEEN)")
+		ids = data.pop().split()
+		for num in reversed(ids):
+			mail.store(num, "+FLAGS", "\\Seen")  # mark as read
+			result, data = mail.fetch(num, "(RFC822)")
+			msg = email.message_from_string(data[0][1].decode())
+			payloads = msg.get_payload()
+			if not isinstance(payloads, list):
+				payloads = [msg]
+			code = None
+			for payload in payloads:
+				body = ''
+				try:
+					body = payload.get_payload(decode=True).decode()
+				except:
+					continue
+				if "<div" not in body:
+					continue
+				match = re.search(">([^>]*?({u})[^<]*?)<".format(u=username), body)
+				if not match:
+					continue
+				logging.info("Match from email:", match.group(1))
+				match = re.search(r">(\d{6})<", body)
+				if not match:
+					logging.info('Skip this email, "code" not found')
+					continue
+				code = match.group(1)
+				if code:
+					logging.info("Found IG code at mail server: '%s'", code)
+					return code
+		return None
+
+	def get_code_from_sms(self, username: str) -> Optional[str]:
+		while True:
+			code = input(f"Enter code (6 digits) for {username}: ").strip()
+			if code and code.isdigit():
+				return code
+		return None
+
+	def challenge_code_handler(self, username: str, choice: ChallengeChoice) -> bool:
+		if choice == ChallengeChoice.SMS:
+			return False
+			#return self.get_code_from_sms(username)
+		elif choice == ChallengeChoice.EMAIL:
+			return self.email_challenge_resolver(username)
+		
+		return False
+
+	def change_password_handler(self, username: str) -> str:
+		# Simple way to generate a random string
+		chars = list("abcdefghijklmnopqrstuvwxyz1234567890!&£@#")
+		password = "".join(random.sample(chars, 10))
+		logging.info("Generated new IG password: '%s'", password)
+		return password
