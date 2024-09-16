@@ -156,6 +156,17 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
+			except LoginRequired as e:
+				logging.error("LoginRequired occurred in download handler!")
+				logging.exception(e)
+				old_session = self.cl.get_settings()
+				self.cl.set_settings({})
+				self.setup_device()
+				self.cl.set_uuids(old_session["uuids"])
+				if os.path.exists(INST_SESSION_FILE):
+					os.unlink(INST_SESSION_FILE)
+				time.sleep(5)
+				self.load_session()
 			except (socket.timeout,
 					ssl.SSLError,
 					requests.exceptions.ConnectionError,
