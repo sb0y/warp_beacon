@@ -1,0 +1,61 @@
+{
+	"instagram":
+	[
+		{
+			"login": "ig_account0",
+			"password": "ig_password",
+			"imap_server": "imap.gmail.com",
+			"imap_login": "user@gmail.com",
+			"imap_password": "",
+			"auth_details":
+			{
+				"delay_range": [1, 3],
+				"country_code": 7,
+				"locale": "en_US",
+				"timezone_offset": 10800,
+				"user_agent": "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)",
+				"device":
+				{
+					"app_version": "291.0.0.31.111",
+					"android_version": 33,
+					"android_release": "13.0.0",
+					"dpi": "600dpi",
+					"resolution": "1440x3044",
+					"manufacturer": "Samsung",
+					"device": "p3s",
+					"model": "SM-G998B",
+					"cpu": "exynos2100",
+					"version_code": "493450264"
+				}
+			}
+		},
+		{
+			"login": "ig_account1",
+			"password": "passwd",
+			"imap_server": "imap.gmail.com",
+			"imap_login": "mail_login1",
+			"imap_password": "imap_password1",
+			"auth_details":
+			{
+				"delay_range": [1, 3],
+				"country_code": 7,
+				"locale": "en_US",
+				"timezone_offset": 10800,
+				"user_agent": "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)",
+				"device":
+				{
+					"app_version": "291.0.0.31.111",
+					"android_version": 33,
+					"android_release": "13.0.0",
+					"dpi": "600dpi",
+					"resolution": "1440x3044",
+					"manufacturer": "Samsung",
+					"device": "p3s",
+					"model": "SM-G998B",
+					"cpu": "exynos2100",
+					"version_code": "493450264"
+				}
+			}
+		}
+	]
+}
