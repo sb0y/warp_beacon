@@ -23,7 +23,7 @@ services:
     build: 
       context: .
       dockerfile: ./docker_app/Dockerfile
-      target: image-dev # or image-dev
+      target: image-prod # or image-dev
     env_file:
       - 'variables.env'
     volumes:
