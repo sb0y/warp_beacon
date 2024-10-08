@@ -4,7 +4,7 @@ import time
 import socket
 import ssl
 
-from abc import abstractmethod
+#from abc import abstractmethod
 from typing import Callable, Union
 
 import json
@@ -78,10 +78,10 @@ def patched_fetch_bearer_token(self) -> None:
 
 class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
-	YT_SESSION_FILE = '/var/warp_beacon/yt_session.json'
+	YT_SESSION_FILE = '/var/warp_beacon/yt_session_%d.json'
 
-	def __init__(self) -> None:
-		pass
+	def __init__(self, account: tuple) -> None:
+		super().__init__(account)
 
 	def __del__(self) -> None:
 		pass
@@ -91,7 +91,7 @@ class YoutubeAbstract(ScraperAbstract):
 			raise NameError("No file provided")
 		path_info = pathlib.Path(filename)
 		ext = path_info.suffix
-		old_filename = path_info.stem
+		#old_filename = path_info.stem
 		time_name = str(time.time()).replace('.', '_')
 		new_filename = "%s%s" % (time_name, ext)
 		new_filepath = "%s/%s" % (os.path.dirname(filename), new_filename)
@@ -170,11 +170,9 @@ class YoutubeAbstract(ScraperAbstract):
 		InnerTube.fetch_bearer_token = patched_fetch_bearer_token
 		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
 		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]
-		return YouTube(
-			url=url,
-			#client="WEB",
-			use_oauth=True,
-			allow_oauth_cache=True,
-			token_file=self.YT_SESSION_FILE,
-			on_progress_callback = self.yt_on_progress
-		)
+		yt_opts = {"url": url, "on_progress_callback": self.yt_on_progress}
+		#yt_opts["client"] = "WEB"
+		yt_opts["use_oauth"] = True
+		yt_opts["allow_oauth_cache"] = True
+		yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
+		return YouTube(**yt_opts)

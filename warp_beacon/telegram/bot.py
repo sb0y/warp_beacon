@@ -50,7 +50,7 @@ class Bot(object):
 			bot_token=tg_token,
 			api_id=tg_api_id,
 			api_hash=tg_api_hash,
-			workdir='/',
+			workdir='/var/warp_beacon',
 			workers=int(os.environ.get("TG_WORKERS_POOL_SIZE", default=workers_amount))
 		)
 

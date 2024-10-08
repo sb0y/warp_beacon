@@ -2,7 +2,6 @@ from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
 from warp_beacon.scraper.exceptions import YotubeLiveError, NotFound, YotubeAgeRestrictedError
 
-from pytubefix import YouTube
 from pytubefix.exceptions import AgeRestrictedError
 
 import logging

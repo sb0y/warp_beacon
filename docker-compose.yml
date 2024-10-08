@@ -1,4 +1,6 @@
-version: '3.8'
+networks:
+  default:
+    enable_ipv6: true
 services:
   mongo:
     image: mongo:4.4.18
@@ -17,15 +19,11 @@ services:
   warp_beacon:
     container_name: warp_beacon
     privileged: true
-    deploy:
-      resources:
-        limits:
-          memory: '3000M'
-    oom_kill_disable: true
     restart: always
     build: 
-      context: ./docker_app
-      target: image-prod # or image-dev
+      context: .
+      dockerfile: ./docker_app/Dockerfile
+      target: image-dev # or image-dev
     env_file:
       - 'variables.env'
     volumes:

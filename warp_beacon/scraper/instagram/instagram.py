@@ -5,8 +5,6 @@ import ssl
 import re
 from typing import Callable, Optional, Union
 
-import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
 import random
 import email
 import imaplib
@@ -21,84 +19,71 @@ from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, UnknownError as IGUnknownError
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitAccured, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
 
 import logging
 
-INST_SESSION_FILE = "/var/warp_beacon/inst_session.json"
+INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 
 class InstagramScraper(ScraperAbstract):
 	cl = None
-	original_gai_family = None
+	inst_session_file = ""
 
-	def __init__(self) -> None:
-		#self.original_gai_family = urllib3_cn.allowed_gai_family
-		super().__init__()
+	def __init__(self, account: tuple) -> None:
+		super().__init__(account)
+		#
+		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
 		self.cl = Client()
 		self.setup_device()
 		self.cl.challenge_code_handler = self.challenge_code_handler
 		self.cl.change_password_handler = self.change_password_handler
 
 	def setup_device(self) -> None:
-		self.cl.delay_range = [1, 3]
-		self.cl.set_country_code(7)
-		self.cl.set_locale("en_US")
-		self.cl.set_timezone_offset(10800)
-		self.cl.set_user_agent("Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)")
+		details = self.account.get("auth_details", {})
+		self.cl.delay_range = details.get("delay_range", [1, 3])
+		self.cl.set_country_code(details.get("country_code", 1))
+		self.cl.set_locale(details.get("locale", "en_US"))
+		self.cl.set_timezone_offset(details.get("timezone_offset", 10800))
+		self.cl.set_user_agent(details.get("user_agent", "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)"))
+		device = details.get("device", {})
 		self.cl.set_device({
-			"app_version": "291.0.0.31.111",
-			"android_version": 33,
-			"android_release": "13.0.0",
-			"dpi": "600dpi",
-			"resolution": "1440x3044",
-			"manufacturer": "Samsung",
-			"device": "p3s",
-			"model": "SM-G998B",
-			"cpu": "exynos2100",
-			"version_code": "493450264"
+			"app_version": device.get("app_version", "291.0.0.31.111"),
+			"android_version": device.get("android_version", 33),
+			"android_release": device.get("android_release", "13.0.0"),
+			"dpi": device.get("dpi", "600dpi"),
+			"resolution": device.get("resolution", "1440x3044"),
+			"manufacturer": device.get("manufacturer", "Samsung"),
+			"device": device.get("device", "p3s"),
+			"model": device.get("model", "SM-G998B"),
+			"cpu": device.get("cpu", "exynos2100"),
+			"version_code": device.get("version_code", "493450264")
 		})
 
-	def force_ipv6(self) -> None:
-		def allowed_gai_family():
-			"""
-			https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
-			"""
-			family = socket.AF_INET
-			if urllib3_cn.HAS_IPV6:
-				family = socket.AF_INET6 # force ipv6 only if it is available
-			return family
-		urllib3_cn.allowed_gai_family = allowed_gai_family
-
-	def restore_gai(self) -> None:
-		urllib3_cn.allowed_gai_family = self.original_gai_family
-
 	def safe_write_session(self) -> None:
-		tmp_fname = "%s~" % INST_SESSION_FILE
-		with open(tmp_fname, 'w+') as f:
+		tmp_fname = "%s~" % self.inst_session_file
+		with open(tmp_fname, 'w+', encoding="utf-8") as f:
 			f.write(json.dumps(self.cl.get_settings()))
-		if os.path.exists(INST_SESSION_FILE):
-			os.unlink(INST_SESSION_FILE)
-		os.rename(tmp_fname, INST_SESSION_FILE)
+		if os.path.exists(self.inst_session_file):
+			os.unlink(self.inst_session_file)
+		os.rename(tmp_fname, self.inst_session_file)
 
 	def load_session(self) -> None:
-		if os.path.exists(INST_SESSION_FILE):
-			self.cl.load_settings(INST_SESSION_FILE)
+		if os.path.exists(self.inst_session_file):
+			self.cl.load_settings(self.inst_session_file)
 		else:
 			self.login()
 
 	def login(self) -> None:
-		username = os.environ.get("INSTAGRAM_LOGIN", default=None)
-		password = os.environ.get("INSTAGRAM_PASSWORD", default=None)
-		verification_code = os.environ.get("INSTAGRAM_VERIFICATION_CODE", default="")
-		if username is not None and password is not None:
-			self.cl.login(username=username, password=password, verification_code=verification_code)
+		username = self.account["login"]
+		password = self.account["password"]
+		if username and password:
+			self.cl.login(username=username, password=password, verification_code="")
 		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
-		#self.force_ipv6()
 		self.load_session()
 		try:
 			self.cl.get_timeline_feed()
@@ -109,8 +94,8 @@ class InstagramScraper(ScraperAbstract):
 			self.cl.set_settings({})
 			self.setup_device()
 			self.cl.set_uuids(old_session["uuids"])
-			if os.path.exists(INST_SESSION_FILE):
-				os.unlink(INST_SESSION_FILE)
+			if os.path.exists(self.inst_session_file):
+				os.unlink(self.inst_session_file)
 			time.sleep(5)
 			return self.scrap(url)
 		def _scrap() -> tuple[str]:
@@ -163,8 +148,8 @@ class InstagramScraper(ScraperAbstract):
 				self.cl.set_settings({})
 				self.setup_device()
 				self.cl.set_uuids(old_session["uuids"])
-				if os.path.exists(INST_SESSION_FILE):
-					os.unlink(INST_SESSION_FILE)
+				if os.path.exists(self.inst_session_file):
+					os.unlink(self.inst_session_file)
 				time.sleep(5)
 				self.load_session()
 			except (socket.timeout,
@@ -238,7 +223,7 @@ class InstagramScraper(ScraperAbstract):
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
-				_media_info = self.cl.media_info(media.pk)
+				_media_info = self._download_hndlr(self.cl.media_info, media.pk)
 				if media.media_type == 1: # photo
 					chunk.append(self.download_photo(url=_media_info.thumbnail_url))
 				elif media.media_type == 2: # video
@@ -249,6 +234,10 @@ class InstagramScraper(ScraperAbstract):
 
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
+		wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=60))
+		timeout_increment = int(os.environ.get("IG_TIMEOUT_INCREMENT", default=30))
+		ratelimit_threshold = int(os.environ.get("IG_RATELIMIT_TRESHOLD", default=5))
+		please_wait_few_minutes_count = 1
 		while True:
 			try:
 				scrap_type, media_id = self.scrap(url)
@@ -270,10 +259,14 @@ class InstagramScraper(ScraperAbstract):
 					res.append(self.download_stories(self.scrap_stories(media_id)))
 				break
 			except PleaseWaitFewMinutes as e:
+				please_wait_few_minutes_count += 1
 				logging.warning("Please wait a few minutes error. Trying to relogin ...")
 				logging.exception(e)
-				wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=5))
-				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT`", wait_timeout)
+				if please_wait_few_minutes_count >= ratelimit_threshold:
+					logging.warning("IG ratelimit accured")
+					raise IGRateLimitAccured()
+				wait_timeout += timeout_increment
+				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT` with `IG_TIMEOUT_INCREMENT`", wait_timeout)
 				if res:
 					for i in res:
 						if i["media_type"] == JobType.COLLECTION:
@@ -283,8 +276,9 @@ class InstagramScraper(ScraperAbstract):
 						else:
 							if os.path.exists(i["local_media_path"]):
 								os.unlink(i["local_media_path"])
-				if os.path.exists(INST_SESSION_FILE):
-					os.unlink(INST_SESSION_FILE)
+				if os.path.exists(self.inst_session_file):
+					os.unlink(self.inst_session_file)
+				self.login()
 				time.sleep(wait_timeout)
 			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
 				raise NotFound(extract_exception_message(e))
@@ -297,11 +291,11 @@ class InstagramScraper(ScraperAbstract):
 		mail = imaplib.IMAP4_SSL(os.environ.get("MAIL_SERVER", default="imap.bagrintsev.me"))
 		mail.login(os.environ.get("MAIL_LOGIN", default=""), os.environ.get("MAIL_PASSWORD", default="")) # email server creds
 		mail.select("inbox")
-		result, data = mail.search(None, "(UNSEEN)")
+		_, data = mail.search(None, "(UNSEEN)")
 		ids = data.pop().split()
 		for num in reversed(ids):
 			mail.store(num, "+FLAGS", "\\Seen")  # mark as read
-			result, data = mail.fetch(num, "(RFC822)")
+			_, data = mail.fetch(num, "(RFC822)")
 			msg = email.message_from_string(data[0][1].decode())
 			payloads = msg.get_payload()
 			if not isinstance(payloads, list):
@@ -318,7 +312,7 @@ class InstagramScraper(ScraperAbstract):
 				match = re.search(">([^>]*?({u})[^<]*?)<".format(u=username), body)
 				if not match:
 					continue
-				logging.info("Match from email:", match.group(1))
+				logging.info("Match from email: '%s'", match.group(1))
 				match = re.search(r">(\d{6})<", body)
 				if not match:
 					logging.info('Skip this email, "code" not found')

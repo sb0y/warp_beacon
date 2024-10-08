@@ -2,8 +2,6 @@ from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
 from warp_beacon.scraper.exceptions import NotFound
 
-from pytubefix import YouTube
-
 import logging
 
 class YoutubeMusicScraper(YoutubeAbstract):

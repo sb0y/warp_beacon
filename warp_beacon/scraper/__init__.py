@@ -1,12 +1,10 @@
 import os
-import time
-import asyncio
 
 from typing import Optional
 import multiprocessing
 from queue import Empty
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitAccured
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -16,8 +14,11 @@ from warp_beacon.jobs import Origin
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
+from warp_beacon.scraper.account_selector import AccountSelector
 
 import logging
+
+ACC_FILE = os.environ.get("SERVICE_ACCOUNTS_FILE", default="/var/warp_beacon/instagram_accounts.json")
 
 class AsyncDownloader(object):
 	__JOE_BIDEN_WAKEUP = None
@@ -27,11 +28,13 @@ class AsyncDownloader(object):
 	uploader = None
 	workers_count = 0
 	auth_event = multiprocessing.Event()
+	acc_selector = None
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
 		self.workers_count = workers_count
+		self.acc_selector = AccountSelector(ACC_FILE)
 
 	def __del__(self) -> None:
 		self.stop_all()
@@ -77,18 +80,19 @@ class AsyncDownloader(object):
 						if job.job_origin is not Origin.UNKNOWN:
 							if not job.in_process:
 								actor = None
+								self.acc_selector.set_module(job.job_origin)
 								if job.job_origin is Origin.INSTAGRAM:
-									from warp_beacon.scraper.instagram import InstagramScraper
-									actor = InstagramScraper()
+									from warp_beacon.scraper.instagram.instagram import InstagramScraper
+									actor = InstagramScraper(self.acc_selector.get_current())
 								elif job.job_origin is Origin.YT_SHORTS:
 									from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
-									actor = YoutubeShortsScraper()
+									actor = YoutubeShortsScraper(self.acc_selector.get_current())
 								elif job.job_origin is Origin.YT_MUSIC:
 									from warp_beacon.scraper.youtube.music import YoutubeMusicScraper
-									actor = YoutubeMusicScraper()
+									actor = YoutubeMusicScraper(self.acc_selector.get_current())
 								elif job.job_origin is Origin.YOUTUBE:
 									from warp_beacon.scraper.youtube.youtube import YoutubeScraper
-									actor = YoutubeScraper()
+									actor = YoutubeScraper(self.acc_selector.get_current())
 								#self.auth_event = multiprocessing.Event()
 								actor.send_message_to_admin_func = self.send_message_to_admin
 								actor.auth_event = self.auth_event
@@ -97,13 +101,27 @@ class AsyncDownloader(object):
 										logging.info("Downloading URL '%s'", job.url)
 										items = actor.download(job.url)
 										break
-									except (NotFound, Unavailable) as e:
-										logging.warning("Not found or unavailable error occurred!")
+									except NotFound as e:
+										logging.warning("Not found error occurred!")
 										logging.exception(e)
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
 											job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
 										)
+										break
+									except Unavailable as e:
+										logging.warning("Not found or unavailable error occurred!")
+										logging.exception(e)
+										if job.unvailable_error_count > self.acc_selector.count_service_accounts(job.job_origin.value):
+											self.uploader.queue_task(job.to_upload_job(
+												job_failed=True,
+												job_failed_msg="Video is unvailable for all your service accounts.")
+											)
+											break
+										job.unvailable_error_count += 1
+										logging.info("Trying to switch account")
+										self.acc_selector.next()
+										self.job_queue.put(job)
 										break
 									except TimeOut as e:
 										logging.warning("Timeout error occurred!")
@@ -121,6 +139,14 @@ class AsyncDownloader(object):
 											job_failed_msg="Unfortunately this file has exceeded the Telegram limits. A file cannot be larger than 2 gigabytes.")
 										)
 										break
+									except IGRateLimitAccured as e:
+										logging.warning("IG ratelimit accured :(")
+										logging.exception(e)
+										logging.warning("Switching Instagram account!")
+										self.acc_selector.bump_acc_fail("rate_limits")
+										self.acc_selector.next()
+										cur_acc = self.acc_selector.get_current()
+										logging.info("Current Instagram account: index: '%d', login: '%s'", cur_acc[0], cur_acc[1]["login"])
 									except YotubeLiveError as e:
 										logging.warning("Youtube Live videos are not supported. Skipping.")
 										logging.exception(e)
@@ -146,10 +172,16 @@ class AsyncDownloader(object):
 										else:
 											exception_msg = str(e)
 										if "geoblock_required" in exception_msg:
-											self.uploader.queue_task(job.to_upload_job(
-												job_failed=True,
-												job_failed_msg="This content does not accessible for bot account. Seems like author blocked certain region.")
-											)
+											if job.geoblock_error_count > self.acc_selector.count_service_accounts(job.job_origin.value):
+												self.uploader.queue_task(job.to_upload_job(
+													job_failed=True,
+													job_failed_msg="This content does not accessible for all yout bot accounts. Seems like author blocked certain regions.")
+												)
+												break
+											job.geoblock_error_count += 1
+											logging.info("Trying to switch account")
+											self.acc_selector.next()
+											self.job_queue.put(job)
 											break
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
