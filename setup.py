@@ -93,7 +93,7 @@ setup(
 			["assets/placeholder.gif"]
 		),
 		("/var/warp_beacon/",
-			["etc/instagram_accounts.json"]
+			["etc/accounts.json"]
 		)
 	],
 
