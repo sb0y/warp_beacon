@@ -67,7 +67,8 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v4
         with:
-          context: "./docker_app"
+          context: "."
+          dockerfile: ./docker_app/Dockerfile
           target: image-prod
           push: ${{ github.event_name != 'pull_request' }} # Don't push on PR
           tags: ${{ steps.meta.outputs.tags }}
