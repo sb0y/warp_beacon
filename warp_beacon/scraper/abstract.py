@@ -1,6 +1,9 @@
 import os
 import pathlib
 
+import socket
+import requests.packages.urllib3.util.connection as urllib3_cn
+
 from abc import ABC, abstractmethod
 from typing import Callable, Union
 
@@ -10,14 +13,21 @@ from pillow_heif import register_heif_opener
 import logging
 
 class ScraperAbstract(ABC):
+	original_gai_family = None
 	send_message_to_admin_func = None
 	auth_event = None
+	account = None
+	account_index = 0
 
-	def __init__(self) -> None:
-		pass
+	def __init__(self, account: tuple) -> None:
+		self.account_index = account[0]
+		self.account = account[1]
+		if os.environ.get("FORCE_IPV6", default="false") == "true":
+			self.force_ipv6()
 
 	def __del__(self) -> None:
-		pass
+		if os.environ.get("FORCE_IPV6", default="false") == "true":
+			self.restore_gai()
 
 	@abstractmethod
 	def download(self, url: str) -> bool:
@@ -63,3 +73,21 @@ class ScraperAbstract(ABC):
 			logging.exception(e)
 
 		return ''
+
+	def force_ipv6(self) -> None:
+		def allowed_gai_family():
+			"""
+			https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
+			"""
+			family = socket.AF_INET
+			if urllib3_cn.HAS_IPV6:
+				family = socket.AF_INET6 # force ipv6 only if it is available
+			return family
+		if self.original_gai_family is None:
+			self.original_gai_family = urllib3_cn.allowed_gai_family
+		logging.info("Forcing IPv6 ...")
+		urllib3_cn.allowed_gai_family = allowed_gai_family
+
+	def restore_gai(self) -> None:
+		logging.info("Restoring normal IP stack ...")
+		urllib3_cn.allowed_gai_family = self.original_gai_family

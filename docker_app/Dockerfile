@@ -1,9 +1,13 @@
-ARG BUILD_MODE
-
 FROM ubuntu:22.04 AS base
 LABEL maintainer="Andrey Bagrintsev <andrey@bagrintsev.me>"
 
+COPY ./docker_app/entrypoint.sh /usr/local/bin/
+COPY ./etc/accounts.json /init_accounts.json
+VOLUME /tmp
+WORKDIR /var/tmp
 VOLUME /var/warp_beacon
+
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 ARG TERM=xterm
 ARG LC_ALL=C.UTF-8
@@ -20,25 +24,17 @@ RUN set -x \
 	libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev -y \
 	&& mkdir -p /var/warp_beacon/
 
-# Build dev image
+# Build prod image
 FROM base AS image-prod
 RUN set -x \
-	&& python3 -m pip install av --no-binary av \
+	&& python3 -m pip install av==12.3.0 --no-binary av \
 	&& python3 -m pip install warp-beacon --upgrade
-
-VOLUME /tmp
-
-ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
 
 # Build dev image
 FROM base AS image-dev
 RUN set -x \
-	&& python3 -m pip install av --no-binary av \
+	&& python3 -m pip install av==12.3.0 --no-binary av \
 	&& python3 -m pip install warp-beacon --upgrade \
 	&& ln -sf `python3 -c 'import os, warp_beacon; print(os.path.dirname(os.path.abspath(warp_beacon.__file__)))'` /var/warp_beacon/src \
 	&& find /var/warp_beacon/src/ | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
-
-VOLUME ../warp_beacon/
-VOLUME /tmp
-
-ENTRYPOINT [ "/usr/local/bin/warp_beacon" ]
+VOLUME /var/warp_beacon/src

@@ -15,7 +15,7 @@
 
 
 %:
-	dh $@ --with python-virtualenv
+	dh $@ --with python-virtualenv -v
 
 override_dh_installinit:
 	dh_installinit --noscripts --name=warp_beacon

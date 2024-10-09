@@ -34,6 +34,9 @@ class YotubeLiveError(ScraperError):
 class YotubeAgeRestrictedError(ScraperError):
 	pass
 
+class IGRateLimitAccured(ScraperError):
+	pass
+
 class UnknownError(ScraperError):
 	pass
 

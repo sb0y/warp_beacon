@@ -50,6 +50,7 @@ setup(
 		'warp_beacon/uploader',
 		'warp_beacon/storage',
 		'warp_beacon/scraper',
+		'warp_beacon/scraper/instagram',
 		'warp_beacon/scraper/youtube',
 		'warp_beacon/mediainfo',
 		'warp_beacon/jobs',
@@ -73,7 +74,8 @@ setup(
 		"warp_beacon/scraper/abstract",
 		"warp_beacon/scraper/exceptions",
 		"warp_beacon/scraper/types",
-		"warp_beacon/scraper/instagram",
+		"warp_beacon/scraper/instagram/instagram",
+		"warp_beacon/scraper/account_selector",
 		"warp_beacon/scraper/youtube/abstract",
 		"warp_beacon/scraper/youtube/youtube",
 		"warp_beacon/scraper/youtube/shorts",
@@ -89,6 +91,9 @@ setup(
 		),
 		("/var/warp_beacon/",
 			["assets/placeholder.gif"]
+		),
+		("/var/warp_beacon/",
+			["etc/accounts.json"]
 		)
 	],
 

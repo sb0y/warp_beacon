@@ -1,64 +1,103 @@
 import os
 import time
-
 import socket
 import ssl
-
+import re
 from typing import Callable, Optional, Union
 
-from pathlib import Path
+import random
+import email
+import imaplib
 import json
-
 import requests
 import urllib3
 from urllib.parse import urljoin, urlparse
 
 from instagrapi.mixins.story import Story
-from instagrapi.types import Media
+#from instagrapi.types import Media
 from instagrapi import Client
+from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, UnknownError as IGUnknownError
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitAccured, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
 
 import logging
 
-INST_SESSION_FILE = "/var/warp_beacon/inst_session.json"
+INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 
 class InstagramScraper(ScraperAbstract):
 	cl = None
+	inst_session_file = ""
 
-	def __init__(self) -> None:
-		super().__init__()
+	def __init__(self, account: tuple) -> None:
+		super().__init__(account)
+		#
+		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
 		self.cl = Client()
+		self.setup_device()
+		self.cl.challenge_code_handler = self.challenge_code_handler
+		self.cl.change_password_handler = self.change_password_handler
+
+	def setup_device(self) -> None:
+		details = self.account.get("auth_details", {})
+		self.cl.delay_range = details.get("delay_range", [1, 3])
+		self.cl.set_country_code(details.get("country_code", 1))
+		self.cl.set_locale(details.get("locale", "en_US"))
+		self.cl.set_timezone_offset(details.get("timezone_offset", 10800))
+		self.cl.set_user_agent(details.get("user_agent", "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)"))
+		device = details.get("device", {})
+		self.cl.set_device({
+			"app_version": device.get("app_version", "291.0.0.31.111"),
+			"android_version": device.get("android_version", 33),
+			"android_release": device.get("android_release", "13.0.0"),
+			"dpi": device.get("dpi", "600dpi"),
+			"resolution": device.get("resolution", "1440x3044"),
+			"manufacturer": device.get("manufacturer", "Samsung"),
+			"device": device.get("device", "p3s"),
+			"model": device.get("model", "SM-G998B"),
+			"cpu": device.get("cpu", "exynos2100"),
+			"version_code": device.get("version_code", "493450264")
+		})
 
 	def safe_write_session(self) -> None:
-		tmp_fname = "%s~" % INST_SESSION_FILE
-		with open(tmp_fname, 'w+') as f:
+		tmp_fname = "%s~" % self.inst_session_file
+		with open(tmp_fname, 'w+', encoding="utf-8") as f:
 			f.write(json.dumps(self.cl.get_settings()))
-		if os.path.isfile(INST_SESSION_FILE):
-			os.unlink(INST_SESSION_FILE)
-		os.rename(tmp_fname, INST_SESSION_FILE)
+		if os.path.exists(self.inst_session_file):
+			os.unlink(self.inst_session_file)
+		os.rename(tmp_fname, self.inst_session_file)
 
 	def load_session(self) -> None:
-		if os.path.exists(INST_SESSION_FILE):
-			self.cl.load_settings(INST_SESSION_FILE)
+		if os.path.exists(self.inst_session_file):
+			self.cl.load_settings(self.inst_session_file)
 		else:
 			self.login()
 
 	def login(self) -> None:
-		self.cl = Client()
-		username = os.environ.get("INSTAGRAM_LOGIN", default=None)
-		password = os.environ.get("INSTAGRAM_PASSWORD", default=None)
-		verification_code = os.environ.get("INSTAGRAM_VERIFICATION_CODE", default="")
-		if username is not None and password is not None:
-			self.cl.login(username=username, password=password, verification_code=verification_code)
+		username = self.account["login"]
+		password = self.account["password"]
+		if username and password:
+			self.cl.login(username=username, password=password, verification_code="")
 		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
+		try:
+			self.cl.get_timeline_feed()
+		except LoginRequired as e:
+			logging.error("Exception occurred while cheking IG session!")
+			logging.exception(e)
+			old_session = self.cl.get_settings()
+			self.cl.set_settings({})
+			self.setup_device()
+			self.cl.set_uuids(old_session["uuids"])
+			if os.path.exists(self.inst_session_file):
+				os.unlink(self.inst_session_file)
+			time.sleep(5)
+			return self.scrap(url)
 		def _scrap() -> tuple[str]:
 			if "stories" in url:
 				# remove URL options
@@ -102,6 +141,17 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
+			except LoginRequired as e:
+				logging.error("LoginRequired occurred in download handler!")
+				logging.exception(e)
+				old_session = self.cl.get_settings()
+				self.cl.set_settings({})
+				self.setup_device()
+				self.cl.set_uuids(old_session["uuids"])
+				if os.path.exists(self.inst_session_file):
+					os.unlink(self.inst_session_file)
+				time.sleep(5)
+				self.load_session()
 			except (socket.timeout,
 					ssl.SSLError,
 					requests.exceptions.ConnectionError,
@@ -173,7 +223,7 @@ class InstagramScraper(ScraperAbstract):
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
-				_media_info = self.cl.media_info(media.pk)
+				_media_info = self._download_hndlr(self.cl.media_info, media.pk)
 				if media.media_type == 1: # photo
 					chunk.append(self.download_photo(url=_media_info.thumbnail_url))
 				elif media.media_type == 2: # video
@@ -184,6 +234,10 @@ class InstagramScraper(ScraperAbstract):
 
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
+		wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=60))
+		timeout_increment = int(os.environ.get("IG_TIMEOUT_INCREMENT", default=30))
+		ratelimit_threshold = int(os.environ.get("IG_RATELIMIT_TRESHOLD", default=5))
+		please_wait_few_minutes_count = 1
 		while True:
 			try:
 				scrap_type, media_id = self.scrap(url)
@@ -205,10 +259,14 @@ class InstagramScraper(ScraperAbstract):
 					res.append(self.download_stories(self.scrap_stories(media_id)))
 				break
 			except PleaseWaitFewMinutes as e:
+				please_wait_few_minutes_count += 1
 				logging.warning("Please wait a few minutes error. Trying to relogin ...")
 				logging.exception(e)
-				wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=5))
-				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT`", wait_timeout)
+				if please_wait_few_minutes_count >= ratelimit_threshold:
+					logging.warning("IG ratelimit accured")
+					raise IGRateLimitAccured()
+				wait_timeout += timeout_increment
+				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT` with `IG_TIMEOUT_INCREMENT`", wait_timeout)
 				if res:
 					for i in res:
 						if i["media_type"] == JobType.COLLECTION:
@@ -218,10 +276,72 @@ class InstagramScraper(ScraperAbstract):
 						else:
 							if os.path.exists(i["local_media_path"]):
 								os.unlink(i["local_media_path"])
-				os.unlink(INST_SESSION_FILE)
+				if os.path.exists(self.inst_session_file):
+					os.unlink(self.inst_session_file)
+				self.login()
 				time.sleep(wait_timeout)
 			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
 				raise NotFound(extract_exception_message(e))
 			except IGUnknownError as e:
 				raise UnknownError(extract_exception_message(e))
 		return res
+	
+	def email_challenge_resolver(self, username: str) -> Optional[str]:
+		logging.info("Started email challenge resolver")
+		mail = imaplib.IMAP4_SSL(os.environ.get("MAIL_SERVER", default="imap.bagrintsev.me"))
+		mail.login(os.environ.get("MAIL_LOGIN", default=""), os.environ.get("MAIL_PASSWORD", default="")) # email server creds
+		mail.select("inbox")
+		_, data = mail.search(None, "(UNSEEN)")
+		ids = data.pop().split()
+		for num in reversed(ids):
+			mail.store(num, "+FLAGS", "\\Seen")  # mark as read
+			_, data = mail.fetch(num, "(RFC822)")
+			msg = email.message_from_string(data[0][1].decode())
+			payloads = msg.get_payload()
+			if not isinstance(payloads, list):
+				payloads = [msg]
+			code = None
+			for payload in payloads:
+				body = ''
+				try:
+					body = payload.get_payload(decode=True).decode()
+				except:
+					continue
+				if "<div" not in body:
+					continue
+				match = re.search(">([^>]*?({u})[^<]*?)<".format(u=username), body)
+				if not match:
+					continue
+				logging.info("Match from email: '%s'", match.group(1))
+				match = re.search(r">(\d{6})<", body)
+				if not match:
+					logging.info('Skip this email, "code" not found')
+					continue
+				code = match.group(1)
+				if code:
+					logging.info("Found IG code at mail server: '%s'", code)
+					return code
+		return None
+
+	def get_code_from_sms(self, username: str) -> Optional[str]:
+		while True:
+			code = input(f"Enter code (6 digits) for {username}: ").strip()
+			if code and code.isdigit():
+				return code
+		return None
+
+	def challenge_code_handler(self, username: str, choice: ChallengeChoice) -> bool:
+		if choice == ChallengeChoice.SMS:
+			return False
+			#return self.get_code_from_sms(username)
+		elif choice == ChallengeChoice.EMAIL:
+			return self.email_challenge_resolver(username)
+		
+		return False
+
+	def change_password_handler(self, username: str) -> str:
+		# Simple way to generate a random string
+		chars = list("abcdefghijklmnopqrstuvwxyz1234567890!&£@#")
+		password = "".join(random.sample(chars, 10))
+		logging.info("Generated new IG password: '%s'", password)
+		return password

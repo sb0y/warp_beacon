@@ -31,6 +31,9 @@ class JobSettings(TypedDict):
 	canonical_name: str
 	is_message_to_admin: bool
 	message_text: str
+	source_username: str
+	unvailable_error_count: int
+	geoblock_error_count: int
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -56,6 +59,9 @@ class AbstractJob(ABC):
 	canonical_name: str = ""
 	is_message_to_admin: bool = False
 	message_text: str = ""
+	source_usename: str = ""
+	unvailable_error_count: int = 0
+	geoblock_error_count: int = 0
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:
