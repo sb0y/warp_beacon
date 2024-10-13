@@ -37,6 +37,7 @@ class InstagramScraper(ScraperAbstract):
 		#
 		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
 		self.cl = Client()
+		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
 		self.setup_device()
 		self.cl.challenge_code_handler = self.challenge_code_handler
 		self.cl.change_password_handler = self.change_password_handler
