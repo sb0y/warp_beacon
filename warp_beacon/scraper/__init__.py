@@ -328,8 +328,9 @@ class AsyncDownloader(object):
 	def notify_task_failed(self, job: DownloadJob) -> None:
 		self.uploader.queue_task(job.to_upload_job(job_failed=True))
 
-	def send_message_to_admin(self, text: str) -> None:
+	def send_message_to_admin(self, text: str, yt_auth: bool = False) -> None:
 		self.uploader.queue_task(UploadJob.build(
 			is_message_to_admin=True,
-			message_text=text
+			message_text=text,
+			yt_auth=yt_auth
 		))
