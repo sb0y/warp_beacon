@@ -133,7 +133,7 @@ class InstagramScraper(ScraperAbstract):
 			except (ChallengeRequired, ChallengeSelfieCaptcha) as e:
 				logging.warning("Instagram wants Challange!")
 				logging.exception(e)
-				raise CaptchaIssue()
+				raise CaptchaIssue("a captcha issue arose")
 			except LoginRequired as e:
 				logging.error("LoginRequired occurred in download handler!")
 				logging.exception(e)
