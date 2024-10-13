@@ -4,7 +4,7 @@ from typing import Optional
 import multiprocessing
 from queue import Empty
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitAccured
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitAccured, CaptchaIssue, AllAccountsFailed
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -65,6 +65,17 @@ class AsyncDownloader(object):
 
 		return media_info
 
+	def try_next_account(self, job: DownloadJob, report_error: str = None) -> None:
+		logging.warning("Switching account!")
+		if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
+			raise AllAccountsFailed()
+		if report_error:
+			self.acc_selector.bump_acc_fail("rate_limits")
+		self.acc_selector.next()
+		cur_acc = self.acc_selector.get_current()
+		logging.info("Current account: '%s'", str(cur_acc))
+		job.account_switches += 1
+
 	def do_work(self) -> None:
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
@@ -108,11 +119,14 @@ class AsyncDownloader(object):
 											job_failed=True,
 											job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
 										)
+										self.send_message_to_admin(
+											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'NotFound'."
+										)
 										break
 									except Unavailable as e:
 										logging.warning("Not found or unavailable error occurred!")
 										logging.exception(e)
-										if job.unvailable_error_count > self.acc_selector.count_service_accounts(job.job_origin.value):
+										if job.unvailable_error_count > self.acc_selector.count_service_accounts(job.job_origin):
 											self.uploader.queue_task(job.to_upload_job(
 												job_failed=True,
 												job_failed_msg="Video is unvailable for all your service accounts.")
@@ -128,7 +142,10 @@ class AsyncDownloader(object):
 										logging.exception(e)
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
-											job_failed_msg="Failed to download content. Please check you Internet connection or retry amount bot configuration settings.")
+											job_failed_msg="Failed to download content due timeout error. Please check you Internet connection, retry amount or request timeout bot configuration settings.")
+										)
+										self.send_message_to_admin(
+											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'TimeOut'."
 										)
 										break
 									except FileTooBig as e:
@@ -138,15 +155,22 @@ class AsyncDownloader(object):
 											job_failed=True,
 											job_failed_msg="Unfortunately this file has exceeded the Telegram limits. A file cannot be larger than 2 gigabytes.")
 										)
+										self.send_message_to_admin(
+											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'FileTooBig'."
+										)
 										break
 									except IGRateLimitAccured as e:
 										logging.warning("IG ratelimit accured :(")
 										logging.exception(e)
-										logging.warning("Switching Instagram account!")
-										self.acc_selector.bump_acc_fail("rate_limits")
-										self.acc_selector.next()
-										cur_acc = self.acc_selector.get_current()
-										logging.info("Current Instagram account: index: '%d', login: '%s'", cur_acc[0], cur_acc[1]["login"])
+										self.try_next_account(job, report_error="rate_limits")
+										self.job_queue.put(job)
+										break
+									except CaptchaIssue as e:
+										logging.warning("Challange accured!")
+										logging.exception(e)
+										self.try_next_account(job)
+										self.job_queue.put(job)
+										break
 									except YotubeLiveError as e:
 										logging.warning("Youtube Live videos are not supported. Skipping.")
 										logging.exception(e)
@@ -162,6 +186,20 @@ class AsyncDownloader(object):
 											job_failed=True,
 											job_failed_msg="Youtube Age Restricted error. Check your bot Youtube account settings.")
 										)
+										self.send_message_to_admin(
+											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'YotubeAgeRestrictedError'."
+										)
+										break
+									except AllAccountsFailed as e:
+										logging.error("All accounts failed!")
+										logging.exception(e)
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="All bot accounts failed to download content. Bot administrator noticed about the issue.")
+										)
+										self.send_message_to_admin(
+											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'AllAccountsFailed'."
+										)
 										break
 									except (UnknownError, Exception) as e:
 										logging.warning("UnknownError occurred!")
@@ -172,7 +210,7 @@ class AsyncDownloader(object):
 										else:
 											exception_msg = str(e)
 										if "geoblock_required" in exception_msg:
-											if job.geoblock_error_count > self.acc_selector.count_service_accounts(job.job_origin.value):
+											if job.geoblock_error_count > self.acc_selector.count_service_accounts(job.job_origin):
 												self.uploader.queue_task(job.to_upload_job(
 													job_failed=True,
 													job_failed_msg="This content does not accessible for all yout bot accounts. Seems like author blocked certain regions.")

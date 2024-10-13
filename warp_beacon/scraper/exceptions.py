@@ -37,6 +37,12 @@ class YotubeAgeRestrictedError(ScraperError):
 class IGRateLimitAccured(ScraperError):
 	pass
 
+class CaptchaIssue(ScraperError):
+	pass
+
+class AllAccountsFailed(ScraperError):
+	pass
+
 class UnknownError(ScraperError):
 	pass
 

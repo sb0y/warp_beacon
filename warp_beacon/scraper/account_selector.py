@@ -77,5 +77,6 @@ class AccountSelector(object):
 	def get_meta_data(self) -> dict:
 		return self.accounts_meta_data[self.current_module_name][self.index]
 	
-	def count_service_accounts(self, mod_name: str) -> int:
-		return len(self.accounts_meta_data[mod_name])
+	def count_service_accounts(self, mod_name: Origin) -> int:
+		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in mod_name.value), None) else 'instagram'
+		return len(self.accounts_meta_data[module_name])

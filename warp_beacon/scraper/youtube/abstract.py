@@ -17,7 +17,7 @@ from PIL import Image
 
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.mediainfo.abstract import MediaInfoAbstract
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, extract_exception_message
+from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
 
 from pytubefix import YouTube
 from pytubefix.innertube import _default_clients
@@ -52,7 +52,8 @@ def patched_fetch_bearer_token(self) -> None:
 	self.send_message_to_admin_func(
 		f"Please open {verification_url} and input code `{user_code}`.\n\n"
 		"Please select a Google account with verified age.\n"
-		"This will allow you to avoid error the **AgeRestrictedError** when accessing some content.")
+		"This will allow you to avoid error the **AgeRestrictedError** when accessing some content.",
+		yt_auth=True)
 	self.auth_event.wait()
 
 	data = {
@@ -137,12 +138,12 @@ class YoutubeAbstract(ScraperAbstract):
 				# do noting, not interested
 				pass
 			#except http.client.IncompleteRead as e:
-			except (socket.timeout, 
-					ssl.SSLError, 
-					http.client.IncompleteRead, 
-					http.client.HTTPException, 
-					requests.RequestException, 
-					urllib.error.URLError, 
+			except (socket.timeout,
+					ssl.SSLError,
+					http.client.IncompleteRead,
+					http.client.HTTPException,
+					requests.RequestException,
+					urllib.error.URLError,
 					urllib.error.HTTPError) as e:
 				if hasattr(e, "code") and int(e.code) == 403:
 					raise Unavailable(extract_exception_message(e))

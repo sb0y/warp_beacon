@@ -17,9 +17,9 @@ from instagrapi.mixins.story import Story
 #from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
-from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, UnknownError as IGUnknownError
+from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, ChallengeSelfieCaptcha, UnknownError as IGUnknownError
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitAccured, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitAccured, CaptchaIssue, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
@@ -86,19 +86,7 @@ class InstagramScraper(ScraperAbstract):
 
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
-		try:
-			self.cl.get_timeline_feed()
-		except LoginRequired as e:
-			logging.error("Exception occurred while cheking IG session!")
-			logging.exception(e)
-			old_session = self.cl.get_settings()
-			self.cl.set_settings({})
-			self.setup_device()
-			self.cl.set_uuids(old_session["uuids"])
-			if os.path.exists(self.inst_session_file):
-				os.unlink(self.inst_session_file)
-			time.sleep(5)
-			return self.scrap(url)
+		self._download_hndlr(self.cl.get_timeline_feed)
 		def _scrap() -> tuple[str]:
 			if "stories" in url:
 				# remove URL options
@@ -142,6 +130,10 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
+			except (ChallengeRequired, ChallengeSelfieCaptcha) as e:
+				logging.warning("Instagram wants Challange!")
+				logging.exception(e)
+				raise CaptchaIssue()
 			except LoginRequired as e:
 				logging.error("LoginRequired occurred in download handler!")
 				logging.exception(e)

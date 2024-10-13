@@ -116,29 +116,33 @@ class Bot(object):
 
 		return 0
 
-	async def send_text_to_admin(self, text: str) -> int:
+	async def send_text_to_admin(self, text: str, yt_auth: bool = False) -> list[int]:
 		try:
-			admin = os.environ.get("TG_BOT_ADMIN_USERNAME", None)
-			if not admin:
+			admins = os.environ.get("TG_BOT_ADMINS_USERNAMES", None)
+			if not admins:
 				raise ValueError("Configuration value `TG_BOT_ADMIN_USERNAME` is empty!")
-			message_reply = await self.client.send_message(
-				chat_id=admin,
-				text=text,
-				parse_mode=ParseMode.MARKDOWN,
-				reply_markup=InlineKeyboardMarkup(
-					[
+			
+			msg_ids = []
+			admins_array = admins.split(',')
+			for adm in admins_array:
+				adm = adm.strip()
+				msg_opts = {"chat_id": adm, "text": text, "parse_mode": ParseMode.MARKDOWN}
+				if yt_auth:
+					msg_opts["reply_markup"] = InlineKeyboardMarkup(
 						[
-							InlineKeyboardButton("✅ Done", callback_data="auth_process_done")
+							[
+								InlineKeyboardButton("✅ Done", callback_data="auth_process_done")
+							]
 						]
-					]
-				)
-			)
-			return message_reply.id
+					)
+				message_reply = await self.client.send_message(**msg_opts)
+				msg_ids.append(message_reply.id)
+			return msg_ids
 		except Exception as e:
 			logging.error("Failed to send text message to admin!")
 			logging.exception(e)
 
-		return 0
+		return []
 
 	def build_tg_args(self, job: UploadJob) -> dict:
 		args = {}

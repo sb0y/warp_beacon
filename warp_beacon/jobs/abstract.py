@@ -34,6 +34,7 @@ class JobSettings(TypedDict):
 	source_username: str
 	unvailable_error_count: int
 	geoblock_error_count: int
+	account_switches: int
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -62,6 +63,7 @@ class AbstractJob(ABC):
 	source_usename: str = ""
 	unvailable_error_count: int = 0
 	geoblock_error_count: int = 0
+	account_switches: int = 0
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:
