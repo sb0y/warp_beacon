@@ -236,7 +236,7 @@ class InstagramScraper(ScraperAbstract):
 		res = []
 		wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=60))
 		timeout_increment = int(os.environ.get("IG_TIMEOUT_INCREMENT", default=30))
-		ratelimit_threshold = int(os.environ.get("IG_RATELIMIT_TRESHOLD", default=5))
+		ratelimit_threshold = int(os.environ.get("IG_RATELIMIT_TRESHOLD", default=3))
 		please_wait_few_minutes_count = 1
 		while True:
 			try:
