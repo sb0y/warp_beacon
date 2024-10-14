@@ -73,6 +73,7 @@ class InstagramScraper(ScraperAbstract):
 
 	def load_session(self) -> None:
 		if os.path.exists(self.inst_session_file):
+			logging.info("Loading existing session file '%s'", self.inst_session_file)
 			self.cl.load_settings(self.inst_session_file)
 		else:
 			self.login()

@@ -62,6 +62,7 @@ class AccountSelector(object):
 	def next(self) -> dict:
 		self.current = next(self.acc_pool)
 		self.index = self.accounts[self.current_module_name].index(self.current)
+		logging.info("Next account index is '%d'", self.index)
 		return self.current
 	
 	def bump_acc_fail(self, key: str, amount: int = 1) -> int:
