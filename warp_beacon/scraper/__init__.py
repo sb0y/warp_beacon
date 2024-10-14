@@ -38,6 +38,7 @@ class AsyncDownloader(object):
 		self.workers_count = workers_count
 		self.acc_selector = AccountSelector(ACC_FILE)
 		self.scheduler = IGScheduler(self)
+		self.scheduler.start()
 
 	def __del__(self) -> None:
 		self.stop_all()
@@ -326,6 +327,7 @@ class AsyncDownloader(object):
 
 	def stop_all(self) -> None:
 		self.allow_loop.value = 0
+		self.scheduler.stop()
 		for proc in self.workers:
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)
