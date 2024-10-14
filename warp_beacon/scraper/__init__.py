@@ -93,7 +93,7 @@ class AsyncDownloader(object):
 					try:
 						items = []
 						if job.job_origin is Origin.UNKNOWN:
-							logging.warning("Unknown job origin! Skipping.")
+							logging.warning("Unknown task origin! Skipping.")
 							continue
 						if not job.in_process:
 							actor = None
@@ -325,7 +325,7 @@ class AsyncDownloader(object):
 				logging.error("Exception occurred inside worker!")
 				logging.exception(e)
 
-	logging.info("Process done")
+		logging.info("Process done")
 
 	def stop_all(self) -> None:
 		self.allow_loop.value = 0

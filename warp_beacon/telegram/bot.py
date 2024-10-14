@@ -36,7 +36,7 @@ class Bot(object):
 			format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 		)
 
-		logging.info(f"Starting Warp Beacon version '{__version__}' ...")
+		logging.info("Starting Warp Beacon version '%s' ...", __version__)
 
 		workers_amount = min(32, os.cpu_count() + 4)
 
