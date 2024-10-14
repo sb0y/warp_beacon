@@ -2,7 +2,6 @@ import os, io
 import signal
 
 import uvloop
-import asyncio
 
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
@@ -10,15 +9,13 @@ from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import Message, InputMedia, InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InputMediaDocument, InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import RPCError, FloodWait, NetworkMigrate, BadRequest, MultiMediaTooLong, MessageIdInvalid
 
+import warp_beacon
 from warp_beacon.__version__ import __version__
 from warp_beacon.telegram.handlers import Handlers
-import warp_beacon.scraper
 from warp_beacon.telegram.placeholder_message import PlaceholderMessage
 from warp_beacon.storage import Storage
 from warp_beacon.uploader import AsyncUploader
-from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
-from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
 

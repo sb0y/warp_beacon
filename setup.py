@@ -54,7 +54,8 @@ setup(
 		'warp_beacon/scraper/youtube',
 		'warp_beacon/mediainfo',
 		'warp_beacon/jobs',
-		'warp_beacon/compress'
+		'warp_beacon/compress',
+		'warp_beacon/scheduler'
 	],
 	py_modules=[
 		"warp_beacon/__version__",
@@ -71,6 +72,7 @@ setup(
 		"warp_beacon/mediainfo/audio",
 		"warp_beacon/mediainfo/silencer",
 		"warp_beacon/compress/video",
+		"warp_beacon/scheduler/scheduler",
 		"warp_beacon/scraper/abstract",
 		"warp_beacon/scraper/exceptions",
 		"warp_beacon/scraper/types",

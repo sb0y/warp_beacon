@@ -36,6 +36,7 @@ class JobSettings(TypedDict):
 	geoblock_error_count: int
 	account_switches: int
 	yt_auth: bool
+	session_validation: bool
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -66,6 +67,7 @@ class AbstractJob(ABC):
 	geoblock_error_count: int = 0
 	account_switches: int = 0
 	yt_auth: bool = False
+	session_validation: bool = False
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

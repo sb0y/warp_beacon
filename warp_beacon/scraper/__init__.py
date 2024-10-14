@@ -4,7 +4,7 @@ from typing import Optional
 import multiprocessing
 from queue import Empty
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitAccured, CaptchaIssue, AllAccountsFailed
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -15,10 +15,11 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.account_selector import AccountSelector
+from warp_beacon.scheduler.scheduler import IGScheduler
 
 import logging
 
-ACC_FILE = os.environ.get("SERVICE_ACCOUNTS_FILE", default="/var/warp_beacon/instagram_accounts.json")
+ACC_FILE = os.environ.get("SERVICE_ACCOUNTS_FILE", default="/var/warp_beacon/accounts.json")
 
 class AsyncDownloader(object):
 	__JOE_BIDEN_WAKEUP = None
@@ -29,12 +30,14 @@ class AsyncDownloader(object):
 	workers_count = 0
 	auth_event = multiprocessing.Event()
 	acc_selector = None
+	scheduler = None
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
 		self.workers_count = workers_count
 		self.acc_selector = AccountSelector(ACC_FILE)
+		self.scheduler = IGScheduler(self)
 
 	def __del__(self) -> None:
 		self.stop_all()
@@ -104,13 +107,17 @@ class AsyncDownloader(object):
 								elif job.job_origin is Origin.YOUTUBE:
 									from warp_beacon.scraper.youtube.youtube import YoutubeScraper
 									actor = YoutubeScraper(self.acc_selector.get_current())
-								#self.auth_event = multiprocessing.Event()
 								actor.send_message_to_admin_func = self.send_message_to_admin
 								actor.auth_event = self.auth_event
 								while True:
 									try:
-										logging.info("Downloading URL '%s'", job.url)
-										items = actor.download(job.url)
+										if job.session_validation:
+											logging.info("Validating '%s' session ...", job.origin.value)
+											actor.validate_session()
+											logging.info("done")
+										else:
+											logging.info("Downloading URL '%s'", job.url)
+											items = actor.download(job.url)
 										break
 									except NotFound as e:
 										logging.warning("Not found error occurred!")
@@ -159,14 +166,14 @@ class AsyncDownloader(object):
 											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'FileTooBig'."
 										)
 										break
-									except IGRateLimitAccured as e:
-										logging.warning("IG ratelimit accured :(")
+									except IGRateLimitOccurred as e:
+										logging.warning("IG ratelimit occurred :(")
 										logging.exception(e)
 										self.try_next_account(job, report_error="rate_limits")
 										self.job_queue.put(job)
 										break
 									except CaptchaIssue as e:
-										logging.warning("Challange accured!")
+										logging.warning("Challange occurred!")
 										logging.exception(e)
 										self.try_next_account(job)
 										self.job_queue.put(job)
@@ -215,6 +222,9 @@ class AsyncDownloader(object):
 													job_failed=True,
 													job_failed_msg="This content does not accessible for all yout bot accounts. Seems like author blocked certain regions.")
 												)
+												self.send_message_to_admin(
+													f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'geoblock_required'."
+												)
 												break
 											job.geoblock_error_count += 1
 											logging.info("Trying to switch account")
@@ -224,6 +234,10 @@ class AsyncDownloader(object):
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
 											job_failed_msg="WOW, unknown error occured! Please [create issue](https://github.com/sb0y/warp_beacon/issues) with service logs.")
+										)
+										self.send_message_to_admin(
+											f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'UnknownError'."
+											f"Exception:\n```\n{exception_msg}\n```"
 										)
 										break
 

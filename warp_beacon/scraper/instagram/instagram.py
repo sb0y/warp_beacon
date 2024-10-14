@@ -19,7 +19,7 @@ from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, ChallengeSelfieCaptcha, UnknownError as IGUnknownError
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitAccured, CaptchaIssue, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
@@ -85,9 +85,13 @@ class InstagramScraper(ScraperAbstract):
 			self.cl.login(username=username, password=password, verification_code="")
 		self.safe_write_session()
 
-	def scrap(self, url: str) -> tuple[str]:
+	def validate_session(self) -> None:
 		self.load_session()
 		self._download_hndlr(self.cl.get_timeline_feed)
+		self._download_hndlr(self.cl.get_reels_tray_feed)
+
+	def scrap(self, url: str) -> tuple[str]:
+		self.load_session()
 		def _scrap() -> tuple[str]:
 			if "stories" in url:
 				# remove URL options
@@ -258,8 +262,8 @@ class InstagramScraper(ScraperAbstract):
 				logging.warning("Please wait a few minutes error. Trying to relogin ...")
 				logging.exception(e)
 				if please_wait_few_minutes_count >= ratelimit_threshold:
-					logging.warning("IG ratelimit accured")
-					raise IGRateLimitAccured()
+					logging.warning("IG ratelimit occurred")
+					raise IGRateLimitOccurred()
 				wait_timeout += timeout_increment
 				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT` with `IG_TIMEOUT_INCREMENT`", wait_timeout)
 				if res:
