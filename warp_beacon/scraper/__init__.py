@@ -68,7 +68,7 @@ class AsyncDownloader(object):
 	def try_next_account(self, job: DownloadJob, report_error: str = None) -> None:
 		logging.warning("Switching account!")
 		if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
-			raise AllAccountsFailed()
+			raise AllAccountsFailed("All config accounts failed!")
 		if report_error:
 			self.acc_selector.bump_acc_fail("rate_limits")
 		self.acc_selector.next()
