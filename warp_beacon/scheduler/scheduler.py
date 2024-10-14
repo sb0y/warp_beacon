@@ -1,5 +1,6 @@
 import threading
 
+from warp_beacon.jobs import Origin
 import warp_beacon
 
 import logging
@@ -42,7 +43,8 @@ class IGScheduler(object):
 	def validate_ig_session(self) -> bool:
 		try:
 			self.downloader.queue_task(warp_beacon.jobs.download_job.DownloadJob.build(
-				session_validation=True
+				session_validation=True,
+				job_origin=Origin.INSTAGRAM
 			))
 		except Exception as e:
 			logging.warning("An error occurred while validating instagram session!")
