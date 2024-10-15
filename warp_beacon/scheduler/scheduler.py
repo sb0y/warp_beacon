@@ -90,7 +90,7 @@ class IGScheduler(object):
 
 				logging.info("Scheduler waking up")
 				self.validate_ig_session()
+				self.save_state()
 			except Exception as e:
 				logging.error("An error occurred in scheduler thread!")
 				logging.exception(e)
-		self.save_state()
