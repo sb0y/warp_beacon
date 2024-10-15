@@ -78,18 +78,18 @@ class IGScheduler(object):
 	def do_work(self) -> None:
 		logging.info("Scheduler thread started ...")
 		self.load_state()
-		timeout = self.state["remaining"]
 		while self.running:
 			try:
-				logging.info("Scheduler waking up")
-				start_time = time.time()
-				self.validate_ig_session()
-				self.event.wait(timeout=timeout)
-				elapsed = time.time() - start_time
-				self.state["remaining"] = timeout - elapsed
-
 				if self.state["remaining"] <= 0:
 					self.state["remaining"] = 3600
+
+				start_time = time.time()
+				self.event.wait(timeout=self.state["remaining"])
+				elapsed = time.time() - start_time
+				self.state["remaining"] -= elapsed
+
+				logging.info("Scheduler waking up")
+				self.validate_ig_session()
 			except Exception as e:
 				logging.error("An error occurred in scheduler thread!")
 				logging.exception(e)
