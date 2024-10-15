@@ -84,7 +84,7 @@ class Utils(object):
 	@staticmethod
 	def extract_message_author(message: Message) -> str:
 		if message.from_user:
-			return message.from_user
+			return message.from_user.username
 		if message.sender_chat:
 			if message.sender_chat.username:
 				return message.sender_chat.username
