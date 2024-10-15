@@ -80,4 +80,6 @@ class AccountSelector(object):
 	
 	def count_service_accounts(self, mod_name: Origin) -> int:
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in mod_name.value), None) else 'instagram'
+		if module_name not in self.accounts_meta_data:
+			return 0
 		return len(self.accounts_meta_data[module_name])

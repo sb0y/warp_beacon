@@ -15,7 +15,6 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.account_selector import AccountSelector
-from warp_beacon.scheduler.scheduler import IGScheduler
 
 import logging
 
@@ -37,8 +36,6 @@ class AsyncDownloader(object):
 		self.uploader = uploader
 		self.workers_count = workers_count
 		self.acc_selector = AccountSelector(ACC_FILE)
-		self.scheduler = IGScheduler(self)
-		self.scheduler.start()
 
 	def __del__(self) -> None:
 		self.stop_all()
@@ -329,7 +326,6 @@ class AsyncDownloader(object):
 
 	def stop_all(self) -> None:
 		self.allow_loop.value = 0
-		self.scheduler.stop()
 		for proc in self.workers:
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)

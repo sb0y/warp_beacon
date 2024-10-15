@@ -1,7 +1,7 @@
 from pyrogram import Client
 from pyrogram.types import Message, CallbackQuery
 from pyrogram.enums import ChatType, ParseMode
-from pyrogram.types import Chat, BotCommand
+from pyrogram.types import BotCommand
 
 from urlextract import URLExtract
 
@@ -37,7 +37,9 @@ class Handlers(object):
 				tg_file_id=d["tg_file_id"],
 				chat_id=message.chat.id,
 				media_type=JobType[d["media_type"].upper()],
-				message_id=message.id
+				message_id=message.id,
+				chat_type=message.chat.type,
+				source_username=message.from_user
 			)
 		)
 
@@ -96,7 +98,9 @@ class Handlers(object):
 								tg_file_id=",".join(tg_file_ids),
 								message_id=effective_message_id,
 								media_type=JobType.COLLECTION,
-								chat_id=chat.id
+								chat_id=chat.id,
+								chat_type=message.chat.type,
+								source_username=message.from_user
 							)
 						)
 					elif ent_len:
@@ -107,7 +111,9 @@ class Handlers(object):
 								tg_file_id=tg_file_ids.pop(),
 								message_id=effective_message_id,
 								media_type=media_type,
-								chat_id=chat.id
+								chat_id=chat.id,
+								chat_type=message.chat.type,
+								source_username=message.from_user
 							)
 						)
 				else:
@@ -141,7 +147,7 @@ class Handlers(object):
 						if not placeholder_message_id:
 							await self.bot.send_text(
 								chat_id=chat.id,
-								reply_id=effective_message_id, 
+								reply_id=effective_message_id,
 								text="Failed to create message placeholder. Please check your bot Internet connection.")
 							return
 
@@ -157,7 +163,9 @@ class Handlers(object):
 							chat_id=chat.id,
 							in_process=self.bot.uploader.is_inprocess(uniq_id),
 							uniq_id=uniq_id,
-							job_origin=origin
+							job_origin=origin,
+							source_username=message.from_user,
+							chat_type=chat.type
 						))
 						self.bot.uploader.set_inprocess(uniq_id)
 					except Exception as e:

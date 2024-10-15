@@ -11,7 +11,7 @@ class IGScheduler(object):
 	thread = None
 	event = None
 
-	def __init__(self, downloader: "warp_beacon.scraper.AsyncDownloader") -> None:
+	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
 		self.downloader = downloader
 		self.event = threading.Event()
 
@@ -24,6 +24,7 @@ class IGScheduler(object):
 
 	def stop(self) -> None:
 		self.running = False
+		self.event.set()
 		if self.thread:
 			t_id = self.thread.native_id
 			logging.info("Stopping scheduler thread #'%s'", t_id)

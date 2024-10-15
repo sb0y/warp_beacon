@@ -4,7 +4,7 @@ import signal
 import uvloop
 
 from pyrogram import Client, filters
-from pyrogram.enums import ParseMode
+from pyrogram.enums import ParseMode, ChatType
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import Message, InputMedia, InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InputMediaDocument, InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import RPCError, FloodWait, NetworkMigrate, BadRequest, MultiMediaTooLong, MessageIdInvalid
@@ -18,6 +18,7 @@ from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
+from warp_beacon.scheduler.scheduler import IGScheduler
 
 import logging
 
@@ -29,6 +30,7 @@ class Bot(object):
 	client = None
 	handlers = None
 	placeholder = None
+	scheduler = None
 
 	def __init__(self, tg_bot_name: str, tg_token: str, tg_api_id: str, tg_api_hash: str) -> None:
 		# Enable logging
@@ -70,8 +72,11 @@ class Bot(object):
 			uploader=self.uploader
 		)
 
+		self.scheduler = IGScheduler(self.downloader)
+
 		self.downloader.start()
 		self.uploader.start()
+		self.scheduler.start()
 
 		self.handlers = Handlers(self)
 
@@ -94,9 +99,9 @@ class Bot(object):
 
 	def stop(self) -> None:
 		logging.info("Warp Beacon terminating. This may take a while ...")
+		self.scheduler.stop()
 		self.downloader.stop_all()
 		self.uploader.stop_all()
-		#self.client.stop()
 
 	async def send_text(self, chat_id: int, text: str, reply_id: int = None) -> int:
 		try:
@@ -271,6 +276,15 @@ class Bot(object):
 
 		args["chat_id"] = job.chat_id
 
+		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
+			args["caption"] = ""
+			if job.source_usename:
+				args["caption"] += f"Requested by **@{job.source_usename}**"
+			if job.source_usename and job.url:
+				args["caption"] += " | "
+			if job.url:
+				args["caption"] += f"[Source link]({job.url})"
+
 		# common args
 		if job.placeholder_message_id and job.media_type is not JobType.COLLECTION:
 			args["message_id"] = job.placeholder_message_id
@@ -333,7 +347,7 @@ class Bot(object):
 							)
 							sent_messages += messages
 							if job.media_collection:
-								for j, chunk in enumerate(media_chunk):
+								for j, _ in enumerate(media_chunk):
 									tg_file_id = Utils.extract_file_id(messages[j])
 									if tg_file_id:
 										job.media_collection[i][j].tg_file_id = tg_file_id
@@ -360,7 +374,7 @@ class Bot(object):
 					if retry_amount+1 >= max_retries:
 						msg = ""
 						if hasattr(e, "MESSAGE") and e.MESSAGE:
-							msg = "Telegram error: %s" % str(e.MESSAGE)
+							msg = f"Telegram error: {str(e.MESSAGE)}"
 						else:
 							msg = (f"Unknown Telegram error. Known information:\n```python\n{traceback.format_exc().strip()}```"
 									"\nPlease [create issue](https://github.com/sb0y/warp_beacon/issues) with this info and service logs.")
@@ -373,5 +387,12 @@ class Bot(object):
 			logging.exception(e)
 		finally:
 			job.remove_files()
+
+		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
+			try:
+				self.client.delete_messages(job.chat_id, (job.message_id,))
+			except Exception as e:
+				logging.warning("Failed to delete source message. Check bot permissions in Telegram chat settings.")
+				logging.exception(e)
 
 		return tg_file_ids

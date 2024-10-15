@@ -1,8 +1,10 @@
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import TypedDict
 from typing_extensions import Unpack
 import uuid
+
+from pyrogram.enums import ChatType
 
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
@@ -37,6 +39,7 @@ class JobSettings(TypedDict):
 	account_switches: int
 	yt_auth: bool
 	session_validation: bool
+	chat_type: ChatType
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -68,6 +71,7 @@ class AbstractJob(ABC):
 	account_switches: int = 0
 	yt_auth: bool = False
 	session_validation: bool = False
+	chat_type: ChatType = None
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:
