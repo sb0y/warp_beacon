@@ -95,6 +95,7 @@ class Handlers(object):
 					if ent_len > 1:
 						await self.bot.upload_job(
 							UploadJob(
+								url=url,
 								tg_file_id=",".join(tg_file_ids),
 								message_id=effective_message_id,
 								media_type=JobType.COLLECTION,
@@ -108,6 +109,7 @@ class Handlers(object):
 						media_type = JobType[entities[0]["media_type"].upper()]
 						await self.bot.upload_job(
 							UploadJob(
+								url=url,
 								tg_file_id=tg_file_ids.pop(),
 								message_id=effective_message_id,
 								media_type=media_type,
