@@ -146,12 +146,28 @@ class Bot(object):
 
 		return []
 
+	def build_signature_caption(self, job: UploadJob) -> str:
+		caption = ""
+		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
+			if job.source_usename:
+				caption += f"Requested by **@{job.source_usename}**"
+			if job.source_usename and job.url:
+				caption += " | "
+			if job.url:
+				caption += f"[Source link]({job.url})"
+
+		return caption
+
 	def build_tg_args(self, job: UploadJob) -> dict:
 		args = {}
 		if job.media_type == JobType.VIDEO:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
-					args["media"] = InputMediaVideo(media=job.tg_file_id.replace(":video", ''), supports_streaming=True)
+					args["media"] = InputMediaVideo(
+						media=job.tg_file_id.replace(":video", ''),
+						supports_streaming=True,
+						caption=self.build_signature_caption(job)
+					)
 				else:
 					args["video"] = job.tg_file_id.replace(":video", '')
 			else:
@@ -162,7 +178,8 @@ class Bot(object):
 						width=job.media_info["width"],
 						height=job.media_info["height"],
 						duration=round(job.media_info["duration"]),
-						thumb=job.media_info["thumb"]
+						thumb=job.media_info["thumb"],
+						caption=self.build_signature_caption(job)
 					)
 				else:
 					args["video"] = job.local_media_path
@@ -171,18 +188,23 @@ class Bot(object):
 					args["height"] = job.media_info["height"]
 					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
+					args["caption"] = self.build_signature_caption(job)
 
 				args["file_name"] = "downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
 		elif job.media_type == JobType.IMAGE:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
-					args["media"] = InputMediaPhoto(media=job.tg_file_id.replace(":image", ''))
+					args["media"] = InputMediaPhoto(
+						media=job.tg_file_id.replace(":image", ''),
+						caption=self.build_signature_caption(job)
+					)
 				else:
 					args["photo"] = job.tg_file_id.replace(":image", '')
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaPhoto(
-						media=job.local_media_path
+						media=job.local_media_path,
+						caption=self.build_signature_caption(job)
 					)
 				else:
 					args["photo"] = job.local_media_path
@@ -190,7 +212,8 @@ class Bot(object):
 			if job.tg_file_id:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAudio(
-						media=job.tg_file_id.replace(":audio", '')
+						media=job.tg_file_id.replace(":audio", ''),
+						caption=self.build_signature_caption(job)
 					)
 				else:
 					args["audio"] = job.tg_file_id.replace(":audio", '')
@@ -202,6 +225,7 @@ class Bot(object):
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
 						title=job.canonical_name,
+						caption=self.build_signature_caption(job)
 					)
 				else:
 					args["audio"] = job.local_media_path
@@ -209,6 +233,7 @@ class Bot(object):
 					args["thumb"] = job.media_info["thumb"]
 					args["duration"] = round(job.media_info["duration"])
 					args["title"] = job.canonical_name
+					args["caption"] = self.build_signature_caption(job)
 				#args["file_name"] = "%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1]),
 		elif job.media_type == JobType.ANIMATION:
 			if job.tg_file_id:
@@ -225,7 +250,8 @@ class Bot(object):
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
 						width=job.media_info["width"],
-						height=job.media_info["height"]
+						height=job.media_info["height"],
+						caption=self.build_signature_caption(job)
 					)
 				else:
 					args["animation"] = job.local_media_path
@@ -233,6 +259,7 @@ class Bot(object):
 					args["height"] = job.media_info["height"]
 					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
+					args["caption"] = self.build_signature_caption(job)
 		elif job.media_type == JobType.COLLECTION:
 			if job.tg_file_id:
 				args["media"] = []
@@ -243,11 +270,11 @@ class Bot(object):
 						ctype = JobType[mtype.upper()]
 						ptr = None
 						if ctype == JobType.VIDEO:
-							ptr = InputMediaVideo(media=tg_id)
+							ptr = InputMediaVideo(media=tg_id, caption=self.build_signature_caption(job))
 						elif ctype == JobType.IMAGE:
-							ptr = InputMediaPhoto(media=tg_id)
+							ptr = InputMediaPhoto(media=tg_id, caption=self.build_signature_caption(job))
 						elif ctype == JobType.ANIMATION:
-							ptr = InputMediaAnimation(media=tg_id)
+							ptr = InputMediaAnimation(media=tg_id, caption=self.build_signature_caption(job))
 						tg_chunk.append(ptr)
 
 					args["media"].append(tg_chunk)
@@ -264,26 +291,19 @@ class Bot(object):
 								height=j.media_info["height"],
 								duration=round(j.media_info["duration"]),
 								thumb=j.media_info["thumb"],
+								caption=self.build_signature_caption(job)
 							)
 							tg_chunk.append(vid)
 						elif j.media_type == JobType.IMAGE:
 							photo = InputMediaPhoto(
-								media=j.local_media_path
+								media=j.local_media_path,
+								caption=self.build_signature_caption(job)
 							)
 							tg_chunk.append(photo)
 					mediafs.append(tg_chunk)
 				args["media"] = mediafs
 
 		args["chat_id"] = job.chat_id
-
-		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
-			args["caption"] = ""
-			if job.source_usename:
-				args["caption"] += f"Requested by **@{job.source_usename}**"
-			if job.source_usename and job.url:
-				args["caption"] += " | "
-			if job.url:
-				args["caption"] += f"[Source link]({job.url})"
 
 		# common args
 		if job.placeholder_message_id and job.media_type is not JobType.COLLECTION:
@@ -343,7 +363,7 @@ class Bot(object):
 							messages = await self.client.send_media_group(
 								chat_id=job.chat_id,
 								reply_to_message_id=job.message_id,
-								media=media_chunk,
+								media=media_chunk
 							)
 							sent_messages += messages
 							if job.media_collection:
@@ -390,7 +410,7 @@ class Bot(object):
 
 		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
 			try:
-				self.client.delete_messages(job.chat_id, (job.message_id,))
+				await self.client.delete_messages(job.chat_id, (job.message_id,))
 			except Exception as e:
 				logging.warning("Failed to delete source message. Check bot permissions in Telegram chat settings.")
 				logging.exception(e)
