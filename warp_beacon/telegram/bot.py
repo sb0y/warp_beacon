@@ -149,9 +149,9 @@ class Bot(object):
 	def build_signature_caption(self, job: UploadJob) -> str:
 		caption = ""
 		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
-			if job.source_usename:
-				caption += f"Requested by **@{job.source_usename}**"
-			if job.source_usename and job.url:
+			if job.source_username:
+				caption += f"Requested by **@{job.source_username}**"
+			if job.source_username and job.url:
 				caption += " | "
 			if job.url:
 				caption += f"[Source link]({job.url})"

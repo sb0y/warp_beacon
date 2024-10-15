@@ -85,5 +85,10 @@ class Utils(object):
 	def extract_message_author(message: Message) -> str:
 		if message.from_user:
 			return message.from_user
+		if message.sender_chat:
+			if message.sender_chat.username:
+				return message.sender_chat.username
+			if message.sender_chat.title:
+				return message.sender_chat.title
 		return ''
 

@@ -2,12 +2,11 @@ import os
 import threading
 import multiprocessing
 from warp_beacon.jobs.upload_job import UploadJob
-#import time
 import logging
 
 import asyncio
 
-from typing import Optional, Callable, Coroutine
+from typing import Callable
 
 from warp_beacon.storage import Storage
 from warp_beacon.jobs.types import JobType

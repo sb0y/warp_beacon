@@ -65,7 +65,7 @@ class AbstractJob(ABC):
 	canonical_name: str = ""
 	is_message_to_admin: bool = False
 	message_text: str = ""
-	source_usename: str = ""
+	source_username: str = ""
 	unvailable_error_count: int = 0
 	geoblock_error_count: int = 0
 	account_switches: int = 0
