@@ -170,6 +170,7 @@ class Bot(object):
 					)
 				else:
 					args["video"] = job.tg_file_id.replace(":video", '')
+					args["caption"] = self.build_signature_caption(job)
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaVideo(
@@ -200,6 +201,7 @@ class Bot(object):
 					)
 				else:
 					args["photo"] = job.tg_file_id.replace(":image", '')
+					args["caption"] = self.build_signature_caption(job)
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaPhoto(
@@ -208,6 +210,7 @@ class Bot(object):
 					)
 				else:
 					args["photo"] = job.local_media_path
+					args["caption"] = self.build_signature_caption(job)
 		elif job.media_type == JobType.AUDIO:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -239,10 +242,12 @@ class Bot(object):
 			if job.tg_file_id:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAnimation(
-						media=job.tg_file_id.replace(":animation", '')
+						media=job.tg_file_id.replace(":animation", ''),
+						caption=self.build_signature_caption(job)
 					)
 				else:
 					args["animation"] = job.tg_file_id.replace(":animation", '')
+					args["caption"] = self.build_signature_caption(job)
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAnimation(

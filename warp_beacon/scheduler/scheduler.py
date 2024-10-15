@@ -1,4 +1,7 @@
+import os
+import time
 import threading
+import json
 
 from warp_beacon.jobs import Origin
 import warp_beacon
@@ -6,10 +9,12 @@ import warp_beacon
 import logging
 
 class IGScheduler(object):
+	state_file = "/var/warp_beacon/scheduler_state.json"
 	downloader = None
 	running = True
 	thread = None
 	event = None
+	state = {"remaining": 3600}
 
 	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
 		self.downloader = downloader
@@ -17,6 +22,23 @@ class IGScheduler(object):
 
 	def __del__(self) -> None:
 		self.stop()
+
+	def save_state(self) -> None:
+		try:
+			with open(self.state_file, 'w+', encoding="utf-8") as f:
+				f.write(json.dumps(self.state))
+		except Exception as e:
+			logging.error("Failed to save Scheduler state!")
+			logging.exception(e)
+
+	def load_state(self) -> None:
+		try:
+			if os.path.exists(self.state_file):
+				with open(self.state_file, 'r', encoding="utf-8") as f:
+					self.state = json.loads(f.read())
+		except Exception as e:
+			logging.error("Failed to load Scheduler state!")
+			logging.exception(e)
 
 	def start(self) -> None:
 		self.thread = threading.Thread(target=self.do_work)
@@ -55,11 +77,20 @@ class IGScheduler(object):
 
 	def do_work(self) -> None:
 		logging.info("Scheduler thread started ...")
+		self.load_state()
+		timeout = self.state["remaining"]
 		while self.running:
 			try:
 				logging.info("Scheduler waking up")
+				start_time = time.time()
 				self.validate_ig_session()
-				self.event.wait(timeout=3600)
+				self.event.wait(timeout=timeout)
+				elapsed = time.time() - start_time
+				self.state["remaining"] = timeout - elapsed
+
+				if self.state["remaining"] <= 0:
+					self.state["remaining"] = 3600
 			except Exception as e:
 				logging.error("An error occurred in scheduler thread!")
 				logging.exception(e)
+		self.save_state()
