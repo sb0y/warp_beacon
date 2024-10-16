@@ -107,9 +107,9 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.info("Youtube thumbnail url '%s'", url)
 			with urllib.request.urlopen(url, timeout=timeout) as f:
 				image = Image.open(io.BytesIO(f.read()))
-				image = MediaInfoAbstract.shrink_image_to_fit(image)
+				image = MediaInfoAbstract.shrink_image_to_fit(image, size=(320, 240))
 				io_buf = io.BytesIO()
-				image.save(io_buf, format='JPEG', subsampling=0, quality=100)
+				image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False, icc_profile=image.info.get('icc_profile'))
 				io_buf.seek(0)
 				return io_buf
 		except Exception as e:
