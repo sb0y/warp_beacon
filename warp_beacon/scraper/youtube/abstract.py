@@ -110,12 +110,13 @@ class YoutubeAbstract(ScraperAbstract):
 				url = i.format(VIDEO_ID=video_id)
 				logging.info("Youtube thumbnail url '%s'", url)
 				with requests.get(url, timeout=(timeout, timeout)) as response:
-					image = Image.open(io.BytesIO(response.content))
-					image = MediaInfoAbstract.shrink_image_to_fit(image, size=(320, 180))
-					io_buf = io.BytesIO()
-					image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False, icc_profile=image.info.get('icc_profile'))
-					io_buf.seek(0)
-					return io_buf
+					if response.status_code == 200:
+						image = Image.open(io.BytesIO(response.content))
+						image = MediaInfoAbstract.shrink_image_to_fit(image, size=(320, 180))
+						io_buf = io.BytesIO()
+						image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False, icc_profile=image.info.get('icc_profile'))
+						io_buf.seek(0)
+						return io_buf
 			except Exception as e:
 				logging.error("Failed to download download thumbnail!")
 				logging.exception(e)
