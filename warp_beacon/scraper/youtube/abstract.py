@@ -3,16 +3,12 @@ import pathlib
 import time
 import socket
 import ssl
-
 #from abc import abstractmethod
-from typing import Callable, Union
-
+from typing import Callable, Union, Optional
 import json
-
-import requests
 import urllib
+import urllib.request
 import http.client
-import requests
 from PIL import Image
 
 from warp_beacon.scraper.abstract import ScraperAbstract
@@ -106,11 +102,11 @@ class YoutubeAbstract(ScraperAbstract):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
-	def download_thumbnail(self, url: str, timeout: int) -> Union[io.BytesIO, None]:
+	def download_thumbnail(self, url: str, timeout: int) -> Optional[io.BytesIO]:
 		try:
-			reply = requests.get(url, timeout=(timeout, timeout))
-			if reply.ok and reply.status_code == 200:
-				image = Image.open(io.BytesIO(reply.content))
+			logging.info("Youtube thumbnail url '%s'", url)
+			with urllib.request.urlopen(url, timeout=timeout) as f:
+				image = Image.open(io.BytesIO(f.read()))
 				image = MediaInfoAbstract.shrink_image_to_fit(image)
 				io_buf = io.BytesIO()
 				image.save(io_buf, format='JPEG')
