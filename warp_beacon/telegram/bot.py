@@ -320,6 +320,7 @@ class Bot(object):
 		else:
 			args["disable_notification"] = True
 			#args["reply_to_message_id"] = job.message_id
+			args["reply_to_message_id"] = None
 
 		if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type is not JobType.COLLECTION:
 			args["reply_markup"] = InlineKeyboardMarkup([[InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E"))]])
@@ -368,12 +369,12 @@ class Bot(object):
 					elif job.media_type == JobType.COLLECTION:
 						col_job_args = self.build_tg_args(job)
 						sent_messages = []
+						snd_grp_options = {"chat_id": job.chat_id, "reply_to_message_id": job.message_id}
+						if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
+							snd_grp_options["reply_to_message_id"] = None
 						for i, media_chunk in enumerate(col_job_args["media"]):
-							messages = await self.client.send_media_group(
-								chat_id=job.chat_id,
-								#reply_to_message_id=job.message_id,
-								media=media_chunk
-							)
+							snd_grp_options["media"] = media_chunk
+							messages = await self.client.send_media_group(**snd_grp_options)
 							sent_messages += messages
 							if job.media_collection:
 								for j, _ in enumerate(media_chunk):

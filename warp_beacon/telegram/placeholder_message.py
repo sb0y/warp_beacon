@@ -42,8 +42,8 @@ class PlaceholderMessage(object):
 			chat_id=chat_id,
 			animation=self.placeholder.tg_file_id,
 			caption=text,
-			parse_mode=ParseMode.MARKDOWN,
-			reply_to_message_id=reply_id
+			reply_to_message_id=reply_id,
+			parse_mode=ParseMode.MARKDOWN
 		)
 
 		return reply
@@ -53,8 +53,8 @@ class PlaceholderMessage(object):
 			chat_id=chat_id,
 			photo=self.placeholder.tg_file_id,
 			caption=text,
-			parse_mode=ParseMode.MARKDOWN,
-			reply_to_message_id=reply_id
+			reply_to_message_id=reply_id,
+			parse_mode=ParseMode.MARKDOWN
 		)
 
 		return reply
@@ -64,8 +64,8 @@ class PlaceholderMessage(object):
 			chat_id=chat_id,
 			document=self.placeholder.tg_file_id,
 			caption=text,
-			parse_mode=ParseMode.MARKDOWN,
-			reply_to_message_id=reply_id
+			reply_to_message_id=reply_id,
+			parse_mode=ParseMode.MARKDOWN
 		)
 
 		return reply
@@ -110,8 +110,8 @@ class PlaceholderMessage(object):
 								chat_id=chat_id,
 								animation="https://bagrintsev.me/warp_beacon/placeholder_that_we_deserve.mp4",
 								caption=text,
-								parse_mode=ParseMode.MARKDOWN,
-								reply_to_message_id=reply_id
+								reply_to_message_id=reply_id,
+								parse_mode=ParseMode.MARKDOWN
 							)
 							self.placeholder = PlaceHolder(PlaceholderType.ANIMATION, Utils.extract_file_id(reply))
 						except Exception as e:
@@ -119,7 +119,7 @@ class PlaceholderMessage(object):
 							logging.exception(e)
 							img = self.create_default_placeholder_img("Loading, this may take a moment ...")
 							reply = await self.bot.client.send_photo(
-								chat_id=chat.id,
+								chat_id=chat_id,
 								parse_mode=ParseMode.MARKDOWN,
 								reply_to_message_id=reply_id,
 								photo=img
