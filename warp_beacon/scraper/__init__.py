@@ -55,7 +55,8 @@ class AsyncDownloader(object):
 				if media_type == JobType.VIDEO:
 					video_info = VideoInfo(path)
 					media_info = video_info.get_finfo(tuple(fr_media_info.keys()))
-					media_info.update(fr_media_info)
+					if fr_media_info:
+						media_info.update(fr_media_info)
 					if not media_info.get("thumb", None):
 						media_info["thumb"] = video_info.generate_thumbnail()
 					media_info["has_sound"] = video_info.has_sound()
