@@ -19,8 +19,8 @@ class YoutubeShortsScraper(YoutubeAbstract):
 		if not stream:
 			raise NotFound("No suitable video stream found")
 
-		if yt and yt.thumbnail_url:
-			thumbnail = self._download_hndlr(self.download_thumbnail, yt.thumbnail_url)
+		if yt:
+			thumbnail = self._download_hndlr(self.download_thumbnail, yt.video_id)
 
 		local_file = stream.download(
 			output_path=self.DOWNLOAD_DIR,

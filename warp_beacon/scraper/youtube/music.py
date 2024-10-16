@@ -1,6 +1,6 @@
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
-from warp_beacon.scraper.exceptions import NotFound
+from warp_beacon.scraper.exceptions import NotFound, FileTooBig
 
 import logging
 
@@ -15,8 +15,8 @@ class YoutubeMusicScraper(YoutubeAbstract):
 		thumbnail = None
 		yt = self.build_yt(url)
 
-		if yt and yt.thumbnail_url:
-			thumbnail = self._download_hndlr(self.download_thumbnail, yt.thumbnail_url)
+		if yt:
+			thumbnail = self._download_hndlr(self.download_thumbnail, yt.video_id)
 		
 		stream = yt.streams.get_audio_only()
 		
