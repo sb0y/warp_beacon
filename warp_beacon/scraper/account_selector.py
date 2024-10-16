@@ -4,11 +4,13 @@ import re
 
 from itertools import cycle
 
+from multiprocessing.managers import BaseManager
+
 from warp_beacon.jobs import Origin
 
 import logging
 
-class AccountSelector(object):
+class AccountSelector(BaseManager):
 	accounts = []
 	acc_pool = None
 	current = None
@@ -26,6 +28,8 @@ class AccountSelector(object):
 				self.load_yt_sessions()
 		else:
 			raise ValueError("Accounts file not found")
+		
+		super().__init__()
 
 	def __del__(self) -> None:
 		pass

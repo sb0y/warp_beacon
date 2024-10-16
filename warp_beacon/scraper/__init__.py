@@ -35,14 +35,16 @@ class AsyncDownloader(object):
 		self.allow_loop = multiprocessing.Value('i', 1)
 		self.uploader = uploader
 		self.workers_count = workers_count
-		self.acc_selector = AccountSelector(ACC_FILE)
+		AccountSelector.register('AccoutSelector', AccountSelector)
 
 	def __del__(self) -> None:
 		self.stop_all()
 
 	def start(self) -> None:
+		self.acc_selector = AccountSelector(ACC_FILE)
+		self.acc_selector.start()
 		for _ in range(self.workers_count):
-			proc = multiprocessing.Process(target=self.do_work)
+			proc = multiprocessing.Process(target=self.do_work, args=(self.acc_selector,))
 			self.workers.append(proc)
 			proc.start()
 
@@ -66,18 +68,18 @@ class AsyncDownloader(object):
 
 		return media_info
 
-	def try_next_account(self, job: DownloadJob, report_error: str = None) -> None:
+	def try_next_account(self, selector: AccountSelector, job: DownloadJob, report_error: str = None) -> None:
 		logging.warning("Switching account!")
 		if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
 			raise AllAccountsFailed("All config accounts failed!")
 		if report_error:
-			self.acc_selector.bump_acc_fail("rate_limits")
-		self.acc_selector.next()
-		cur_acc = self.acc_selector.get_current()
+			selector.bump_acc_fail("rate_limits")
+		selector.next()
+		cur_acc = selector.get_current()
 		logging.info("Current account: '%s'", str(cur_acc))
 		job.account_switches += 1
 
-	def do_work(self) -> None:
+	def do_work(self, selector: AccountSelector) -> None:
 		logging.info("download worker started")
 		while self.allow_loop.value == 1:
 			try:
@@ -97,16 +99,16 @@ class AsyncDownloader(object):
 							self.acc_selector.set_module(job.job_origin)
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
-								actor = InstagramScraper(self.acc_selector.get_current())
+								actor = InstagramScraper(selector.get_current())
 							elif job.job_origin is Origin.YT_SHORTS:
 								from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
-								actor = YoutubeShortsScraper(self.acc_selector.get_current())
+								actor = YoutubeShortsScraper(selector.get_current())
 							elif job.job_origin is Origin.YT_MUSIC:
 								from warp_beacon.scraper.youtube.music import YoutubeMusicScraper
-								actor = YoutubeMusicScraper(self.acc_selector.get_current())
+								actor = YoutubeMusicScraper(selector.get_current())
 							elif job.job_origin is Origin.YOUTUBE:
 								from warp_beacon.scraper.youtube.youtube import YoutubeScraper
-								actor = YoutubeScraper(self.acc_selector.get_current())
+								actor = YoutubeScraper(selector.get_current())
 							actor.send_message_to_admin_func = self.send_message_to_admin
 							actor.auth_event = self.auth_event
 							while True:
@@ -141,7 +143,7 @@ class AsyncDownloader(object):
 										break
 									job.unvailable_error_count += 1
 									logging.info("Trying to switch account")
-									self.acc_selector.next()
+									selector.next()
 									self.job_queue.put(job)
 									break
 								except TimeOut as e:
@@ -169,13 +171,13 @@ class AsyncDownloader(object):
 								except IGRateLimitOccurred as e:
 									logging.warning("IG ratelimit occurred :(")
 									logging.exception(e)
-									self.try_next_account(job, report_error="rate_limits")
+									self.try_next_account(selector, job, report_error="rate_limits")
 									self.job_queue.put(job)
 									break
 								except CaptchaIssue as e:
 									logging.warning("Challange occurred!")
 									logging.exception(e)
-									self.try_next_account(job)
+									self.try_next_account(selector, job)
 									self.job_queue.put(job)
 									break
 								except YotubeLiveError as e:
@@ -334,6 +336,7 @@ class AsyncDownloader(object):
 				#proc.terminate()
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
+		self.acc_selector.shutdown()
 
 	def queue_task(self, job: DownloadJob) -> str:
 		self.job_queue.put_nowait(job)
