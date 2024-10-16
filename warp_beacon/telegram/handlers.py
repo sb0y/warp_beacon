@@ -105,8 +105,8 @@ class Handlers(object):
 							)
 						)
 					elif ent_len:
-						logging.info(entities[0])
 						media_type = JobType[entities[0]["media_type"].upper()]
+						canonical_name = entities[0]["canonical_name"]
 						await self.bot.upload_job(
 							UploadJob(
 								url=url,
@@ -115,7 +115,8 @@ class Handlers(object):
 								media_type=media_type,
 								chat_id=chat.id,
 								chat_type=message.chat.type,
-								source_username=Utils.extract_message_author(message)
+								source_username=Utils.extract_message_author(message),
+								canonical_name=canonical_name
 							)
 						)
 				else:
@@ -132,9 +133,21 @@ class Handlers(object):
 								if job.media_type == JobType.COLLECTION and job.save_items:
 									for chunk in job.media_collection:
 										for i in chunk:
-											self.storage.add_media(tg_file_ids=[i.tg_file_id], media_url=i.effective_url, media_type=i.media_type.value, origin=origin.value)
+											self.storage.add_media(
+												tg_file_ids=[i.tg_file_id],
+												media_url=i.effective_url,
+												media_type=i.media_type.value,
+												origin=job.job_origin.value,
+												canonical_name=job.canonical_name
+											)
 								else:
-									self.storage.add_media(tg_file_ids=[','.join(tg_file_ids)], media_url=job.url, media_type=job.media_type.value, origin=origin.value)
+									self.storage.add_media(
+										tg_file_ids=[','.join(tg_file_ids)],
+										media_url=job.url,
+										media_type=job.media_type.value,
+										origin=job.job_origin.value,
+										canonical_name=job.canonical_name
+									)
 						except Exception as e:
 							logging.error("Exception occurred while performing upload callback!")
 							logging.exception(e)

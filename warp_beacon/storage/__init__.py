@@ -65,7 +65,13 @@ class Storage(object):
 			logging.debug("uniq_id to search is '%s'", uniq_id)
 			cursor = self.db.find({"uniq_id": uniq_id})
 			for document in cursor:
-				ret.append({"uniq_id": document["uniq_id"], "tg_file_id": document["tg_file_id"], "media_type": document["media_type"]})
+				ret.append(
+				{
+					"uniq_id": document["uniq_id"],
+					"tg_file_id": document["tg_file_id"],
+					"media_type": document["media_type"],
+					"canonical_name": document.get("canonical_name")
+				})
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
@@ -79,7 +85,7 @@ class Storage(object):
 	def db_lookup_id(self, uniq_id: str) -> list[dict]:
 		return self.db_find(uniq_id)
 	
-	def add_media(self, tg_file_ids: list[str], media_url: str, media_type: str, origin: str) -> list[int]:
+	def add_media(self, tg_file_ids: list[str], media_url: str, media_type: str, origin: str, canonical_name: str = "") -> list[int]:
 		uniq_id = self.compute_uniq(media_url)
 		media_ids = []
 		for tg_file_id in tg_file_ids:
@@ -89,7 +95,14 @@ class Storage(object):
 			if self.db_lookup_id(uniq_id):
 				logging.info("Detected existing uniq_id, skipping storage write operation")
 				continue
-			media_ids += str(self.db.insert_one({"uniq_id": uniq_id, "media_type": media_type, "tg_file_id": tg_file_id, "origin": origin}).inserted_id)
+			media_ids += str(self.db.insert_one(
+			{
+				"uniq_id": uniq_id,
+				"media_type": media_type,
+				"tg_file_id": tg_file_id,
+				"origin": origin,
+				"canonical_name": canonical_name
+			}).inserted_id)
 
 		return media_ids
 	

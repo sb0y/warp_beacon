@@ -152,7 +152,7 @@ class Bot(object):
 			caption = f"**{job.canonical_name}**"
 		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
 			if job.canonical_name:
-				caption += "\n"
+				caption += "\n—\n"
 			if job.source_username:
 				caption += f"Requested by **@{job.source_username}**"
 			if job.source_username and job.url:
@@ -371,7 +371,7 @@ class Bot(object):
 						for i, media_chunk in enumerate(col_job_args["media"]):
 							messages = await self.client.send_media_group(
 								chat_id=job.chat_id,
-								reply_to_message_id=job.message_id,
+								#reply_to_message_id=job.message_id,
 								media=media_chunk
 							)
 							sent_messages += messages
