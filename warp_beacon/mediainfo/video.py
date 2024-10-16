@@ -48,7 +48,7 @@ class VideoInfo(MediaInfoAbstract):
 				# Signal that we only want to look at keyframes.
 				stream = self.container.streams.video[0]
 				stream.codec_context.skip_frame = "NONKEY"
-				frame_num = 30
+				frame_num = 120
 				time_base = stream.time_base
 				framerate = stream.average_rate
 				frame_container_pts = round((frame_num / framerate) / time_base)

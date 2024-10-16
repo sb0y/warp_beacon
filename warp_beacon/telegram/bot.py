@@ -315,7 +315,7 @@ class Bot(object):
 			args["message_id"] = job.placeholder_message_id
 		else:
 			args["disable_notification"] = True
-			args["reply_to_message_id"] = job.message_id
+			#args["reply_to_message_id"] = job.message_id
 
 		if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type is not JobType.COLLECTION:
 			args["reply_markup"] = InlineKeyboardMarkup([[InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E"))]])

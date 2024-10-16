@@ -109,7 +109,7 @@ class YoutubeAbstract(ScraperAbstract):
 				image = Image.open(io.BytesIO(f.read()))
 				image = MediaInfoAbstract.shrink_image_to_fit(image)
 				io_buf = io.BytesIO()
-				image.save(io_buf, format='JPEG')
+				image.save(io_buf, format='JPEG', subsampling=0, quality=100)
 				io_buf.seek(0)
 				return io_buf
 		except Exception as e:
