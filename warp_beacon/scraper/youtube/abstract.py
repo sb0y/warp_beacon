@@ -9,7 +9,7 @@ import json
 import urllib
 import requests
 import http.client
-from PIL import Image
+from PIL import Image, ImageOps
 
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.mediainfo.abstract import MediaInfoAbstract
@@ -111,10 +111,17 @@ class YoutubeAbstract(ScraperAbstract):
 				logging.info("Youtube thumbnail url '%s'", url)
 				with requests.get(url, timeout=(timeout, timeout)) as response:
 					if response.status_code == 200:
+						desired_size = (320, 180)
+						new_image = Image.new("RGB", desired_size, (255, 255, 255))
 						image = Image.open(io.BytesIO(response.content))
-						image = MediaInfoAbstract.shrink_image_to_fit(image, size=(320, 180))
+						image = MediaInfoAbstract.shrink_image_to_fit(image, size=desired_size)
+						image_position = (
+							(desired_size[0] - image.size[0]) // 2,
+							(desired_size[1] - image.size[1]) // 2
+						)
+						new_image.paste(image, image_position)
 						io_buf = io.BytesIO()
-						image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False, icc_profile=image.info.get('icc_profile'))
+						new_image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False)
 						io_buf.seek(0)
 						return io_buf
 			except Exception as e:
