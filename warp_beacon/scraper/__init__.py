@@ -248,7 +248,9 @@ class AsyncDownloader(object):
 								for item in items:
 									media_info = {"filesize": 0}
 									if item["media_type"] == JobType.VIDEO:
-										media_info = self.get_media_info(item["local_media_path"], item.get("media_info", {}), JobType.VIDEO)
+										media_info_tmp = item.get("media_info", {})
+										media_info_tmp["thumb"] = item.get("thumb", None)
+										media_info = self.get_media_info(item["local_media_path"], media_info_tmp, JobType.VIDEO)
 										logging.info("Final media info: %s", media_info)
 										if media_info["filesize"] > 2e+9:
 											logging.info("Filesize is '%d' MiB", round(media_info["filesize"] / 1024 / 1024))
