@@ -103,27 +103,28 @@ class YoutubeAbstract(ScraperAbstract):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
-	def calculate_size(self, aspect_ratio_width: int, aspect_ratio_height: int, max_width: int=1280, max_height: int=1280, min_width: int=640, min_height: int=360) -> tuple:
+	def calculate_size(self, aspect_ratio_width: int, aspect_ratio_height: int, max_width: int=1280, max_height: int=1280, min_width: int=320, min_height: int=320, prefer_min_size: bool=False) -> tuple:
 		# check ratio
 		aspect_ratio = aspect_ratio_width / aspect_ratio_height
 		
-		# probe the max width and calculate height
-		width = max_width
-		height = int(width / aspect_ratio)
-		
-		# if height exceeds max height of Telegram recalculate based on max height
-		if height > max_height:
-			height = max_height
-			width = int(height * aspect_ratio)
-		
-		# check min sizes
-		if width < min_width:
+		if prefer_min_size:
+			# Probing min width and calculating height
 			width = min_width
 			height = int(width / aspect_ratio)
-		
-		if height < min_height:
-			height = min_height
-			width = int(height * aspect_ratio)
+			
+			# if height is less than min, recalculatng based on min height
+			if height < min_height:
+				height = min_height
+				width = int(height * aspect_ratio)
+		else:
+			# Probing max width and calculating height
+			width = max_width
+			height = int(width / aspect_ratio)
+			
+			# if height exceeds max height Telegram, recalculatng based on max height
+			if height > max_height:
+				height = max_height
+				width = int(height * aspect_ratio)
 
 		return width, height
 
