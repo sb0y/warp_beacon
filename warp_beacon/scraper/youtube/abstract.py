@@ -103,7 +103,7 @@ class YoutubeAbstract(ScraperAbstract):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
-	def calculate_size(self, aspect_ratio_width: int, aspect_ratio_height: int, max_width: int=1280, max_height: int=1280, min_width: int=320, min_height: int=320) -> tuple:
+	def calculate_size(self, aspect_ratio_width: int, aspect_ratio_height: int, max_width: int=1280, max_height: int=1280, min_width: int=640, min_height: int=360) -> tuple:
 		# check ratio
 		aspect_ratio = aspect_ratio_width / aspect_ratio_height
 		
