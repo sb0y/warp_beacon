@@ -103,30 +103,32 @@ class YoutubeAbstract(ScraperAbstract):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
-	def calculate_size(self, aspect_ratio_width: int, aspect_ratio_height: int, max_width: int=1280, max_height: int=1280, min_width: int=320, min_height: int=320, prefer_min_size: bool=False) -> tuple:
-		# check ratio
+	def calculate_size_with_padding(self, image: Image, aspect_ratio_width: int, aspect_ratio_height: int, target_size: tuple=(320, 320), background_color: tuple=(0, 0, 0)) -> Image:
+		# aspect ratio
 		aspect_ratio = aspect_ratio_width / aspect_ratio_height
 		
-		if prefer_min_size:
-			# Probing min width and calculating height
-			width = min_width
+		# Target size
+		target_width, target_height = target_size
+		
+		# Calculate start sizes bases on min height
+		height = target_height
+		width = int(height * aspect_ratio)
+		
+		# reduce width if target width exceeds
+		if width > target_width:
+			width = target_width
 			height = int(width / aspect_ratio)
-			
-			# if height is less than min, recalculatng based on min height
-			if height < min_height:
-				height = min_height
-				width = int(height * aspect_ratio)
-		else:
-			# Probing max width and calculating height
-			width = max_width
-			height = int(width / aspect_ratio)
-			
-			# if height exceeds max height Telegram, recalculatng based on max height
-			if height > max_height:
-				height = max_height
-				width = int(height * aspect_ratio)
-
-		return width, height
+		
+		# create new image with color and size 320x320
+		new_image = Image.new("RGB", target_size, background_color)
+		
+		# Рассчитываем позицию для центрирования изображения на подложке
+		paste_position = ((target_width - width) // 2, (target_height - height) // 2)
+		
+		# pasting image to center
+		new_image.paste(image, paste_position)
+		
+		return new_image
 
 	def aspect_ratio(self, size: tuple) -> tuple:
 		gcd = math.gcd(size[0], size[1])
@@ -143,14 +145,7 @@ class YoutubeAbstract(ScraperAbstract):
 					if response.status_code == 200:
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
-						desired_size = self.calculate_size(ratio[0], ratio[1])
-						new_image = Image.new("RGB", desired_size, (255, 255, 255))
-						image = MediaInfoAbstract.shrink_image_to_fit(image, size=desired_size)
-						image_position = (
-							(desired_size[0] - image.size[0]) // 2,
-							(desired_size[1] - image.size[1]) // 2
-						)
-						new_image.paste(image, image_position)
+						new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
 						io_buf = io.BytesIO()
 						new_image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False)
 						io_buf.seek(0)
