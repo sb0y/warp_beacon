@@ -1,6 +1,7 @@
 import os, io
 import pathlib
 import time
+import math
 import socket
 import ssl
 #from abc import abstractmethod
@@ -102,6 +103,34 @@ class YoutubeAbstract(ScraperAbstract):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
+	def calculate_size(self, aspect_ratio_width: int, aspect_ratio_height: int, max_width: int=1280, max_height: int=1280, min_width: int=320, min_height: int=320) -> tuple:
+		# check ratio
+		aspect_ratio = aspect_ratio_width / aspect_ratio_height
+		
+		# probe the max width and calculate height
+		width = max_width
+		height = int(width / aspect_ratio)
+		
+		# if height exceeds max height of Telegram recalculate based on max height
+		if height > max_height:
+			height = max_height
+			width = int(height * aspect_ratio)
+		
+		# check min sizes
+		if width < min_width:
+			width = min_width
+			height = int(width / aspect_ratio)
+		
+		if height < min_height:
+			height = min_height
+			width = int(height * aspect_ratio)
+
+		return width, height
+
+	def aspect_ratio(self, size: tuple) -> tuple:
+		gcd = math.gcd(size[0], size[1])
+		return size[0] // gcd, size[1] // gcd
+
 	def download_thumbnail(self, video_id: str, timeout: int) -> Optional[io.BytesIO]:
 		for i in ("https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/hqdefault.jpg",
@@ -111,9 +140,10 @@ class YoutubeAbstract(ScraperAbstract):
 				logging.info("Youtube thumbnail url '%s'", url)
 				with requests.get(url, timeout=(timeout, timeout)) as response:
 					if response.status_code == 200:
-						desired_size = (320, 180)
-						new_image = Image.new("RGB", desired_size, (255, 255, 255))
 						image = Image.open(io.BytesIO(response.content))
+						ratio = self.aspect_ratio(image.size)
+						desired_size = self.calculate_size(ratio[0], ratio[1])
+						new_image = Image.new("RGB", desired_size, (255, 255, 255))
 						image = MediaInfoAbstract.shrink_image_to_fit(image, size=desired_size)
 						image_position = (
 							(desired_size[0] - image.size[0]) // 2,
