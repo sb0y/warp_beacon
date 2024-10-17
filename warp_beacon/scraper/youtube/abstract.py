@@ -104,30 +104,26 @@ class YoutubeAbstract(ScraperAbstract):
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
 	def calculate_size_with_padding(self, image: Image, aspect_ratio_width: int, aspect_ratio_height: int, target_size: tuple=(320, 320), background_color: tuple=(0, 0, 0)) -> Image:
-		# aspect ratio
 		aspect_ratio = aspect_ratio_width / aspect_ratio_height
-		
-		# Target size
 		target_width, target_height = target_size
-		
-		# Calculate start sizes bases on min height
+
 		height = target_height
 		width = int(height * aspect_ratio)
-		
-		# reduce width if target width exceeds
+
 		if width > target_width:
 			width = target_width
 			height = int(width / aspect_ratio)
-		
-		# create new image with color and size 320x320
+
 		new_image = Image.new("RGB", target_size, background_color)
-		
-		# Рассчитываем позицию для центрирования изображения на подложке
+		image.thumbnail(target_size, Image.Resampling.LANCZOS)
+
+		if aspect_ratio_height > 4:
+			image = image.resize((image.size[0], image.size[1]+new_image.size[1]))
+			height += new_image.size[1] - 20
+
 		paste_position = ((target_width - width) // 2, (target_height - height) // 2)
-		
-		# pasting image to center
 		new_image.paste(image, paste_position)
-		
+
 		return new_image
 
 	def aspect_ratio(self, size: tuple) -> tuple:
@@ -145,9 +141,12 @@ class YoutubeAbstract(ScraperAbstract):
 					if response.status_code == 200:
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
+						logging.info("thumb ratio: '%s'", ratio)
 						new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
+						logging.info("thumb size: '%s'", new_image.size)
 						io_buf = io.BytesIO()
 						new_image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False)
+						logging.info("thumb size: %d kb", io_buf.getbuffer().nbytes / 1024)
 						io_buf.seek(0)
 						return io_buf
 			except Exception as e:

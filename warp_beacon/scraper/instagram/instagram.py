@@ -89,6 +89,7 @@ class InstagramScraper(ScraperAbstract):
 		self.load_session()
 		self._download_hndlr(self.cl.get_timeline_feed)
 		self._download_hndlr(self.cl.get_reels_tray_feed)
+		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
@@ -283,6 +284,9 @@ class InstagramScraper(ScraperAbstract):
 				raise NotFound(extract_exception_message(e))
 			except IGUnknownError as e:
 				raise UnknownError(extract_exception_message(e))
+		
+		self.safe_write_session()
+		
 		return res
 	
 	def email_challenge_resolver(self, username: str) -> Optional[str]:
