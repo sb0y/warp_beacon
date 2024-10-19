@@ -1,25 +1,29 @@
+import multiprocessing.managers
 import os
 import json
 import re
 
+import multiprocessing
 from itertools import cycle
-
-from multiprocessing.managers import BaseManager
 
 from warp_beacon.jobs import Origin
 
 import logging
 
-class AccountSelector(BaseManager):
+class AccountSelector(object):
 	accounts = []
 	acc_pool = None
 	current = None
 	current_module_name = None
-	index = 0
-	accounts_meta_data = {}
+	index = None
+	accounts_meta_data = None
 	session_dir = "/var/warp_beacon"
+	manager = None
 
-	def __init__(self, acc_file_path: str) -> None:
+	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str) -> None:
+		self.manager = manager
+		self.index = self.manager.Value('i', 0)
+		self.accounts_meta_data = self.manager.dict()
 		if os.path.exists(acc_file_path):
 			with open(acc_file_path, 'r', encoding="utf-8") as f:
 				self.accounts = json.loads(f.read())
@@ -28,8 +32,6 @@ class AccountSelector(BaseManager):
 				self.load_yt_sessions()
 		else:
 			raise ValueError("Accounts file not found")
-		
-		super().__init__()
 
 	def __del__(self) -> None:
 		pass
@@ -65,22 +67,22 @@ class AccountSelector(BaseManager):
 
 	def next(self) -> dict:
 		self.current = next(self.acc_pool)
-		self.index = self.accounts[self.current_module_name].index(self.current)
-		logging.info("Next account index is '%d'", self.index)
+		self.index.value = self.accounts[self.current_module_name].index(self.current)
+		logging.info("Next account index is '%d'", self.index.value)
 		return self.current
 	
 	def bump_acc_fail(self, key: str, amount: int = 1) -> int:
-		self.accounts_meta_data[self.index][key] += amount
-		return self.accounts_meta_data[self.index][key]
+		self.accounts_meta_data[self.index.value][key] += amount
+		return self.accounts_meta_data[self.index.value][key]
 
 	def how_much(self, key: str) -> int:
-		return self.accounts_meta_data[self.current_module_name][self.index][key]
+		return self.accounts_meta_data[self.current_module_name][self.index.value][key]
 	
 	def get_current(self) -> tuple:
-		return (self.index, self.current)
+		return (self.index.value, self.current)
 	
 	def get_meta_data(self) -> dict:
-		return self.accounts_meta_data[self.current_module_name][self.index]
+		return self.accounts_meta_data[self.current_module_name][self.index.value]
 	
 	def count_service_accounts(self, mod_name: Origin) -> int:
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in mod_name.value), None) else 'instagram'

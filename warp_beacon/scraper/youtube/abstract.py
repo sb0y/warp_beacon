@@ -119,7 +119,7 @@ class YoutubeAbstract(ScraperAbstract):
 
 		if aspect_ratio_height > 4:
 			image = image.resize((image.size[0], image.size[1]+new_image.size[1]))
-			height += new_image.size[1] - 20
+			height += new_image.size[1] - 10
 
 		paste_position = ((target_width - width) // 2, (target_height - height) // 2)
 		new_image.paste(image, paste_position)

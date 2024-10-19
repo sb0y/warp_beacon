@@ -28,21 +28,21 @@ class AsyncDownloader(object):
 	uploader = None
 	workers_count = 0
 	auth_event = multiprocessing.Event()
+	manager = None
 	acc_selector = None
 	scheduler = None
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
-		self.allow_loop = multiprocessing.Value('i', 1)
+		self.manager = multiprocessing.Manager()
+		self.allow_loop = self.manager.Value('i', 1)
+		self.acc_selector = AccountSelector(self.manager, ACC_FILE)
 		self.uploader = uploader
 		self.workers_count = workers_count
-		AccountSelector.register('AccoutSelector', AccountSelector)
 
 	def __del__(self) -> None:
 		self.stop_all()
 
 	def start(self) -> None:
-		self.acc_selector = AccountSelector(ACC_FILE)
-		self.acc_selector.start()
 		for _ in range(self.workers_count):
 			proc = multiprocessing.Process(target=self.do_work, args=(self.acc_selector,))
 			self.workers.append(proc)
@@ -74,7 +74,7 @@ class AsyncDownloader(object):
 		if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
 			raise AllAccountsFailed("All config accounts failed!")
 		if report_error:
-			selector.bump_acc_fail("rate_limits")
+			selector.bump_acc_fail(report_error)
 		selector.next()
 		cur_acc = selector.get_current()
 		logging.info("Current account: '%s'", str(cur_acc))
@@ -339,7 +339,7 @@ class AsyncDownloader(object):
 				#proc.terminate()
 				logging.info("process #%d stopped", proc.pid)
 		self.workers.clear()
-		self.acc_selector.shutdown()
+		self.manager.shutdown()
 
 	def queue_task(self, job: DownloadJob) -> str:
 		self.job_queue.put_nowait(job)
