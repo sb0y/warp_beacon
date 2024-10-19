@@ -90,8 +90,9 @@ class IGScheduler(object):
 				elapsed = time.time() - start_time
 				self.state["remaining"] -= elapsed
 
-				logging.info("Scheduler waking up")
-				self.validate_ig_session()
+				if self.running:
+					logging.info("Scheduler waking up")
+					self.validate_ig_session()
 				self.save_state()
 			except Exception as e:
 				logging.error("An error occurred in scheduler thread!")
