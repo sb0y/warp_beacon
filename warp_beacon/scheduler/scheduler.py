@@ -1,5 +1,6 @@
 import os
 import time
+from random import randrange
 import threading
 import json
 
@@ -14,7 +15,7 @@ class IGScheduler(object):
 	running = True
 	thread = None
 	event = None
-	state = {"remaining": 3600}
+	state = {"remaining": randrange(3600, 10800)}
 
 	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
 		self.downloader = downloader
@@ -81,7 +82,8 @@ class IGScheduler(object):
 		while self.running:
 			try:
 				if self.state["remaining"] <= 0:
-					self.state["remaining"] = 3600
+					self.state["remaining"] = randrange(3600, 10800)
+					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
 
 				start_time = time.time()
 				self.event.wait(timeout=self.state["remaining"])
