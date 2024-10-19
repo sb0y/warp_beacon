@@ -125,12 +125,12 @@ class AsyncDownloader(object):
 								except NotFound as e:
 									logging.warning("Not found error occurred!")
 									logging.exception(e)
+									self.send_message_to_admin(
+										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**NotFound**'."
+									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
 										job_failed_msg="Unable to access to media under this URL. Seems like the media is private.")
-									)
-									self.send_message_to_admin(
-										f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'NotFound'."
 									)
 									break
 								except Unavailable as e:
@@ -150,23 +150,23 @@ class AsyncDownloader(object):
 								except TimeOut as e:
 									logging.warning("Timeout error occurred!")
 									logging.exception(e)
+									self.send_message_to_admin(
+										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**TimeOut**'."
+									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
 										job_failed_msg="Failed to download content due timeout error. Please check you Internet connection, retry amount or request timeout bot configuration settings.")
-									)
-									self.send_message_to_admin(
-										f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'TimeOut'."
 									)
 									break
 								except FileTooBig as e:
 									logging.warning("Telegram limits exceeded :(")
 									logging.exception(e)
+									self.send_message_to_admin(
+										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**FileTooBig**'."
+									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
 										job_failed_msg="Unfortunately this file has exceeded the Telegram limits. A file cannot be larger than 2 gigabytes.")
-									)
-									self.send_message_to_admin(
-										f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'FileTooBig'."
 									)
 									break
 								except IGRateLimitOccurred as e:
@@ -178,6 +178,10 @@ class AsyncDownloader(object):
 								except CaptchaIssue as e:
 									logging.warning("Challange occurred!")
 									logging.exception(e)
+									acc_index, acc_data = selector.get_current()
+									self.send_message_to_admin(
+										f"Captcha required for account #{acc_index}, login: '{acc_data.get('login', 'unknown')}'."
+									)
 									self.try_next_account(selector, job)
 									self.job_queue.put(job)
 									break
@@ -197,18 +201,18 @@ class AsyncDownloader(object):
 										job_failed_msg="Youtube Age Restricted error. Check your bot Youtube account settings.")
 									)
 									self.send_message_to_admin(
-										f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'YotubeAgeRestrictedError'."
+										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**YotubeAgeRestrictedError**'."
 									)
 									break
 								except AllAccountsFailed as e:
 									logging.error("All accounts failed!")
 									logging.exception(e)
+									self.send_message_to_admin(
+										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**AllAccountsFailed**'."
+									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
 										job_failed_msg="All bot accounts failed to download content. Bot administrator noticed about the issue.")
-									)
-									self.send_message_to_admin(
-										f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'AllAccountsFailed'."
 									)
 									break
 								except (UnknownError, Exception) as e:
@@ -221,12 +225,12 @@ class AsyncDownloader(object):
 										exception_msg = str(e)
 									if "geoblock_required" in exception_msg:
 										if job.geoblock_error_count > self.acc_selector.count_service_accounts(job.job_origin):
+											self.send_message_to_admin(
+												f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**geoblock_required**'."
+											)
 											self.uploader.queue_task(job.to_upload_job(
 												job_failed=True,
 												job_failed_msg="This content does not accessible for all yout bot accounts. Seems like author blocked certain regions.")
-											)
-											self.send_message_to_admin(
-												f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'geoblock_required'."
 											)
 											break
 										job.geoblock_error_count += 1
@@ -234,13 +238,13 @@ class AsyncDownloader(object):
 										self.acc_selector.next()
 										self.job_queue.put(job)
 										break
+									self.send_message_to_admin(
+										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**UnknownError**'."
+										f"Exception:\n```\n{exception_msg}\n```"
+									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
 										job_failed_msg="WOW, unknown error occured! Please [create issue](https://github.com/sb0y/warp_beacon/issues) with service logs.")
-									)
-									self.send_message_to_admin(
-										f"Task {job.job_id} failed. URL: '{job.url}'. Reason: 'UnknownError'."
-										f"Exception:\n```\n{exception_msg}\n```"
 									)
 									break
 
