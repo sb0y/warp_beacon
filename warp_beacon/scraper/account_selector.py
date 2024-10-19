@@ -63,7 +63,7 @@ class AccountSelector(object):
 		self.current_module_name = module_name
 		self.acc_pool = cycle(self.accounts[module_name])
 		self.current = next(self.acc_pool)
-		self.index = self.accounts[module_name].index(self.current)
+		self.index.value = self.accounts[module_name].index(self.current)
 
 	def next(self) -> dict:
 		self.current = next(self.acc_pool)
