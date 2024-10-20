@@ -12,7 +12,7 @@ import logging
 
 class AccountSelector(object):
 	accounts = []
-	acc_pool = None
+	acc_pools = {}
 	current = None
 	current_module_name = None
 	index = None
@@ -30,6 +30,8 @@ class AccountSelector(object):
 			if self.accounts:
 				self.__init_meta_data()
 				self.load_yt_sessions()
+				for acc_type, _ in self.accounts.items():
+					self.acc_pools[acc_type] = cycle(self.accounts[acc_type])
 		else:
 			raise ValueError("Accounts file not found")
 
@@ -61,14 +63,13 @@ class AccountSelector(object):
 	def set_module(self, module_origin: Origin) -> None:
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in module_origin.value), None) else 'instagram'
 		self.current_module_name = module_name
-		self.acc_pool = cycle(self.accounts[module_name])
-		self.current = next(self.acc_pool)
-		self.index.value = self.accounts[module_name].index(self.current)
+		if self.current is None:
+			self.next()
 
 	def next(self) -> dict:
-		self.current = next(self.acc_pool)
+		self.current = next(self.acc_pools[self.current_module_name])
 		self.index.value = self.accounts[self.current_module_name].index(self.current)
-		logging.info("Next account index is '%d'", self.index.value)
+		logging.info("Selected account index is '%d'", self.index.value)
 		return self.current
 	
 	def bump_acc_fail(self, key: str, amount: int = 1) -> int:
