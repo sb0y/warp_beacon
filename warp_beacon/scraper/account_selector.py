@@ -4,7 +4,7 @@ import json
 import re
 
 import multiprocessing
-from itertools import islice
+from itertools import islice, cycle
 
 from warp_beacon.jobs import Origin
 
