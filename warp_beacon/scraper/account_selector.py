@@ -4,7 +4,7 @@ import json
 import re
 
 import multiprocessing
-from itertools import cycle
+from itertools import cycle, isslice
 
 from warp_beacon.jobs import Origin
 
@@ -64,7 +64,8 @@ class AccountSelector(object):
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in module_origin.value), None) else 'instagram'
 		self.current_module_name = module_name
 		if self.current is None:
-			self.next()
+			self.current = self.accounts[self.current_module_name][self.index.value]
+			self.acc_pools[self.current_module_name] = isslice(self.acc_pools[self.current_module_name], self.index.value, None)
 
 	def next(self) -> dict:
 		self.current = next(self.acc_pools[self.current_module_name])
