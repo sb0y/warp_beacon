@@ -370,8 +370,6 @@ class Bot(object):
 						col_job_args = self.build_tg_args(job)
 						sent_messages = []
 						snd_grp_options = {"chat_id": job.chat_id, "reply_to_message_id": job.message_id}
-						if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
-							snd_grp_options["reply_to_message_id"] = None
 						for i, media_chunk in enumerate(col_job_args["media"]):
 							snd_grp_options["media"] = media_chunk
 							messages = await self.client.send_media_group(**snd_grp_options)
