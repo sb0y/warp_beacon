@@ -89,6 +89,9 @@ class InstagramScraper(ScraperAbstract):
 		self.load_session()
 		self._download_hndlr(self.cl.get_timeline_feed)
 		self._download_hndlr(self.cl.get_reels_tray_feed)
+		self._download_hndlr(self.cl.direct_active_presence)
+		self._download_hndlr(self.cl.reels)
+		self._download_hndlr(self.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
