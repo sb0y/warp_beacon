@@ -65,7 +65,7 @@ class AccountSelector(object):
 		self.current_module_name = module_name
 		if self.current is None:
 			self.current = self.accounts[self.current_module_name][self.index.value]
-			self.acc_pools[self.current_module_name] = next(islice(self.acc_pools[self.current_module_name], self.index.value, None))
+			#self.acc_pools[self.current_module_name] = next(islice(self.acc_pools[self.current_module_name], self.index.value, None))
 
 	def next(self) -> dict:
 		self.current = next(self.acc_pools[self.current_module_name])
