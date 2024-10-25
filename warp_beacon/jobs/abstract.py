@@ -40,6 +40,7 @@ class JobSettings(TypedDict):
 	yt_auth: bool
 	session_validation: bool
 	chat_type: ChatType
+	account_admins: str
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -72,6 +73,7 @@ class AbstractJob(ABC):
 	yt_auth: bool = False
 	session_validation: bool = False
 	chat_type: ChatType = None
+	account_admins: str = None
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

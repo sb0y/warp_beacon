@@ -83,7 +83,7 @@ class AsyncUploader(object):
 					if job is self.__JOE_BIDEN_WAKEUP:
 						continue
 					if job.is_message_to_admin and job.message_text and self.admin_message_callback:
-						asyncio.ensure_future(self.admin_message_callback(job.message_text, job.yt_auth), loop=self.loop)
+						asyncio.ensure_future(self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth), loop=self.loop)
 						continue
 					path = ""
 					if job.media_type == JobType.COLLECTION:
