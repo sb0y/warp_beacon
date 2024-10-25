@@ -118,9 +118,13 @@ class Bot(object):
 
 		return 0
 
-	async def send_text_to_admin(self, text: str, yt_auth: bool = False) -> list[int]:
+	async def send_text_to_admin(self, text: str, account_admins: str = None, yt_auth: bool = False) -> list[int]:
 		try:
-			admins = os.environ.get("TG_BOT_ADMINS_USERNAMES", None)
+			admins = None
+			if account_admins:
+				admins = account_admins
+			if not admins:
+				admins = os.environ.get("TG_BOT_ADMINS_USERNAMES", None)
 			if not admins:
 				raise ValueError("Configuration value `TG_BOT_ADMIN_USERNAME` is empty!")
 			

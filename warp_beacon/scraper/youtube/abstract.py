@@ -10,10 +10,10 @@ import json
 import urllib
 import requests
 import http.client
-from PIL import Image, ImageOps
+from PIL import Image
 
 from warp_beacon.scraper.abstract import ScraperAbstract
-from warp_beacon.mediainfo.abstract import MediaInfoAbstract
+#from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
 
 from pytubefix import YouTube
@@ -50,6 +50,7 @@ def patched_fetch_bearer_token(self) -> None:
 		f"Please open {verification_url} and input code `{user_code}`.\n\n"
 		"Please select a Google account with verified age.\n"
 		"This will allow you to avoid error the **AgeRestrictedError** when accessing some content.",
+		account_admins=self.wb_account.get("account_admins", None),
 		yt_auth=True)
 	self.auth_event.wait()
 
@@ -119,7 +120,7 @@ class YoutubeAbstract(ScraperAbstract):
 
 		if aspect_ratio_height > 4:
 			image = image.resize((image.size[0], image.size[1]+new_image.size[1]))
-			height += new_image.size[1] - 5
+			#height += new_image.size[1] - 5
 
 		paste_position = ((target_width - width) // 2, (target_height - height) // 2)
 		new_image.paste(image, paste_position)
@@ -201,6 +202,7 @@ class YoutubeAbstract(ScraperAbstract):
 	def build_yt(self, url: str) -> YouTube:
 		InnerTube.send_message_to_admin_func = self.send_message_to_admin_func
 		InnerTube.auth_event = self.auth_event
+		InnerTube.wb_account = self.account
 		InnerTube.fetch_bearer_token = patched_fetch_bearer_token
 		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
 		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]

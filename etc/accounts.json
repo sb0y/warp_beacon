@@ -27,7 +27,8 @@
 					"cpu": "exynos2100",
 					"version_code": "493450264"
 				}
-			}
+			},
+			"account_admins": "@BelisariusCawl"
 		},
 		{
 			"login": "ig_account1",
@@ -55,7 +56,17 @@
 					"cpu": "exynos2100",
 					"version_code": "493450264"
 				}
-			}
+			},
+			"account_admins": "@BelisariusCawl"
+		}
+	],
+	"youtube":
+	[
+		{
+			"account_admins": "@BelisariusCawl"
+		},
+		{
+			"account_admins": "@Lazyteh"
 		}
 	]
 }

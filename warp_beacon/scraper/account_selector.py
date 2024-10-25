@@ -45,7 +45,7 @@ class AccountSelector(object):
 		self.accounts["youtube"] = []
 		for f in os.listdir(self.session_dir):
 			if "yt_session" in f and ".json" in f:
-				match = re.search('\d+', f)
+				match = re.search(r'\d+', f)
 				index = 0
 				if match:
 					index = int(match.group(0))
