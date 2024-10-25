@@ -4,7 +4,6 @@ import json
 import re
 
 import multiprocessing
-from itertools import islice, cycle
 
 from warp_beacon.jobs import Origin
 
@@ -12,26 +11,24 @@ import logging
 
 class AccountSelector(object):
 	accounts = []
-	acc_pools = {}
 	current = None
 	current_module_name = None
-	index = None
 	accounts_meta_data = None
 	session_dir = "/var/warp_beacon"
 	manager = None
+	account_index = {}
 
 	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str) -> None:
 		self.manager = manager
-		self.index = self.manager.Value('i', 0)
 		self.accounts_meta_data = self.manager.dict()
 		if os.path.exists(acc_file_path):
 			with open(acc_file_path, 'r', encoding="utf-8") as f:
 				self.accounts = json.loads(f.read())
 			if self.accounts:
 				self.__init_meta_data()
-				self.load_yt_sessions()
+				#self.load_yt_sessions()
 				for acc_type, _ in self.accounts.items():
-					self.acc_pools[acc_type] = cycle(self.accounts[acc_type])
+					self.account_index[acc_type] = self.manager.Value('i', 0)
 		else:
 			raise ValueError("Accounts file not found")
 
@@ -65,27 +62,29 @@ class AccountSelector(object):
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in module_origin.value), None) else 'instagram'
 		self.current_module_name = module_name
 		if self.current is None:
-			self.current = self.accounts[self.current_module_name][self.index.value]
-			#self.acc_pools[self.current_module_name] = next(islice(self.acc_pools[self.current_module_name], self.index.value, None))
+			self.current = self.accounts[self.current_module_name][self.account_index[self.current_module_name].value]
 
 	def next(self) -> dict:
-		self.current = next(self.acc_pools[self.current_module_name])
-		self.index.value = self.accounts[self.current_module_name].index(self.current)
-		logging.info("Selected account index is '%d'", self.index.value)
+		idx = self.account_index[self.current_module_name].value + 1
+		if idx > len(self.accounts[self.current_module_name]):
+			idx = 0
+		self.current = self.accounts[self.current_module_name][idx]
+		self.account_index[self.current_module_name].value = idx
+		logging.info("Selected account index is '%d'", idx)
 		return self.current
 	
 	def bump_acc_fail(self, key: str, amount: int = 1) -> int:
-		self.accounts_meta_data[self.index.value][key] += amount
-		return self.accounts_meta_data[self.index.value][key]
+		self.accounts_meta_data[self.account_index[self.current_module_name].value][key] += amount
+		return self.accounts_meta_data[self.account_index[self.current_module_name].value][key]
 
 	def how_much(self, key: str) -> int:
-		return self.accounts_meta_data[self.current_module_name][self.index.value][key]
+		return self.accounts_meta_data[self.current_module_name][self.account_index[self.current_module_name].value][key]
 	
 	def get_current(self) -> tuple:
-		return (self.index.value, self.current)
+		return (self.account_index[self.current_module_name].value, self.current)
 	
 	def get_meta_data(self) -> dict:
-		return self.accounts_meta_data[self.current_module_name][self.index.value]
+		return self.accounts_meta_data[self.current_module_name][self.account_index[self.current_module_name].value]
 	
 	def count_service_accounts(self, mod_name: Origin) -> int:
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in mod_name.value), None) else 'instagram'
