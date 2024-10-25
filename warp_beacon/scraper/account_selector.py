@@ -66,7 +66,7 @@ class AccountSelector(object):
 
 	def next(self) -> dict:
 		idx = self.account_index[self.current_module_name].value + 1
-		if idx > len(self.accounts[self.current_module_name]):
+		if idx > len(self.accounts[self.current_module_name]) - 1:
 			idx = 0
 		self.current = self.accounts[self.current_module_name][idx]
 		self.account_index[self.current_module_name].value = idx
