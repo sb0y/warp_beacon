@@ -42,7 +42,8 @@ class AccountSelector(object):
 	#	for k, v in self.accounts.items():
 
 	def load_yt_sessions(self) -> None:
-		self.accounts["youtube"] = []
+		if "youtube" not in self.accounts:
+			self.accounts["youtube"] = []
 		for f in os.listdir(self.session_dir):
 			if "yt_session" in f and ".json" in f:
 				match = re.search(r'\d+', f)
