@@ -41,6 +41,7 @@ class JobSettings(TypedDict):
 	session_validation: bool
 	chat_type: ChatType
 	account_admins: str
+	job_postponed_until: int
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -74,6 +75,7 @@ class AbstractJob(ABC):
 	session_validation: bool = False
 	chat_type: ChatType = None
 	account_admins: str = None
+	job_postponed_until: int = -1
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

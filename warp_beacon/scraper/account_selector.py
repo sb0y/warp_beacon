@@ -56,7 +56,7 @@ class AccountSelector(object):
 			if module_name not in self.accounts_meta_data:
 				self.accounts_meta_data[module_name] = []
 			for index, _ in enumerate(lst):
-				self.accounts_meta_data[module_name].insert(index, {"auth_fails": 0, "rate_limits": 0})
+				self.accounts_meta_data[module_name].insert(index, {"auth_fails": 0, "rate_limits": 0, "cathcha": 0})
 
 	def set_module(self, module_origin: Origin) -> None:
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in module_origin.value), None) else 'instagram'
@@ -81,7 +81,8 @@ class AccountSelector(object):
 		return self.accounts_meta_data[self.current_module_name][self.account_index[self.current_module_name].value][key]
 	
 	def get_current(self) -> tuple:
-		return (self.account_index[self.current_module_name].value, self.current)
+		idx = self.account_index[self.current_module_name].value
+		return (idx, self.accounts[self.current_module_name][idx])
 	
 	def get_meta_data(self) -> dict:
 		return self.accounts_meta_data[self.current_module_name][self.account_index[self.current_module_name].value]

@@ -1,5 +1,3 @@
-from typing import Union
-
 class ScraperError(Exception):
 	def __init__(self, *args, **kwargs):
 		args = list(args)

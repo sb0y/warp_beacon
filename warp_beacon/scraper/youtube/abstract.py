@@ -118,9 +118,9 @@ class YoutubeAbstract(ScraperAbstract):
 		new_image = Image.new("RGB", target_size, background_color)
 		image.thumbnail(target_size, Image.Resampling.LANCZOS)
 
-		if aspect_ratio_height > 4:
-			image = image.resize((image.size[0], image.size[1]+new_image.size[1]))
-			#height += new_image.size[1] - 5
+		#if aspect_ratio_height > 4:
+		#	image = image.resize((image.size[0], image.size[1]+new_image.size[1]))
+		#	target_height += new_image.size[1] - 5
 
 		paste_position = ((target_width - width) // 2, (target_height - height) // 2)
 		new_image.paste(image, paste_position)
@@ -143,7 +143,11 @@ class YoutubeAbstract(ScraperAbstract):
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
 						logging.info("thumb ratio: '%s'", ratio)
-						new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
+						new_image = None
+						if ratio[1] > 4:
+							new_image = image.thumbnail((320, 320), Image.Resampling.LANCZOS)
+						else:
+							new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
 						logging.info("thumb size: '%s'", new_image.size)
 						io_buf = io.BytesIO()
 						new_image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False)

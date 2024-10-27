@@ -1,5 +1,6 @@
 import os
 
+import time
 from typing import Optional
 import multiprocessing
 from queue import Empty
@@ -72,7 +73,7 @@ class AsyncDownloader(object):
 	def try_next_account(self, selector: AccountSelector, job: DownloadJob, report_error: str = None) -> None:
 		logging.warning("Switching account!")
 		if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
-			raise AllAccountsFailed("All config accounts failed!")
+			raise AllAccountsFailed("All config accounts failed!", job=job, reason=report_error)
 		if report_error:
 			selector.bump_acc_fail(report_error)
 		selector.next()
@@ -96,6 +97,12 @@ class AsyncDownloader(object):
 							logging.warning("Unknown task origin! Skipping.")
 							continue
 						if not job.in_process:
+							if job.job_postponed_until > 0:
+								if job.job_postponed_until - time.time() > 0:
+									logging.warning("Job '%s' is postponed, rescheduling", job.url)
+									time.sleep(2)
+									self.job_queue.put(job)
+									continue
 							actor = None
 							self.acc_selector.set_module(job.job_origin)
 							if job.job_origin is Origin.INSTAGRAM:
@@ -182,7 +189,7 @@ class AsyncDownloader(object):
 									self.send_message_to_admin(
 										f"Captcha required for account #{acc_index}, login: '{acc_data.get('login', 'unknown')}'."
 									)
-									self.try_next_account(selector, job)
+									self.try_next_account(selector, job, report_error="captcha")
 									self.job_queue.put(job)
 									break
 								except YotubeLiveError as e:
@@ -208,12 +215,16 @@ class AsyncDownloader(object):
 									logging.error("All accounts failed!")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**AllAccountsFailed**'."
+										f"Task `{e.job.job_id}` failed. URL: '{e.job.url}'. Reason: '**AllAccountsFailed**'."
 									)
-									self.uploader.queue_task(job.to_upload_job(
+									self.uploader.queue_task(e.job.to_upload_job(
 										job_failed=True,
 										job_failed_msg="All bot accounts failed to download content. Bot administrator noticed about the issue.")
 									)
+									if e.job.job_origin == Origin.INSTAGRAM:
+										self.try_next_account(selector, job, report_error="captcha")
+										e.job.job_timeout = time.time() + 300
+										self.job_queue.put(e.job)
 									break
 								except (UnknownError, Exception) as e:
 									logging.warning("UnknownError occurred!")
