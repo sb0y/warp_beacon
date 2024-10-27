@@ -13,7 +13,7 @@ import http.client
 from PIL import Image
 
 from warp_beacon.scraper.abstract import ScraperAbstract
-#from warp_beacon.mediainfo.abstract import MediaInfoAbstract
+from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
 
 from pytubefix import YouTube
@@ -145,7 +145,7 @@ class YoutubeAbstract(ScraperAbstract):
 						logging.info("thumb ratio: '%s'", ratio)
 						new_image = None
 						if ratio[1] > 4:
-							new_image = image.thumbnail((320, 320), Image.Resampling.LANCZOS)
+							new_image = MediaInfoAbstract.shrink_image_to_fit(image)
 						else:
 							new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
 						logging.info("thumb size: '%s'", new_image.size)
