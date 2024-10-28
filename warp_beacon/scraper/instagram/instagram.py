@@ -237,9 +237,6 @@ class InstagramScraper(ScraperAbstract):
 
 	def download(self, url: str) -> Optional[list[dict]]:
 		res = []
-		wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=60))
-		timeout_increment = int(os.environ.get("IG_TIMEOUT_INCREMENT", default=30))
-		ratelimit_threshold = int(os.environ.get("IG_RATELIMIT_TRESHOLD", default=3))
 		while True:
 			try:
 				scrap_type, media_id = self.scrap(url)
@@ -263,6 +260,8 @@ class InstagramScraper(ScraperAbstract):
 			except PleaseWaitFewMinutes as e:
 				logging.warning("Please wait a few minutes error.")
 				logging.exception(e)
+				if os.path.exists(self.inst_session_file):
+					os.unlink(self.inst_session_file)
 				raise IGRateLimitOccurred("Instagram ratelimit")
 			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
 				raise NotFound(extract_exception_message(e))
