@@ -240,7 +240,6 @@ class InstagramScraper(ScraperAbstract):
 		wait_timeout = int(os.environ.get("IG_WAIT_TIMEOUT", default=60))
 		timeout_increment = int(os.environ.get("IG_TIMEOUT_INCREMENT", default=30))
 		ratelimit_threshold = int(os.environ.get("IG_RATELIMIT_TRESHOLD", default=3))
-		please_wait_few_minutes_count = 1
 		while True:
 			try:
 				scrap_type, media_id = self.scrap(url)
@@ -262,27 +261,9 @@ class InstagramScraper(ScraperAbstract):
 					res.append(self.download_stories(self.scrap_stories(media_id)))
 				break
 			except PleaseWaitFewMinutes as e:
-				please_wait_few_minutes_count += 1
-				logging.warning("Please wait a few minutes error. Trying to relogin ...")
+				logging.warning("Please wait a few minutes error.")
 				logging.exception(e)
-				if please_wait_few_minutes_count >= ratelimit_threshold:
-					logging.warning("IG ratelimit occurred")
-					raise IGRateLimitOccurred()
-				wait_timeout += timeout_increment
-				logging.info("Waiting %d seconds according configuration option `IG_WAIT_TIMEOUT` with `IG_TIMEOUT_INCREMENT`", wait_timeout)
-				if res:
-					for i in res:
-						if i["media_type"] == JobType.COLLECTION:
-							for j in i["items"]:
-								if os.path.exists(j["local_media_path"]):
-									os.unlink(j["local_media_path"])
-						else:
-							if os.path.exists(i["local_media_path"]):
-								os.unlink(i["local_media_path"])
-				if os.path.exists(self.inst_session_file):
-					os.unlink(self.inst_session_file)
-				self.login()
-				time.sleep(wait_timeout)
+				raise IGRateLimitOccurred("Instagram ratelimit")
 			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
 				raise NotFound(extract_exception_message(e))
 			except IGUnknownError as e:

@@ -132,7 +132,7 @@ class YoutubeAbstract(ScraperAbstract):
 		return size[0] // gcd, size[1] // gcd
 
 	def download_thumbnail(self, video_id: str, timeout: int) -> Optional[io.BytesIO]:
-		for i in ("https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
+		for i in (#"https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/hqdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/sddefault.jpg"):
 			try:
