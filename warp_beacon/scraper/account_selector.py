@@ -81,6 +81,7 @@ class AccountSelector(object):
 		except Exception as e:
 			logging.warning("Failed to record fail stats")
 			logging.exception(e)
+		return 0
 
 	def how_much(self, key: str) -> int:
 		idx = self.account_index[self.current_module_name].value
