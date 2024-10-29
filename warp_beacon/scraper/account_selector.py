@@ -74,11 +74,17 @@ class AccountSelector(object):
 		return self.current
 	
 	def bump_acc_fail(self, key: str, amount: int = 1) -> int:
-		self.accounts_meta_data[self.account_index[self.current_module_name].value][key] += amount
-		return self.accounts_meta_data[self.account_index[self.current_module_name].value][key]
+		try:
+			idx = self.account_index[self.current_module_name].value
+			self.accounts_meta_data[idx][key] += amount
+			return self.accounts_meta_data[idx][key]
+		except Exception as e:
+			logging.warning("Failed to record fail stats")
+			logging.exception(e)
 
 	def how_much(self, key: str) -> int:
-		return self.accounts_meta_data[self.current_module_name][self.account_index[self.current_module_name].value][key]
+		idx = self.account_index[self.current_module_name].value
+		return self.accounts_meta_data[self.current_module_name][idx][key]
 	
 	def get_current(self) -> tuple:
 		idx = self.account_index[self.current_module_name].value
