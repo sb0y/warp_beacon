@@ -153,7 +153,7 @@ class Bot(object):
 	def build_signature_caption(self, job: UploadJob) -> str:
 		caption = ""
 		if job.canonical_name:
-			caption = f"**{job.canonical_name}**"
+			caption = f"**{Utils.escape_markdown(job.canonical_name)}**"
 		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
 			if job.canonical_name:
 				caption += "\n—\n"
