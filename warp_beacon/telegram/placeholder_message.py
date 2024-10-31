@@ -65,7 +65,7 @@ class PlaceholderMessage(object):
 			document=self.placeholder.tg_file_id,
 			caption=text,
 			reply_to_message_id=reply_id,
-			parse_mode=ParseMode.HTMLCalendar(firstweekday=0)
+			parse_mode=ParseMode.HTML
 		)
 
 		return reply
