@@ -133,7 +133,7 @@ class AsyncDownloader(object):
 									logging.warning("Not found error occurred!")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**NotFound**'."
+										f"Task <code>{job.job_id}</code> failed. URL: {job.url}'. Reason: '<b>NotFound</b>'."
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
@@ -158,7 +158,7 @@ class AsyncDownloader(object):
 									logging.warning("Timeout error occurred!")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**TimeOut**'."
+										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>TimeOut</b>'."
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
@@ -169,7 +169,7 @@ class AsyncDownloader(object):
 									logging.warning("Telegram limits exceeded :(")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**FileTooBig**'."
+										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>FileTooBi</b>'."
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
@@ -208,14 +208,14 @@ class AsyncDownloader(object):
 										job_failed_msg="Youtube Age Restricted error. Check your bot Youtube account settings.")
 									)
 									self.send_message_to_admin(
-										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**YotubeAgeRestrictedError**'."
+										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>YotubeAgeRestrictedError</b>'."
 									)
 									break
 								except AllAccountsFailed as e:
 									logging.error("All accounts failed!")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task `{e.job.job_id}` failed. URL: '{e.job.url}'. Reason: '**AllAccountsFailed**'."
+										f"Task <code>{e.job.job_id}</code> failed. URL: '{e.job.url}'. Reason: '<b>AllAccountsFailed</b>'."
 									)
 									self.uploader.queue_task(e.job.to_upload_job(
 										job_failed=True,
@@ -237,7 +237,7 @@ class AsyncDownloader(object):
 									if "geoblock_required" in exception_msg:
 										if job.geoblock_error_count > self.acc_selector.count_service_accounts(job.job_origin):
 											self.send_message_to_admin(
-												f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**geoblock_required**'."
+												f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>geoblock_required</b>'."
 											)
 											self.uploader.queue_task(job.to_upload_job(
 												job_failed=True,
@@ -250,12 +250,12 @@ class AsyncDownloader(object):
 										self.job_queue.put(job)
 										break
 									self.send_message_to_admin(
-										f"Task `{job.job_id}` failed. URL: '{job.url}'. Reason: '**UnknownError**'."
-										f"Exception:\n```\n{exception_msg}\n```"
+										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>UnknownError</b>'."
+										f"Exception:\n<pre code=\"python\">\n{exception_msg}\n</pre>"
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
-										job_failed_msg="WOW, unknown error occured! Please [create issue](https://github.com/sb0y/warp_beacon/issues) with service logs.")
+										job_failed_msg="WOW, unknown error occured! Please <a href=\"https://github.com/sb0y/warp_beacon/issues\">create issue</a> with service logs.")
 									)
 									break
 

@@ -26,6 +26,7 @@ class Handlers(object):
 	async def help(self, client: Client, message: Message) -> None:
 		"""Send a message when the command /help is issued."""
 		await self.bot.send_text(text="Send me a link to remote media", reply_id=message.id, chat_id=message.chat.id)
+		#await message.reply_text("<code>test</code>\n<b>bold</b>\n<pre code=\"python\">print('hello')</pre> @BelisariusCawl", parse_mode=ParseMode.HTML)
 
 	async def random(self, client: Client, message: Message) -> None:
 		d = self.storage.get_random()
@@ -51,7 +52,7 @@ class Handlers(object):
 			BotCommand("random", "Get random media")
 		])
 		await message.reply_text(
-			parse_mode=ParseMode.MARKDOWN,
+			parse_mode=ParseMode.HTML,
 			text=f"Welcome to @{bot_name.username}!\n"
 			"Send link to external social network with content and I'll reply to it.\n"
 			"Currently supported: Instagram, YouTube Shorts and YouTube Music."

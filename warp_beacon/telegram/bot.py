@@ -1,5 +1,7 @@
-import os, io
+import os
 import signal
+
+import html
 
 import uvloop
 
@@ -108,7 +110,7 @@ class Bot(object):
 			message_reply = await self.client.send_message(
 				chat_id=chat_id,
 				text=text,
-				parse_mode=ParseMode.MARKDOWN,
+				parse_mode=ParseMode.HTML,
 				reply_to_message_id=reply_id
 			)
 			return message_reply.id
@@ -132,7 +134,7 @@ class Bot(object):
 			admins_array = admins.split(',')
 			for adm in admins_array:
 				adm = adm.strip()
-				msg_opts = {"chat_id": adm, "text": text, "parse_mode": ParseMode.MARKDOWN}
+				msg_opts = {"chat_id": adm, "text": text, "parse_mode": ParseMode.HTML}
 				if yt_auth:
 					msg_opts["reply_markup"] = InlineKeyboardMarkup(
 						[
@@ -153,16 +155,16 @@ class Bot(object):
 	def build_signature_caption(self, job: UploadJob) -> str:
 		caption = ""
 		if job.canonical_name:
-			caption = f"**{Utils.escape_markdown(job.canonical_name)}**"
+			caption = f"<b>{html.escape(job.canonical_name)}</b>"
 		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
 			if job.canonical_name:
 				caption += "\n—\n"
 			if job.source_username:
-				caption += f"Requested by **@{job.source_username}**"
+				caption += f"Requested by <b>@{job.source_username}</b>"
 			if job.source_username and job.url:
 				caption += " | "
 			if job.url:
-				caption += f"[source link]({job.url})"
+				caption += f'<a href="{job.url}">source link</a>'
 
 		return caption
 
@@ -408,8 +410,8 @@ class Bot(object):
 						if hasattr(e, "MESSAGE") and e.MESSAGE:
 							msg = f"Telegram error: {str(e.MESSAGE)}"
 						else:
-							msg = (f"Unknown Telegram error. Known information:\n```python\n{traceback.format_exc().strip()}```"
-									"\nPlease [create issue](https://github.com/sb0y/warp_beacon/issues) with this info and service logs.")
+							msg = (f"Unknown Telegram error. Known information:\n<pre language=\"python\">\n{traceback.format_exc().strip()}</pre>"
+									"\nPlease <a href=\"https://github.com/sb0y/warp_beacon/issues\">create issue</a> with this info and service logs.")
 						await self.placeholder.remove(job.chat_id, job.placeholder_message_id)
 						await self.send_text(job.chat_id, msg, job.message_id)
 						break

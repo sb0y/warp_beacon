@@ -47,9 +47,9 @@ def patched_fetch_bearer_token(self) -> None:
 
 	logging.warning("Please open %s and input code '%s'", verification_url, user_code)
 	self.send_message_to_admin_func(
-		f"Please open {verification_url} and input code `{user_code}`.\n\n"
+		f"Please open {verification_url} and input code <code>{user_code}</code>.\n\n"
 		"Please select a Google account with verified age.\n"
-		"This will allow you to avoid error the **AgeRestrictedError** when accessing some content.",
+		"This will allow you to avoid error the <b>AgeRestrictedError</b> when accessing some content.",
 		account_admins=self.wb_account.get("account_admins", None),
 		yt_auth=True)
 	self.auth_event.wait()

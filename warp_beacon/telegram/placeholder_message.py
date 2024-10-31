@@ -43,7 +43,7 @@ class PlaceholderMessage(object):
 			animation=self.placeholder.tg_file_id,
 			caption=text,
 			reply_to_message_id=reply_id,
-			parse_mode=ParseMode.MARKDOWN
+			parse_mode=ParseMode.HTML
 		)
 
 		return reply
@@ -54,7 +54,7 @@ class PlaceholderMessage(object):
 			photo=self.placeholder.tg_file_id,
 			caption=text,
 			reply_to_message_id=reply_id,
-			parse_mode=ParseMode.MARKDOWN
+			parse_mode=ParseMode.HTML
 		)
 
 		return reply
@@ -65,7 +65,7 @@ class PlaceholderMessage(object):
 			document=self.placeholder.tg_file_id,
 			caption=text,
 			reply_to_message_id=reply_id,
-			parse_mode=ParseMode.MARKDOWN
+			parse_mode=ParseMode.HTMLCalendar(firstweekday=0)
 		)
 
 		return reply
@@ -75,7 +75,7 @@ class PlaceholderMessage(object):
 		max_retries = int(os.environ.get("TG_MAX_RETRIES", default=5))
 		while not retry_amount >= max_retries:
 			try:
-				text = "**Loading, this may take a moment ...** ⏱️ "
+				text = "<b>Loading, this may take a moment ...</b> ⏱️ "
 				reply = None
 				if self.placeholder.tg_file_id is None:
 					ph_found = False
@@ -90,7 +90,7 @@ class PlaceholderMessage(object):
 								document=ph,
 								force_document=False,
 								caption=text,
-								parse_mode=ParseMode.MARKDOWN,
+								parse_mode=ParseMode.HTML,
 								reply_to_message_id=reply_id,
 								file_name=os.path.basename(ph),
 								#width=pl_resolution["width"],
@@ -111,7 +111,7 @@ class PlaceholderMessage(object):
 								animation="https://bagrintsev.me/warp_beacon/placeholder_that_we_deserve.mp4",
 								caption=text,
 								reply_to_message_id=reply_id,
-								parse_mode=ParseMode.MARKDOWN
+								parse_mode=ParseMode.HTML
 							)
 							self.placeholder = PlaceHolder(PlaceholderType.ANIMATION, Utils.extract_file_id(reply))
 						except Exception as e:
@@ -120,7 +120,7 @@ class PlaceholderMessage(object):
 							img = self.create_default_placeholder_img("Loading, this may take a moment ...")
 							reply = await self.bot.client.send_photo(
 								chat_id=chat_id,
-								parse_mode=ParseMode.MARKDOWN,
+								parse_mode=ParseMode.HTML,
 								reply_to_message_id=reply_id,
 								photo=img
 							)
@@ -177,8 +177,8 @@ class PlaceholderMessage(object):
 			await self.bot.client.edit_message_caption(
 				chat_id=chat_id,
 				message_id=placeholder_message_id,
-				caption=" ⚠️ **%s**" % placeholder_text,
-				parse_mode=ParseMode.MARKDOWN
+				caption=" ⚠️ <b>%s</b>" % placeholder_text,
+				parse_mode=ParseMode.HTML
 			)
 		except Exception as e:
 			logging.error("Failed to update placeholder message!")
