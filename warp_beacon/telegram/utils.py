@@ -121,4 +121,4 @@ class Utils(object):
 		else:
 			raise ValueError('Markdown version must be either 1 or 2!')
 
-		return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
+		return re.sub(f'([{re.escape(escape_chars)}])', r'\\\\\1', text)
