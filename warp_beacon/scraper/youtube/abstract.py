@@ -127,6 +127,13 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return new_image
 
+	def resize_aspect_ratio(self, image: Image, base_width: int = 320) -> Image:
+		wpercent = (base_width / float(image.size[0]))
+		hsize = int((float(image.size[1]) * float(wpercent)))
+		img = image.resize((base_width, hsize), Image.Resampling.LANCZOS)
+
+		return img
+
 	def aspect_ratio(self, size: tuple) -> tuple:
 		gcd = math.gcd(size[0], size[1])
 		return size[0] // gcd, size[1] // gcd
@@ -145,7 +152,7 @@ class YoutubeAbstract(ScraperAbstract):
 						logging.info("thumb ratio: '%s'", ratio)
 						new_image = None
 						if ratio[1] > 4:
-							new_image = MediaInfoAbstract.shrink_image_to_fit(image)
+							new_image = self.resize_aspect_ratio(image)
 						else:
 							new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
 						logging.info("thumb size: '%s'", new_image.size)
