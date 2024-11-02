@@ -150,11 +150,7 @@ class YoutubeAbstract(ScraperAbstract):
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
 						logging.info("thumb ratio: '%s'", ratio)
-						new_image = None
-						if ratio[1] > 4:
-							new_image = self.resize_aspect_ratio(image)
-						else:
-							new_image = self.calculate_size_with_padding(image, ratio[0], ratio[1])
+						new_image = self.resize_aspect_ratio(image)
 						logging.info("thumb size: '%s'", new_image.size)
 						io_buf = io.BytesIO()
 						new_image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False)
