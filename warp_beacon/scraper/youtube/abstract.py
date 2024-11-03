@@ -141,10 +141,10 @@ class YoutubeAbstract(ScraperAbstract):
 	
 	def crop_black_edges_pil(self, img: Image, threshold: int = 35) -> Image:
 		y_nonzero, x_nonzero, _ = np.nonzero(np.array(img) > threshold)
-		return img.crop((np.min(x_nonzero), np.min(y_nonzero)+15, np.max(x_nonzero), np.max(y_nonzero)-5))
+		return img.crop((np.min(x_nonzero), np.min(y_nonzero), np.max(x_nonzero), np.max(y_nonzero)))
 
 	def download_thumbnail(self, video_id: str, timeout: int) -> Optional[io.BytesIO]:
-		for i in (#"https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
+		for i in ("https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/hqdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/sddefault.jpg"):
 			try:
