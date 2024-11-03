@@ -11,9 +11,10 @@ import urllib
 import requests
 import http.client
 from PIL import Image
+import numpy as np
 
 from warp_beacon.scraper.abstract import ScraperAbstract
-from warp_beacon.mediainfo.abstract import MediaInfoAbstract
+#from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
 
 from pytubefix import YouTube
@@ -137,6 +138,10 @@ class YoutubeAbstract(ScraperAbstract):
 	def aspect_ratio(self, size: tuple) -> tuple:
 		gcd = math.gcd(size[0], size[1])
 		return size[0] // gcd, size[1] // gcd
+	
+	def crop_black_edges_pil(self, img: Image) -> Image:
+		y_nonzero, x_nonzero, _ = np.nonzero(img)
+		return img.crop((np.min(x_nonzero), np.min(y_nonzero), np.max(x_nonzero), np.max(y_nonzero)))
 
 	def download_thumbnail(self, video_id: str, timeout: int) -> Optional[io.BytesIO]:
 		for i in (#"https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
@@ -148,12 +153,13 @@ class YoutubeAbstract(ScraperAbstract):
 				with requests.get(url, timeout=(timeout, timeout)) as response:
 					if response.status_code == 200:
 						image = Image.open(io.BytesIO(response.content))
+						image = self.crop_black_edges_pil(image)
 						ratio = self.aspect_ratio(image.size)
 						logging.info("thumb ratio: '%s'", ratio)
 						new_image = self.resize_aspect_ratio(image)
 						logging.info("thumb size: '%s'", new_image.size)
 						io_buf = io.BytesIO()
-						new_image.save(io_buf, format='JPEG', subsampling=0, quality=100, progressive=True, optimize=False)
+						new_image.save(io_buf, format='JPEG', subsampling=0, quality=95, progressive=True, optimize=False)
 						logging.info("thumb size: %d kb", io_buf.getbuffer().nbytes / 1024)
 						io_buf.seek(0)
 						return io_buf
