@@ -1,7 +1,6 @@
-import io, os
+import io
 
 from typing import Union
-from PIL import Image
 
 from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 

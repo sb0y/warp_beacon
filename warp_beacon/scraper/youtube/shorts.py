@@ -2,6 +2,8 @@ from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
 from warp_beacon.scraper.exceptions import NotFound
 
+from warp_beacon.mediainfo.video import VideoInfo
+
 import logging
 
 class YoutubeShortsScraper(YoutubeAbstract):
@@ -19,9 +21,6 @@ class YoutubeShortsScraper(YoutubeAbstract):
 		if not stream:
 			raise NotFound("No suitable video stream found")
 
-		if yt:
-			thumbnail = self._download_hndlr(self.download_thumbnail, yt.video_id)
-
 		local_file = stream.download(
 			output_path=self.DOWNLOAD_DIR,
 			max_retries=0,
@@ -29,9 +28,14 @@ class YoutubeShortsScraper(YoutubeAbstract):
 			skip_existing=False,
 			filename_prefix="yt_download_"
 		)
+
+		local_file = self.rename_local_file(local_file)
+		vinfo = VideoInfo(local_file)
+		thumbnail = self._download_hndlr(self.download_thumbnail, video_id=yt.video_id, crop_center=vinfo.get_demensions())
+
 		logging.debug("Temp filename: '%s'", local_file)
 		res.append({
-			"local_media_path": self.rename_local_file(local_file),
+			"local_media_path": local_file,
 			"performer": yt.author,
 			"thumb": thumbnail,
 			"canonical_name": stream.title,

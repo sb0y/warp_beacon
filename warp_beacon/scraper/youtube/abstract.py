@@ -143,7 +143,16 @@ class YoutubeAbstract(ScraperAbstract):
 		y_nonzero, x_nonzero, _ = np.nonzero(np.array(img) > threshold)
 		return img.crop((np.min(x_nonzero), np.min(y_nonzero), np.max(x_nonzero), np.max(y_nonzero)))
 
-	def download_thumbnail(self, video_id: str, timeout: int) -> Optional[io.BytesIO]:
+	def crop_center(self, image: Image, width: int, height: int) -> Image:
+		img_width, img_height = image.size
+		left = (img_width - width) // 2
+		top = (img_height - height) // 2
+		right = left + width
+		bottom = top + height
+
+		return image.crop((left, top, right, bottom))
+
+	def download_thumbnail(self, video_id: str, timeout: int, crop_center: dict = None) -> Optional[io.BytesIO]:
 		for i in ("https://img.youtube.com/vi/{VIDEO_ID}/maxresdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/hqdefault.jpg",
 				"https://img.youtube.com/vi/{VIDEO_ID}/sddefault.jpg"):
@@ -155,6 +164,8 @@ class YoutubeAbstract(ScraperAbstract):
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
 						image = self.crop_black_edges_pil(image)
+						if crop_center:
+							image = self.crop_center(image, width=crop_center["width"], height=crop_center["height"])
 						logging.info("thumb ratio: '%s'", ratio)
 						new_image = self.resize_aspect_ratio(image)
 						logging.info("thumb size: '%s'", new_image.size)
@@ -169,7 +180,7 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return None
 
-	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict, io.BytesIO]:
+	def _download_hndlr(self, func: Callable, *args: tuple[Union[str, int, dict, tuple]], **kwargs: dict[Union[str, int, dict, tuple]]) -> Union[str, dict, io.BytesIO]:
 		ret_val = ''
 		max_retries = int(os.environ.get("YT_MAX_RETRIES", default=self.YT_MAX_RETRIES_DEFAULT))
 		pause_secs = int(os.environ.get("YT_PAUSE_BEFORE_RETRY", default=self.YT_PAUSE_BEFORE_RETRY_DEFAULT))
