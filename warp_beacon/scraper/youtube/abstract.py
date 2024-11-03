@@ -153,8 +153,8 @@ class YoutubeAbstract(ScraperAbstract):
 				with requests.get(url, timeout=(timeout, timeout)) as response:
 					if response.status_code == 200:
 						image = Image.open(io.BytesIO(response.content))
-						image = self.crop_black_edges_pil(image)
 						ratio = self.aspect_ratio(image.size)
+						image = self.crop_black_edges_pil(image)
 						logging.info("thumb ratio: '%s'", ratio)
 						new_image = self.resize_aspect_ratio(image)
 						logging.info("thumb size: '%s'", new_image.size)
