@@ -231,7 +231,7 @@ class YoutubeAbstract(ScraperAbstract):
 		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
 		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]
 		yt_opts = {"url": url, "on_progress_callback": self.yt_on_progress}
-		#yt_opts["client"] = "WEB"
+		yt_opts["client"] = "TV_EMBED"
 		yt_opts["use_oauth"] = True
 		yt_opts["allow_oauth_cache"] = True
 		yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
