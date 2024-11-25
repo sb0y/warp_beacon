@@ -2,6 +2,7 @@ from typing import Union
 
 import re
 import requests
+from urllib.parse import urlparse
 
 from pyrogram.types import Message
 
@@ -57,6 +58,22 @@ class Utils(object):
 			logging.exception(e)
 
 		return ''
+	
+	@staticmethod
+	def convert_ig_share_link(url: str) -> str:
+		# expected url: https://www.instagram.com/share/reel/BAHtk2AamB
+		# result url: https://www.instagram.com/reel/DAKjQgUNzuH/
+		try:
+			if "instagram.com/" in url and "share" in url and "reel" in url:
+				reel_id = urlparse(url).path.split[-1]
+				new_url = f'https://www.instagram.com/reel/{reel_id}/'
+				logging.info("Converted IG share link to '%s'", new_url)
+				return new_url
+		except Exception as e:
+			logging.error("Failed to convert IG share link!")
+			logging.exception(e)
+
+		return url
 
 	@staticmethod
 	def parse_expected_patronum_error(err_text: str) -> tuple:

@@ -74,6 +74,8 @@ class Handlers(object):
 		else:
 			for url in urls:
 				origin = Utils.extract_origin(url)
+				if origin is Origin.INSTAGRAM:
+					url = Utils.convert_ig_share_link(url)
 				if origin is Origin.YOUTU_BE:
 					url = Utils.extract_youtu_be_link(url)
 					if not url:
