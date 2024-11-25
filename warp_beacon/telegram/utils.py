@@ -65,7 +65,7 @@ class Utils(object):
 		# result url: https://www.instagram.com/reel/DAKjQgUNzuH/
 		try:
 			if "instagram.com/" in url and "share" in url and "reel" in url:
-				reel_id = urlparse(url).path.split[-1]
+				reel_id = urlparse(url).path.split('/')[-1]
 				new_url = f'https://www.instagram.com/reel/{reel_id}/'
 				logging.info("Converted IG share link to '%s'", new_url)
 				return new_url
