@@ -33,8 +33,7 @@ class YoutubeMusicScraper(YoutubeAbstract):
 			max_retries=0,
 			timeout=timeout,
 			skip_existing=False,
-			filename_prefix='yt_download_',
-			mp3=True
+			filename_prefix='yt_download_'
 		)
 		logging.debug("Temp filename: '%s'", local_file)
 		res.append({
