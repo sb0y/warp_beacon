@@ -2,7 +2,6 @@ from typing import Union
 
 import re
 import requests
-from urllib.parse import urlparse
 
 from pyrogram.types import Message
 
@@ -13,6 +12,7 @@ import logging
 
 class Utils(object):
 	expected_patronum_compiled_re = re.compile(r'Expected ([A-Z]+), got ([A-Z]+) file id instead')
+	canonical_link_resolve_re = re.compile(r'<link.*rel="canonical".*href="([^"]+)"\s*/?>')
 
 	@staticmethod
 	def extract_file_id(message: Message) -> Union[None, str]:
@@ -60,13 +60,14 @@ class Utils(object):
 		return ''
 	
 	@staticmethod
-	def convert_ig_share_link(url: str) -> str:
+	def resolve_ig_share_link(url: str) -> str:
 		# expected url: https://www.instagram.com/share/reel/BAHtk2AamB
 		# result url: https://www.instagram.com/reel/DAKjQgUNzuH/
 		try:
 			if "instagram.com/" in url and "share" in url and "reel" in url:
-				reel_id = urlparse(url).path.split('/')[-1]
-				new_url = f'https://www.instagram.com/reel/{reel_id}/'
+				content = requests.get(url).text
+				res = re.search(Utils.canonical_link_resolve_re, content)
+				new_url = res.group(1).strip()
 				logging.info("Converted IG share link to '%s'", new_url)
 				return new_url
 		except Exception as e:
