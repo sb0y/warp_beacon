@@ -64,7 +64,7 @@ class Utils(object):
 		# expected url: https://www.instagram.com/share/reel/BAHtk2AamB
 		# result url: https://www.instagram.com/reel/DAKjQgUNzuH/
 		try:
-			if "instagram.com/" in url and "share" in url and "reel" in url:
+			if "instagram.com/" in url and "share/" in url:
 				content = requests.get(url).text
 				res = re.search(Utils.canonical_link_resolve_re, content)
 				new_url = res.group(1).strip()
