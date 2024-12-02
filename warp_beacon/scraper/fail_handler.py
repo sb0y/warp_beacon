@@ -11,7 +11,8 @@ class FailHandler(object):
 	client = None
 	db = None
 	def __init__(self, client: DBClient) -> None:
-		self.db = client.client.media.failed_jobs
+		self.client = client
+		self.db = self.client.client.media.failed_jobs
 
 	def __del__(self) -> None:
 		self.client.close()
