@@ -75,8 +75,7 @@ class Bot(object):
 		)
 		self.downloader = warp_beacon.scraper.AsyncDownloader(
 			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=workers_amount)),
-			uploader=self.uploader,
-			db_connect=db_connect
+			uploader=self.uploader
 		)
 
 		self.scheduler = IGScheduler(self.downloader)

@@ -34,10 +34,8 @@ class AsyncDownloader(object):
 	manager = None
 	acc_selector = None
 	scheduler = None
-	fail_handler = None
 
-	def __init__(self, uploader: AsyncUploader, db_connect: DBClient, workers_count: int) -> None:
-		self.fail_handler = FailHandler(db_connect)
+	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.manager = multiprocessing.Manager()
 		self.allow_loop = self.manager.Value('i', 1)
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE)
@@ -87,6 +85,8 @@ class AsyncDownloader(object):
 
 	def do_work(self, selector: AccountSelector) -> None:
 		logging.info("download worker started")
+		# pymongo is not fork-safe so new connect to DB required
+		fail_handler = FailHandler(DBClient())
 		while self.allow_loop.value == 1:
 			try:
 				job = None
@@ -234,7 +234,7 @@ class AsyncDownloader(object):
 										#self.try_next_account(selector, job, report_error="captcha")
 										#e.job.job_postponed_until = time.time() + 300
 										#self.job_queue.put(e.job)
-										self.fail_handler.store_failed_job(e.job)
+										fail_handler.store_failed_job(e.job)
 									break
 								except (UnknownError, Exception) as e:
 									logging.warning("UnknownError occurred!")
@@ -271,7 +271,7 @@ class AsyncDownloader(object):
 
 							if items:
 								# success
-								for job in self.fail_handler.get_failed_jobs():
+								for job in fail_handler.get_failed_jobs():
 									self.queue_task(job)
 								for item in items:
 									media_info = {"filesize": 0}
