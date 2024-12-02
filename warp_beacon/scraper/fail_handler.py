@@ -1,8 +1,8 @@
 import os
 
 import pickle
-from pymongo import MongoClient
 
+from warp_beacon.storage.mongo import DBClient
 from warp_beacon.jobs.download_job import DownloadJob
 
 import logging
@@ -10,17 +10,11 @@ import logging
 class FailHandler(object):
 	client = None
 	db = None
-	def __init__(self) -> None:
-		self.client = MongoClient(
-			host=os.environ.get("MONGODB_HOST", default='127.0.0.1'), 
-			port=int(os.environ.get("MONGODB_PORT", default=27017)),
-			username=os.environ.get("MONGODB_USER", default='root'),
-			password=os.environ.get("MONGODB_PASSWORD", default="changeme"))
-		self.db = self.client.media.failed_jobs
+	def __init__(self, client: DBClient) -> None:
+		self.db = client.client.media.failed_jobs
 
 	def __del__(self) -> None:
-		if self.client:
-			self.client.close()
+		self.client.close()
 
 	def store_failed_job(self, job: DownloadJob) -> int:
 		db_id = -1

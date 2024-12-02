@@ -16,6 +16,7 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.account_selector import AccountSelector
+from warp_beacon.storage.mongo import DBClient
 from warp_beacon.scraper.fail_handler import FailHandler
 
 import logging
@@ -33,9 +34,10 @@ class AsyncDownloader(object):
 	manager = None
 	acc_selector = None
 	scheduler = None
-	fail_handler = FailHandler()
+	fail_handler = None
 
-	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
+	def __init__(self, uploader: AsyncUploader, db_connect: DBClient, workers_count: int) -> None:
+		self.fail_handler = FailHandler(db_connect)
 		self.manager = multiprocessing.Manager()
 		self.allow_loop = self.manager.Value('i', 1)
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE)

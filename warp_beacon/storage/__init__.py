@@ -4,7 +4,7 @@ from enum import Enum
 
 from urllib.parse import urlparse, parse_qs
 
-from pymongo import MongoClient
+from warp_beacon.storage.mongo import DBClient
 
 import logging
 
@@ -19,20 +19,14 @@ VIDEO_STORAGE_DIR = os.environ.get("VIDEO_STORAGE_DIR", default="/var/warp_beaco
 class Storage(object):
 	client = None
 	db = None
-	def __init__(self) -> None:
+	def __init__(self, client: DBClient) -> None:
 		if not os.path.isdir(VIDEO_STORAGE_DIR):
 			os.mkdir(VIDEO_STORAGE_DIR)
-
-		self.client = MongoClient(
-			host=os.environ.get("MONGODB_HOST", default='127.0.0.1'), 
-			port=int(os.environ.get("MONGODB_PORT", default=27017)),
-			username=os.environ.get("MONGODB_USER", default='root'),
-			password=os.environ.get("MONGODB_PASSWORD", default="changeme"))
-		self.db = self.client.media.media
+		self.client = client
+		self.db = self.client.client.media.media
 
 	def __del__(self) -> None:
-		if self.client:
-			self.client.close()
+		self.client.close()
 
 	@staticmethod
 	def compute_uniq(url: str) -> str:

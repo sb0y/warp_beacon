@@ -15,6 +15,7 @@ import warp_beacon
 from warp_beacon.__version__ import __version__
 from warp_beacon.telegram.handlers import Handlers
 from warp_beacon.telegram.placeholder_message import PlaceholderMessage
+from warp_beacon.storage.mongo import DBClient
 from warp_beacon.storage import Storage
 from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs.upload_job import UploadJob
@@ -25,7 +26,7 @@ from warp_beacon.scheduler.scheduler import IGScheduler
 import logging
 
 class Bot(object):
-	storage = Storage()
+	storage = None
 	uploader = None
 	downloader = None
 	allow_loop = True
@@ -39,6 +40,9 @@ class Bot(object):
 		logging.basicConfig(
 			format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 		)
+
+		db_connect = DBClient()
+		self.storage = Storage(db_connect)
 
 		logging.info("Starting Warp Beacon version '%s' ...", __version__)
 
@@ -71,7 +75,8 @@ class Bot(object):
 		)
 		self.downloader = warp_beacon.scraper.AsyncDownloader(
 			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=workers_amount)),
-			uploader=self.uploader
+			uploader=self.uploader,
+			db_connect=db_connect
 		)
 
 		self.scheduler = IGScheduler(self.downloader)
