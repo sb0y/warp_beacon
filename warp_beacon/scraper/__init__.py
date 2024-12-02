@@ -16,6 +16,7 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.account_selector import AccountSelector
+from warp_beacon.scraper.fail_handler import FailHandler
 
 import logging
 
@@ -32,6 +33,7 @@ class AsyncDownloader(object):
 	manager = None
 	acc_selector = None
 	scheduler = None
+	fail_handler = FailHandler()
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.manager = multiprocessing.Manager()
@@ -98,7 +100,7 @@ class AsyncDownloader(object):
 							continue
 						if not job.in_process:
 							if job.job_postponed_until > 0:
-								if job.job_postponed_until - time.time() > 0:
+								if (job.job_postponed_until - time.time()) > 0:
 									logging.warning("Job '%s' is postponed, rescheduling", job.url)
 									time.sleep(2)
 									self.job_queue.put(job)
@@ -169,7 +171,7 @@ class AsyncDownloader(object):
 									logging.warning("Telegram limits exceeded :(")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>FileTooBi</b>'."
+										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>FileTooBig</b>'."
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
@@ -222,9 +224,15 @@ class AsyncDownloader(object):
 										job_failed_msg="All bot accounts failed to download content. Bot administrator noticed about the issue.")
 									)
 									if e.job.job_origin == Origin.INSTAGRAM:
-										self.try_next_account(selector, job, report_error="captcha")
-										e.job.job_timeout = time.time() + 300
-										self.job_queue.put(e.job)
+										logging.info("Handling captcha postpone")
+										self.uploader.queue_task(job.to_upload_job(
+											job_warning=True,
+											job_warning_msg="Bot is experiencing issues, video delivery may be delayed.")
+										)
+										#self.try_next_account(selector, job, report_error="captcha")
+										#e.job.job_postponed_until = time.time() + 300
+										#self.job_queue.put(e.job)
+										self.fail_handler.store_failed_job(e.job)
 									break
 								except (UnknownError, Exception) as e:
 									logging.warning("UnknownError occurred!")
@@ -260,6 +268,9 @@ class AsyncDownloader(object):
 									break
 
 							if items:
+								# success
+								for job in self.fail_handler.get_failed_jobs():
+									self.queue_task(job)
 								for item in items:
 									media_info = {"filesize": 0}
 									if item["media_type"] == JobType.VIDEO:

@@ -81,7 +81,8 @@ setup(
 		"warp_beacon/scraper/youtube/abstract",
 		"warp_beacon/scraper/youtube/youtube",
 		"warp_beacon/scraper/youtube/shorts",
-		"warp_beacon/scraper/youtube/music"
+		"warp_beacon/scraper/youtube/music",
+		"warp_beacon/scraper/fail_handler"
 	],
 	#scripts=['scripts/wait_dc_update.py'],
 	data_files=[
