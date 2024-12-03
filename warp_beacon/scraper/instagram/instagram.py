@@ -76,7 +76,7 @@ class InstagramScraper(ScraperAbstract):
 			logging.info("Loading existing session file '%s'", self.inst_session_file)
 			self.cl.load_settings(self.inst_session_file)
 		else:
-			self.login()
+			self._download_hndlr(self.login)
 
 	def login(self) -> None:
 		username = self.account["login"]
@@ -88,7 +88,7 @@ class InstagramScraper(ScraperAbstract):
 	def validate_session(self) -> None:
 		self.load_session()
 		self._download_hndlr(self.cl.get_timeline_feed)
-		self._download_hndlr(self.cl.get_reels_tray_feed, "cold_start")
+		self._download_hndlr(self.cl.get_reels_tray_feed, "pull_to_refresh")
 		self._download_hndlr(self.cl.direct_active_presence)
 		self._download_hndlr(self.cl.reels)
 		#self._download_hndlr(self.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
