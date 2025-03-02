@@ -163,6 +163,9 @@ class Bot(object):
 		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
 			if job.canonical_name:
 				caption += "\n—\n"
+			if job.message_leftover:
+				caption += job.message_leftover
+				caption += "\n—\n"
 			if job.source_username:
 				caption += f"Requested by <b>@{job.source_username}</b>"
 			if job.source_username and job.url:

@@ -1,3 +1,4 @@
+#etc/proxies.json
 etc/accounts.json
 debian/warp-beacon/etc/warp_beacon/warp_beacon.conf
 warp_beacon.conf

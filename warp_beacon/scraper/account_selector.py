@@ -1,9 +1,10 @@
-import multiprocessing.managers
 import os
 import json
 import re
+from typing import Optional
 
 import multiprocessing
+import multiprocessing.managers
 
 from warp_beacon.jobs import Origin
 
@@ -11,6 +12,7 @@ import logging
 
 class AccountSelector(object):
 	accounts = []
+	proxies = []
 	current = None
 	current_module_name = None
 	accounts_meta_data = None
@@ -18,7 +20,7 @@ class AccountSelector(object):
 	manager = None
 	account_index = {}
 
-	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str) -> None:
+	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str, proxy_file_path: str=None) -> None:
 		self.manager = manager
 		self.accounts_meta_data = self.manager.dict()
 		if os.path.exists(acc_file_path):
@@ -29,14 +31,28 @@ class AccountSelector(object):
 				#self.load_yt_sessions()
 				for acc_type, _ in self.accounts.items():
 					self.account_index[acc_type] = self.manager.Value('i', 0)
+			if proxy_file_path:
+				with open(proxy_file_path, 'r', encoding="utf-8") as f:
+					self.proxies = json.loads(f.read())
 		else:
 			raise ValueError("Accounts file not found")
 
 	def __del__(self) -> None:
 		pass
 
-	#def enrich_service_data(self) -> None:
-	#	for k, v in self.accounts.items():
+	def get_account_proxy(self) -> Optional[dict]:
+		if self.proxies:
+			try:
+				current_acc_pid = self.get_current()[1].get("proxy_id", "").strip()
+				for proxy in self.proxies:
+					pid = proxy.get("id", "").strip()
+					if pid and current_acc_pid and pid == current_acc_pid:
+						logging.info("Account proxy matched '%s'", proxy)
+						return proxy
+			except Exception as e:
+				logging.warning("Error on selecting account proxy!")
+				logging.exception(e)
+		return None
 
 	def load_yt_sessions(self) -> None:
 		if "youtube" not in self.accounts:

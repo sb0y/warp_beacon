@@ -5,6 +5,8 @@ from typing import Optional
 import multiprocessing
 from queue import Empty
 
+import logging
+
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
@@ -18,10 +20,10 @@ from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.account_selector import AccountSelector
 from warp_beacon.storage.mongo import DBClient
 from warp_beacon.scraper.fail_handler import FailHandler
-
-import logging
+from warp_beacon.scraper.link_resolver import LinkResolver
 
 ACC_FILE = os.environ.get("SERVICE_ACCOUNTS_FILE", default="/var/warp_beacon/accounts.json")
+PROXY_FILE = os.environ.get("PROXY_FILE", default="/var/warp_beacon/proxies.json")
 
 class AsyncDownloader(object):
 	__JOE_BIDEN_WAKEUP = None
@@ -38,7 +40,7 @@ class AsyncDownloader(object):
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.manager = multiprocessing.Manager()
 		self.allow_loop = self.manager.Value('i', 1)
-		self.acc_selector = AccountSelector(self.manager, ACC_FILE)
+		self.acc_selector = AccountSelector(self.manager, ACC_FILE, PROXY_FILE)
 		self.uploader = uploader
 		self.workers_count = workers_count
 
@@ -93,12 +95,17 @@ class AsyncDownloader(object):
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
-						continue
+						break
 					actor = None
 					try:
 						items = []
 						if job.job_origin is Origin.UNKNOWN:
 							logging.warning("Unknown task origin! Skipping.")
+							continue
+						if LinkResolver.resolve_job(job):
+							self.uploader.queue_task(job.to_upload_job(
+								replay=True
+							))
 							continue
 						if not job.in_process:
 							if job.job_postponed_until > 0:
@@ -111,16 +118,16 @@ class AsyncDownloader(object):
 							self.acc_selector.set_module(job.job_origin)
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
-								actor = InstagramScraper(selector.get_current())
+								actor = InstagramScraper(selector.get_current(), selector.get_account_proxy())
 							elif job.job_origin is Origin.YT_SHORTS:
 								from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
-								actor = YoutubeShortsScraper(selector.get_current())
+								actor = YoutubeShortsScraper(selector.get_current(), selector.get_account_proxy())
 							elif job.job_origin is Origin.YT_MUSIC:
 								from warp_beacon.scraper.youtube.music import YoutubeMusicScraper
-								actor = YoutubeMusicScraper(selector.get_current())
+								actor = YoutubeMusicScraper(selector.get_current(), selector.get_account_proxy())
 							elif job.job_origin is Origin.YOUTUBE:
 								from warp_beacon.scraper.youtube.youtube import YoutubeScraper
-								actor = YoutubeScraper(selector.get_current())
+								actor = YoutubeScraper(selector.get_current(), selector.get_account_proxy())
 							actor.send_message_to_admin_func = self.send_message_to_admin
 							actor.auth_event = self.auth_event
 							while True:
@@ -131,7 +138,7 @@ class AsyncDownloader(object):
 										logging.info("done")
 									else:
 										logging.info("Downloading URL '%s'", job.url)
-										items = actor.download(job.url)
+										items = actor.download(job)
 									break
 								except NotFound as e:
 									logging.warning("Not found error occurred!")

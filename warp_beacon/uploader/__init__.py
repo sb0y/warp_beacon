@@ -81,10 +81,11 @@ class AsyncUploader(object):
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
-						continue
+						break
 					if job.is_message_to_admin and job.message_text and self.admin_message_callback:
 						asyncio.ensure_future(self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth), loop=self.loop)
 						continue
+
 					path = ""
 					if job.media_type == JobType.COLLECTION:
 						for i in job.media_collection:
@@ -92,11 +93,14 @@ class AsyncUploader(object):
 								path += "%s; " % j.local_media_path
 					else:
 						path = job.local_media_path
+	
 					in_process = job.in_process
 					uniq_id = job.uniq_id
 					message_id = job.placeholder_message_id
-					if not in_process and not job.job_failed and not job.job_warning:
+
+					if not in_process and not job.job_failed and not job.job_warning and not job.replay:
 						logging.info("Accepted upload job, file(s): '%s'", path)
+
 					try:
 						if message_id in self.callbacks:
 							if job.job_failed:
@@ -106,6 +110,12 @@ class AsyncUploader(object):
 								self.process_done(uniq_id)
 								self.remove_callback(message_id)
 								continue
+							
+							if job.replay:
+								asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+								self.remove_callback(message_id)
+								continue
+
 							if job.job_warning:
 								logging.info("Job warning occurred ...")
 								if job.job_warning_msg:

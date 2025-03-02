@@ -7,7 +7,7 @@ class DBClient(object):
 
 	def __init__(self) -> None:
 		self.client = MongoClient(
-			host=os.environ.get("MONGODB_HOST", default='127.0.0.1'), 
+			host=os.environ.get("MONGODB_HOST", default='127.0.0.1'),
 			port=int(os.environ.get("MONGODB_PORT", default=27017)),
 			username=os.environ.get("MONGODB_USER", default='root'),
 			password=os.environ.get("MONGODB_PASSWORD", default="changeme")

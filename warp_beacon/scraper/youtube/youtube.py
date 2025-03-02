@@ -66,6 +66,3 @@ class YoutubeScraper(YoutubeAbstract):
 			raise YotubeAgeRestrictedError("Youtube Age Restricted error")
 
 		return res
-
-	def download(self, url: str) -> list:
-		return self._download_hndlr(self._download, url)
