@@ -7,7 +7,7 @@ from queue import Empty
 
 import logging
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YotubeLiveError, YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YoutubeLiveError, YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -203,7 +203,7 @@ class AsyncDownloader(object):
 									self.try_next_account(selector, job, report_error="captcha")
 									self.job_queue.put(job)
 									break
-								except YotubeLiveError as e:
+								except YoutubeLiveError as e:
 									logging.warning("Youtube Live videos are not supported. Skipping.")
 									logging.exception(e)
 									self.uploader.queue_task(job.to_upload_job(

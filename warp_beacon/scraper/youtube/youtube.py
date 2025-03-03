@@ -1,6 +1,6 @@
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
-from warp_beacon.scraper.exceptions import YotubeLiveError, NotFound, YotubeAgeRestrictedError
+from warp_beacon.scraper.exceptions import YoutubeLiveError, NotFound, YotubeAgeRestrictedError
 
 from pytubefix.exceptions import AgeRestrictedError
 
@@ -35,7 +35,7 @@ class YoutubeScraper(YoutubeAbstract):
 			yt = self.build_yt(url)
 
 			if self.is_live(yt.initial_data):
-				raise YotubeLiveError("Youtube Live is not supported")
+				raise YoutubeLiveError("Youtube Live is not supported")
 
 			if yt:
 				thumbnail = self._download_hndlr(self.download_thumbnail, yt.video_id)

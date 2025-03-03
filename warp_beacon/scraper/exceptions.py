@@ -26,7 +26,7 @@ class NotFound(ScraperError):
 class Unavailable(ScraperError):
 	pass
 
-class YotubeLiveError(ScraperError):
+class YoutubeLiveError(ScraperError):
 	pass
 
 class YotubeAgeRestrictedError(ScraperError):
