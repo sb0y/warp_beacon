@@ -17,7 +17,8 @@ from instagrapi.mixins.story import Story
 #from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
-from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, ChallengeSelfieCaptcha, UnknownError as IGUnknownError
+from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
+	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
@@ -145,7 +146,7 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
-			except (ChallengeRequired, ChallengeSelfieCaptcha) as e:
+			except (ChallengeRequired, ChallengeSelfieCaptcha, ChallengeUnknownStep) as e:
 				logging.warning("Instagram wants Challange!")
 				logging.exception(e)
 				raise CaptchaIssue("a captcha issue arose")
