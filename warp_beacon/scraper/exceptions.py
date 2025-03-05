@@ -11,7 +11,7 @@ class ScraperError(Exception):
 				body=getattr(self, "error_type", vars(self)),
 			)
 		super().__init__(self.message, *args, **kwargs)
-		if hasattr(self, "response") and self.response: 
+		if hasattr(self, "response") and self.response:
 			self.code = self.response.status_code
 
 class TimeOut(ScraperError):

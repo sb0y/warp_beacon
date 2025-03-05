@@ -175,7 +175,8 @@ class Handlers(object):
 								media_type=JobType.COLLECTION,
 								chat_id=chat.id,
 								chat_type=message.chat.type,
-								source_username=Utils.extract_message_author(message)
+								source_username=Utils.extract_message_author(message),
+								message_leftover=msg_leftover
 							)
 						)
 					elif ent_len:
@@ -203,7 +204,8 @@ class Handlers(object):
 							uniq_id=uniq_id,
 							job_origin=origin,
 							source_username=Utils.extract_message_author(message),
-							chat_type=chat.type
+							chat_type=chat.type,
+							message_leftover=msg_leftover
 						)):
 						self.bot.uploader.set_inprocess(uniq_id)
 
