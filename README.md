@@ -162,6 +162,10 @@ build deb file
 dpkg-buildpackage -us -uc -b
 ```
 
+# Wiki
+* [MongoDB backup and restore](https://github.com/sb0y/warp_beacon/wiki/MongoDB-backup-and-restore)
+* [Introduction in account.json file](https://github.com/sb0y/warp_beacon/wiki/Introduction-in-account.json-file)
+
 # Support Warp Beacon project
 
 [<img src="https://cdn.cryptocloud.plus/brand/cc-group-black.png" alt="CryptoCloud Accepted" width="250px">](https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E)
