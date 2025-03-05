@@ -11,6 +11,7 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
+from warp_beacon.scraper.link_resolver import LinkResolver
 
 import logging
 
@@ -58,6 +59,73 @@ class Handlers(object):
 			"Currently supported: Instagram, YouTube Shorts and YouTube Music."
 		)
 
+	async def upload_wrapper(self, job: UploadJob) -> None:
+		try:
+			if job.replay:
+				logging.info("Replaying job with URL: '%s'", job.url)
+				return await self.queue_job(job.to_download_job(replay=False))
+
+			if job.job_failed and job.job_failed_msg:
+				if job.placeholder_message_id:
+					await self.bot.placeholder.remove(job.chat_id, job.placeholder_message_id)
+					return await self.bot.send_text(chat_id=job.chat_id, text=job.job_failed_msg, reply_id=job.message_id)
+								
+			if job.job_warning and job.job_warning_msg:
+				return await self.bot.placeholder.update_text(job.chat_id, job.placeholder_message_id, job.job_warning_msg)
+								
+			tg_file_ids = await self.bot.upload_job(job)
+			if tg_file_ids:
+				if job.media_type == JobType.COLLECTION and job.save_items:
+					for chunk in job.media_collection:
+						for i in chunk:
+							self.storage.add_media(
+								tg_file_ids=[i.tg_file_id],
+								media_url=i.effective_url,
+								media_type=i.media_type.value,
+								origin=job.job_origin.value,
+								canonical_name=job.canonical_name
+							)
+				else:
+					self.storage.add_media(
+						tg_file_ids=[','.join(tg_file_ids)],
+						media_url=job.url,
+						media_type=job.media_type.value,
+						origin=job.job_origin.value,
+						canonical_name=job.canonical_name
+					)
+		except Exception as e:
+			logging.error("Exception occurred while performing upload callback!")
+			logging.exception(e)
+
+	async def queue_job(self, job: DownloadJob) -> bool:
+		try:
+			# create placeholder message for long download
+			if not job.placeholder_message_id:
+				job.placeholder_message_id = await self.bot.placeholder.create(
+					chat_id=job.chat_id,
+					reply_id=job.message_id
+				)
+
+			if not job.placeholder_message_id:
+				return await self.bot.send_text(
+					chat_id=job.chat_id,
+					reply_id=job.message_id,
+					text="Failed to create message placeholder. Please check your bot Internet connection."
+				)
+
+			self.bot.uploader.add_callback(
+				job.placeholder_message_id,
+				self.upload_wrapper
+			)
+
+			self.bot.downloader.queue_task(job)
+		except Exception as e:
+			logging.error("Failed to schedule download task!")
+			logging.exception(e)
+			return False
+		
+		return True
+
 	async def handler(self, client: Client, message: Message) -> None:
 		if message is None:
 			return
@@ -66,7 +134,12 @@ class Handlers(object):
 			return
 		chat = message.chat
 		effective_message_id = message.id
-		urls = self.url_extractor.find_urls(message_text)
+		urls_raw = self.url_extractor.find_urls(message_text)
+		urls, msg_leftover = [], ''
+		if urls_raw:
+			msg_leftover = Utils.compute_leftover(urls_raw, message_text)
+			# remove duplicates
+			urls = list(set(urls_raw))
 
 		reply_text = "Wut?"
 		if not urls:
@@ -74,13 +147,11 @@ class Handlers(object):
 		else:
 			for url in urls:
 				origin = Utils.extract_origin(url)
-				if origin is Origin.INSTAGRAM:
-					url = Utils.resolve_ig_share_link(url)
 				if origin is Origin.YOUTU_BE:
-					url = Utils.extract_youtu_be_link(url)
-					if not url:
-						raise ValueError("Failed to extract youtu.be link")
-					origin = Origin.YOUTUBE
+					new_url = LinkResolver.extract_youtu_be_link_local(url)
+					if new_url:
+						url = new_url
+						origin = Origin.YOUTUBE
 				if origin is Origin.UNKNOWN:
 					logging.info("Only Instagram, YouTube Shorts and YouTube Music are now supported. Skipping.")
 					continue
@@ -119,64 +190,13 @@ class Handlers(object):
 								chat_id=chat.id,
 								chat_type=message.chat.type,
 								source_username=Utils.extract_message_author(message),
-								canonical_name=canonical_name
+								canonical_name=canonical_name,
+								message_leftover=msg_leftover
 							)
 						)
 				else:
-					async def upload_wrapper(job: UploadJob) -> None:
-						try:
-							if job.job_failed and job.job_failed_msg:
-								if job.placeholder_message_id:
-									await self.bot.placeholder.remove(chat.id, job.placeholder_message_id)
-								return await self.bot.send_text(chat_id=chat.id, text=job.job_failed_msg, reply_id=job.message_id)
-							if job.job_warning and job.job_warning_msg:
-								return await self.bot.placeholder.update_text(chat.id, job.placeholder_message_id, job.job_warning_msg)
-							tg_file_ids = await self.bot.upload_job(job)
-							if tg_file_ids:
-								if job.media_type == JobType.COLLECTION and job.save_items:
-									for chunk in job.media_collection:
-										for i in chunk:
-											self.storage.add_media(
-												tg_file_ids=[i.tg_file_id],
-												media_url=i.effective_url,
-												media_type=i.media_type.value,
-												origin=job.job_origin.value,
-												canonical_name=job.canonical_name
-											)
-								else:
-									self.storage.add_media(
-										tg_file_ids=[','.join(tg_file_ids)],
-										media_url=job.url,
-										media_type=job.media_type.value,
-										origin=job.job_origin.value,
-										canonical_name=job.canonical_name
-									)
-						except Exception as e:
-							logging.error("Exception occurred while performing upload callback!")
-							logging.exception(e)
-
-					try:
-						# create placeholder message for long download
-						placeholder_message_id = await self.bot.placeholder.create(
-							chat_id=chat.id,
-							reply_id=effective_message_id
-						)
-
-						if not placeholder_message_id:
-							await self.bot.send_text(
-								chat_id=chat.id,
-								reply_id=effective_message_id,
-								text="Failed to create message placeholder. Please check your bot Internet connection.")
-							return
-
-						self.bot.uploader.add_callback(
-							placeholder_message_id,
-							upload_wrapper
-						)
-
-						self.bot.downloader.queue_task(DownloadJob.build(
+					if await self.queue_job(DownloadJob.build(
 							url=url,
-							placeholder_message_id=placeholder_message_id,
 							message_id=effective_message_id,
 							chat_id=chat.id,
 							in_process=self.bot.uploader.is_inprocess(uniq_id),
@@ -184,11 +204,8 @@ class Handlers(object):
 							job_origin=origin,
 							source_username=Utils.extract_message_author(message),
 							chat_type=chat.type
-						))
+						)):
 						self.bot.uploader.set_inprocess(uniq_id)
-					except Exception as e:
-						logging.error("Failed to schedule download task!")
-						logging.exception(e)
 
 		if chat.type not in (ChatType.GROUP, ChatType.SUPERGROUP) and not urls:
 			await self.bot.send_text(text=reply_text, reply_id=effective_message_id, chat_id=chat.id)

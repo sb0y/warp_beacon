@@ -3,6 +3,7 @@ LABEL maintainer="Andrey Bagrintsev <andrey@bagrintsev.me>"
 
 COPY ./docker_app/entrypoint.sh /usr/local/bin/
 COPY ./etc/accounts.json /init_accounts.json
+COPY ./etc/proxies.json /init_proxies.json
 VOLUME /tmp
 WORKDIR /var/tmp
 VOLUME /var/warp_beacon

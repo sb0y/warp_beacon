@@ -3,13 +3,13 @@ import time
 from enum import Enum
 from typing import Optional
 
-from pyrogram.types import Message
+#from pyrogram.types import Message
 from pyrogram.errors import RPCError, FloodWait
 from pyrogram.enums import ParseMode
 
 import warp_beacon
 from warp_beacon.telegram.utils import Utils
-from warp_beacon.mediainfo.video import VideoInfo
+#from warp_beacon.mediainfo.video import VideoInfo
 
 import logging
 
@@ -131,7 +131,7 @@ class PlaceholderMessage(object):
 							reply = await self.reuse_ph_animation(chat_id, reply_id, text)
 						except ValueError as e:
 							logging.warning("Failed to reuse tg_file_id!")
-							logging.exception(e)
+							#logging.exception(e)
 							reply = await self.reuse_ph_document(chat_id, reply_id, text)
 							self.placeholder.pl_type = PlaceholderType.DOCUMENT
 					elif self.placeholder.pl_type == PlaceholderType.DOCUMENT:
@@ -139,7 +139,7 @@ class PlaceholderMessage(object):
 							reply = await self.reuse_ph_document(chat_id, reply_id, text)
 						except ValueError as e:
 							logging.warning("Failed to reuse tg_file_id!")
-							logging.exception(e)
+							#logging.exception(e)
 							reply = await self.reuse_ph_animation(chat_id, reply_id, text)
 							self.placeholder.pl_type = PlaceholderType.ANIMATION
 					else:

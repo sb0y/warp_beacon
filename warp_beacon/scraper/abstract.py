@@ -18,15 +18,18 @@ class ScraperAbstract(ABC):
 	auth_event = None
 	account = None
 	account_index = 0
+	proxy = None
 
-	def __init__(self, account: tuple) -> None:
+
+	def __init__(self, account: tuple, proxy: dict=None) -> None:
 		self.account_index = account[0]
 		self.account = account[1]
-		if os.environ.get("FORCE_IPV6", default="false") == "true":
+		self.proxy = proxy
+		if self.account.get("force_ipv6", False):
 			self.force_ipv6()
 
 	def __del__(self) -> None:
-		if os.environ.get("FORCE_IPV6", default="false") == "true":
+		if self.account.get("force_ipv6", False):
 			self.restore_gai()
 
 	@abstractmethod

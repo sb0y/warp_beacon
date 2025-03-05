@@ -13,6 +13,7 @@ import http.client
 from PIL import Image
 import numpy as np
 
+from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.scraper.abstract import ScraperAbstract
 #from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
@@ -80,11 +81,11 @@ class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
 	YT_SESSION_FILE = '/var/warp_beacon/yt_session_%d.json'
 
-	def __init__(self, account: tuple) -> None:
-		super().__init__(account)
+	#def __init__(self, account: tuple, proxy: dict=None) -> None:
+	#	super().__init__(account, proxy)
 
-	def __del__(self) -> None:
-		pass
+	#def __del__(self) -> None:
+	#	pass
 
 	def rename_local_file(self, filename: str) -> str:
 		if not os.path.exists(filename):
@@ -235,4 +236,15 @@ class YoutubeAbstract(ScraperAbstract):
 		yt_opts["use_oauth"] = True
 		yt_opts["allow_oauth_cache"] = True
 		yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
+		if self.proxy:
+			proxy_dsn = self.proxy.get("dsn", "")
+			if proxy_dsn:
+				logging.info("Using proxy DSN '%s'", proxy_dsn)
+				yt_opts["proxies"] = {"http": proxy_dsn, "https": proxy_dsn}
 		return YouTube(**yt_opts)
+	
+	def _download(self, url: str) -> list:
+		raise NotImplementedError("Implement _download method")
+
+	def download(self, job: DownloadJob) -> list:
+		return self._download_hndlr(self._download, job.url)

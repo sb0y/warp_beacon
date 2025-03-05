@@ -1,7 +1,6 @@
 from typing import Union
 
 import re
-import requests
 
 from pyrogram.types import Message
 
@@ -12,7 +11,6 @@ import logging
 
 class Utils(object):
 	expected_patronum_compiled_re = re.compile(r'Expected ([A-Z]+), got ([A-Z]+) file id instead')
-	canonical_link_resolve_re = re.compile(r'<link.*rel="canonical".*href="([^"]+)"\s*/?>')
 
 	@staticmethod
 	def extract_file_id(message: Message) -> Union[None, str]:
@@ -44,37 +42,6 @@ class Utils(object):
 			return Origin.YOUTUBE
 
 		return Origin.UNKNOWN
-
-	@staticmethod
-	def extract_youtu_be_link(url: str) -> str:
-		try:
-			response = requests.get(
-				url=url,
-				allow_redirects=False
-			)
-			return response.headers["Location"]
-		except Exception as e:
-			logging.error("Failed to extract YouTube link!")
-			logging.exception(e)
-
-		return ''
-	
-	@staticmethod
-	def resolve_ig_share_link(url: str) -> str:
-		# expected url: https://www.instagram.com/share/reel/BAHtk2AamB
-		# result url: https://www.instagram.com/reel/DAKjQgUNzuH/
-		try:
-			if "instagram.com/" in url and "share/" in url:
-				content = requests.get(url).text
-				res = re.search(Utils.canonical_link_resolve_re, content)
-				new_url = res.group(1).strip()
-				logging.info("Converted IG share link to '%s'", new_url)
-				return new_url
-		except Exception as e:
-			logging.error("Failed to convert IG share link!")
-			logging.exception(e)
-
-		return url
 
 	@staticmethod
 	def parse_expected_patronum_error(err_text: str) -> tuple:
@@ -112,3 +79,12 @@ class Utils(object):
 			if message.sender_chat.title:
 				return message.sender_chat.title
 		return ''
+	
+	@staticmethod
+	def compute_leftover(urls: list, message: str) -> str:
+		msg_leftover = ""
+		if len(message) > sum(len(u) for u in urls):
+			msg_leftover = message
+			for u in urls:
+				msg_leftover = msg_leftover.replace(u, '')
+		return msg_leftover.strip()

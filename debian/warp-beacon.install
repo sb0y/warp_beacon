@@ -1,4 +1,5 @@
 etc/warp_beacon.service /lib/systemd/system
 etc/warp_beacon.conf /etc/warp_beacon
 etc/accounts.json /var/warp_beacon
+etc/proxies.json /var/warp_beacon
 assets/placeholder.gif /var/warp_beacon

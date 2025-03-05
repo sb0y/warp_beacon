@@ -17,11 +17,13 @@ from instagrapi.mixins.story import Story
 #from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
-from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, ChallengeSelfieCaptcha, UnknownError as IGUnknownError
+from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
+	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
+from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.telegram.utils import Utils
 
 import logging
@@ -32,11 +34,16 @@ class InstagramScraper(ScraperAbstract):
 	cl = None
 	inst_session_file = ""
 
-	def __init__(self, account: tuple) -> None:
-		super().__init__(account)
+	def __init__(self, account: tuple, proxy: dict=None) -> None:
+		super().__init__(account, proxy)
 		#
 		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
 		self.cl = Client()
+		if self.proxy:
+			proxy_dsn = self.proxy.get("dsn", "")
+			if proxy_dsn:
+				self.cl.set_proxy(proxy_dsn)
+				logging.info("Using proxy DSN '%s'", proxy_dsn)
 		#self.cl.logger.setLevel(logging.DEBUG)
 		self.setup_device()
 		self.cl.challenge_code_handler = self.challenge_code_handler
@@ -139,7 +146,7 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
-			except (ChallengeRequired, ChallengeSelfieCaptcha) as e:
+			except (ChallengeRequired, ChallengeSelfieCaptcha, ChallengeUnknownStep) as e:
 				logging.warning("Instagram wants Challange!")
 				logging.exception(e)
 				raise CaptchaIssue("a captcha issue arose")
@@ -235,11 +242,11 @@ class InstagramScraper(ScraperAbstract):
 
 		return {"media_type": JobType.COLLECTION, "items": chunks}
 
-	def download(self, url: str) -> Optional[list[dict]]:
+	def download(self, job: DownloadJob) -> Optional[list[dict]]:
 		res = []
 		while True:
 			try:
-				scrap_type, media_id = self.scrap(url)
+				scrap_type, media_id = self.scrap(job.url)
 				if scrap_type == "media":
 					media_info = self._download_hndlr(self.cl.media_info, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)

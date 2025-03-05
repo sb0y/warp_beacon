@@ -43,6 +43,3 @@ class YoutubeShortsScraper(YoutubeAbstract):
 		})
 
 		return res
-
-	def download(self, url: str) -> list:
-		return self._download_hndlr(self._download, url)

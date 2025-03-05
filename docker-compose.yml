@@ -3,7 +3,7 @@ networks:
     enable_ipv6: true
 services:
   mongo:
-    image: mongo:4.4.18
+    image: mongo
     restart: always
     container_name: mongodb
     ports:
