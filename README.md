@@ -36,12 +36,16 @@ TG_BOT_ADMIN_USERNAME=""
 ###
 INSTAGRAM_LOGIN="instagram login (email or cell phone)"
 INSTAGRAM_PASSWORD="instgram password"
-INSTAGRAM_VERIFICATION_CODE="instagram 2FA if required, default empty"
 MONGODB_HOST="mongodb"
 MONGODB_PORT="27017"
 MONGODB_USER="root"
 MONGODB_PASSWORD="changeme"
-VIDEO_STORAGE_DIR="/var/warp_beacon/videos"
+# more information about accounts.json and proxies.json
+# can be found in project wiki
+# https://github.com/sb0y/warp_beacon/wiki/Introduction-in-account.json-file
+SERVICE_ACCOUNTS_FILE=/var/warp_beacon/accounts.json
+PROXY_FILE=/var/warp_beacon/proxies.json
+
 # workers settings
 # default: min(32, os.cpu_count() + 4)
 #TG_WORKERS_POOL_SIZE=3
