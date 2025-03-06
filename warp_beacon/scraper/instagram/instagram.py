@@ -33,6 +33,7 @@ INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 class InstagramScraper(ScraperAbstract):
 	cl = None
 	inst_session_file = ""
+	timeline_cursor = {}
 
 	def __init__(self, account: tuple, proxy: dict=None) -> None:
 		super().__init__(account, proxy)
@@ -71,9 +72,11 @@ class InstagramScraper(ScraperAbstract):
 		})
 
 	def safe_write_session(self) -> None:
+		cl_settings = self.cl.get_settings()
+		cl_settings["warp_timeline_cursor"] = self.timeline_cursor
 		tmp_fname = "%s~" % self.inst_session_file
 		with open(tmp_fname, 'w+', encoding="utf-8") as f:
-			f.write(json.dumps(self.cl.get_settings()))
+			f.write(json.dumps(cl_settings))
 		if os.path.exists(self.inst_session_file):
 			os.unlink(self.inst_session_file)
 		os.rename(tmp_fname, self.inst_session_file)
@@ -81,7 +84,12 @@ class InstagramScraper(ScraperAbstract):
 	def load_session(self) -> None:
 		if os.path.exists(self.inst_session_file):
 			logging.info("Loading existing session file '%s'", self.inst_session_file)
-			self.cl.load_settings(self.inst_session_file)
+			with open(self.inst_session_file, 'r', encoding="utf-8") as f:
+				js = json.loads(f.read())
+				if "warp_timeline_cursor" in js:
+					self.timeline_cursor = js.get("warp_timeline_cursor", {})
+					del js["warp_timeline_cursor"]
+				self.cl.set_settings(js)
 		else:
 			self._download_hndlr(self.login)
 
@@ -94,7 +102,7 @@ class InstagramScraper(ScraperAbstract):
 
 	def validate_session(self) -> None:
 		self.load_session()
-		self._download_hndlr(self.cl.get_timeline_feed)
+		self.timeline_cursor = self._download_hndlr(self.cl.get_timeline_feed, "pull_to_refresh", self.timeline_cursor.get("next_max_id", None))
 		self._download_hndlr(self.cl.get_reels_tray_feed, "pull_to_refresh")
 		self._download_hndlr(self.cl.direct_active_presence)
 		self._download_hndlr(self.cl.reels)
