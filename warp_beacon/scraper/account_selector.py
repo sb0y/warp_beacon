@@ -1,4 +1,5 @@
 import os
+import random
 import json
 import re
 from typing import Optional
@@ -44,11 +45,16 @@ class AccountSelector(object):
 		if self.proxies:
 			try:
 				current_acc_pid = self.get_current()[1].get("proxy_id", "").strip()
+				matched_proxy = []
 				for proxy in self.proxies:
 					pid = proxy.get("id", "").strip()
 					if pid and current_acc_pid and pid == current_acc_pid:
 						logging.info("Account proxy matched '%s'", proxy)
-						return proxy
+						matched_proxy.append(proxy)
+				if matched_proxy:
+					prox_choice = random.choice(matched_proxy)
+					logging.info("Chosen proxy: '%s'", prox_choice)
+					return prox_choice
 			except Exception as e:
 				logging.warning("Error on selecting account proxy!")
 				logging.exception(e)
