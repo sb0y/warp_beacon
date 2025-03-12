@@ -51,7 +51,7 @@ class AccountSelector(object):
 					pid = proxy.get("id", "").strip()
 					if pid and current_acc_pid and pid == current_acc_pid:
 						if "override_force_ipv6" in proxy:
-							self.accounts[self.current_module_name][acc_id] = proxy.get("override_force_ipv6", False)
+							self.accounts[self.current_module_name][acc_id]["force_ipv6"] = proxy.get("override_force_ipv6", False)
 						logging.info("Account proxy matched '%s'", proxy)
 						matched_proxy.append(proxy)
 				if matched_proxy:
