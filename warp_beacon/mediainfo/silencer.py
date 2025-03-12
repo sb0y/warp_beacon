@@ -1,5 +1,4 @@
-
-#import numpy as np
+import numpy as np
 import av
 
 from warp_beacon.mediainfo.video import VideoInfo
@@ -28,10 +27,14 @@ class Silencer(VideoInfo):
 						if packet:
 							out_container.mux(packet)
 							#
-							aframe = av.AudioFrame(samples=64, format='s16')
+							silent_samples = 64
+							silent_data = np.zeros((1, silent_samples), dtype=np.int16)
+							#aframe = av.AudioFrame(samples=64, format='s16')
+							aframe = av.AudioFrame.from_ndarray(silent_data, layout='mono')
 							aframe.pts = frame.pts
-							aframe.sample_rate = 16000
-							aframe.rate = 44100
+							aframe.sample_rate = 44100
+							#aframe.rate = 44100
+
 							for packet in out_audio_stream.encode(aframe):
 								out_container.mux(packet)
 
