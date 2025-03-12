@@ -41,7 +41,7 @@ class Handlers(object):
 				media_type=JobType[d["media_type"].upper()],
 				message_id=message.id,
 				chat_type=message.chat.type,
-				source_username=Utils.extract_message_author(message)
+				source_username=await Utils.extract_message_author(client, message.chat.id, message)
 			)
 		)
 
@@ -138,6 +138,7 @@ class Handlers(object):
 		urls, msg_leftover = [], ''
 		if urls_raw:
 			msg_leftover = Utils.compute_leftover(urls_raw, message_text)
+			msg_leftover = Utils.handle_mentions(chat.id, client, msg_leftover)
 			# remove duplicates
 			urls = list(set(urls_raw))
 
@@ -175,7 +176,7 @@ class Handlers(object):
 								media_type=JobType.COLLECTION,
 								chat_id=chat.id,
 								chat_type=message.chat.type,
-								source_username=Utils.extract_message_author(message),
+								source_username=await Utils.extract_message_author(client, chat.id, message),
 								message_leftover=msg_leftover
 							)
 						)
@@ -190,7 +191,7 @@ class Handlers(object):
 								media_type=media_type,
 								chat_id=chat.id,
 								chat_type=message.chat.type,
-								source_username=Utils.extract_message_author(message),
+								source_username=await Utils.extract_message_author(client, chat.id, message),
 								canonical_name=canonical_name,
 								message_leftover=msg_leftover
 							)
@@ -203,7 +204,7 @@ class Handlers(object):
 							in_process=self.bot.uploader.is_inprocess(uniq_id),
 							uniq_id=uniq_id,
 							job_origin=origin,
-							source_username=Utils.extract_message_author(message),
+							source_username=await Utils.extract_message_author(client, chat.id, message),
 							chat_type=chat.type,
 							message_leftover=msg_leftover
 						)):

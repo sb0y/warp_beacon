@@ -1,8 +1,10 @@
-from typing import Union
+from typing import Union, Optional
 
 import re
 
+from pyrogram import Client
 from pyrogram.types import Message
+from pyrogram.types import ChatMember
 
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
@@ -11,6 +13,7 @@ import logging
 
 class Utils(object):
 	expected_patronum_compiled_re = re.compile(r'Expected ([A-Z]+), got ([A-Z]+) file id instead')
+	mention_re = re.compile(r'@[A-Za-z0-9_.]{4,}')
 
 	@staticmethod
 	def extract_file_id(message: Message) -> Union[None, str]:
@@ -67,19 +70,20 @@ class Utils(object):
 		return ''
 
 	@staticmethod
-	def extract_message_author(message: Message) -> str:
+	async def extract_message_author(client: Client, chat_id: int, message: Message) -> str:
 		if message.from_user:
 			if message.from_user.username:
 				return message.from_user.username
 			if message.from_user.id:
-				return str(message.from_user.id)
+				member = await Utils.find_chat_user_by_id(client, chat_id, message.from_user.id)
+				return f'<a href="tg://user?id={member.user.id}">{member.user.username}</a>'
 		if message.sender_chat:
 			if message.sender_chat.username:
 				return message.sender_chat.username
 			if message.sender_chat.title:
 				return message.sender_chat.title
 		return ''
-	
+
 	@staticmethod
 	def compute_leftover(urls: list, message: str) -> str:
 		msg_leftover = ""
@@ -88,3 +92,34 @@ class Utils(object):
 			for u in urls:
 				msg_leftover = msg_leftover.replace(u, '')
 		return msg_leftover.strip()
+	
+	@staticmethod
+	async def find_chat_user_by_id(client: Client, chat_id: int, user_id: int) -> Optional[ChatMember]:
+		ret = None
+		async for member in client.get_chat_members(chat_id):
+			user_id = 0
+			if member.user.id == user_id:
+				ret = member.user
+				break
+		return ret
+
+	@staticmethod
+	def handle_mentions(chat_id: int, client: Client, message: str) -> str:
+		try:
+			username = ''
+			members = client.get_chat_members(chat_id)
+			mentions = Utils.mention_re.findall(message)
+			for mention in mentions:
+				username = mention[1:].strip()
+				if username:
+					user_id = 0
+					for member in members:
+						if member.user.username == username:
+							user_id = member.user.id
+							break
+					if user_id:
+						message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{username}</a>')
+		except Exception as e:
+			logging.warning("Exception occurred while handling TG mentions!")
+			logging.exception(e)
+		return message
