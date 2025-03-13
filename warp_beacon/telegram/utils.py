@@ -71,7 +71,7 @@ class Utils(object):
 		return ''
 
 	@staticmethod
-	async def extract_message_author(message: Message) -> str:
+	def extract_message_author(message: Message) -> str:
 		if message.from_user:
 			if message.from_user.username:
 				return message.from_user.username
