@@ -167,7 +167,10 @@ class Bot(object):
 				caption += job.message_leftover
 				caption += "\n—\n"
 			if job.source_username:
-				caption += f"Requested by <b>@{job.source_username}</b>"
+				if job.source_username.startswith("<a href="):
+					caption += f"Requested by <b>{job.source_username}</b>"
+				else:
+					caption += f"Requested by <b>@{job.source_username}</b>"
 			if job.source_username and job.url:
 				caption += " | "
 			if job.url:
@@ -333,7 +336,6 @@ class Bot(object):
 		else:
 			args["disable_notification"] = True
 			args["reply_to_message_id"] = job.message_id
-			#args["reply_to_message_id"] = None
 
 		if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type is not JobType.COLLECTION:
 			args["reply_markup"] = InlineKeyboardMarkup([[InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E"))]])

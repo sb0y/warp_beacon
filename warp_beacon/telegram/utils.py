@@ -5,6 +5,7 @@ import re
 from pyrogram import Client
 from pyrogram.types import Message
 from pyrogram.types import ChatMember
+from pyrogram import enums
 
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
@@ -16,7 +17,7 @@ class Utils(object):
 	mention_re = re.compile(r'@[A-Za-z0-9_.]{4,}')
 
 	@staticmethod
-	def extract_file_id(message: Message) -> Union[None, str]:
+	def extract_file_id(message: Message) -> Optional[str]:
 		possible_attrs = ("video", "photo", "audio", "animation", "document")
 		for attr in possible_attrs:
 			if hasattr(message, attr):
@@ -70,13 +71,14 @@ class Utils(object):
 		return ''
 
 	@staticmethod
-	async def extract_message_author(client: Client, chat_id: int, message: Message) -> str:
+	async def extract_message_author(message: Message) -> str:
 		if message.from_user:
 			if message.from_user.username:
 				return message.from_user.username
+			if message.from_user.first_name:
+				return message.from_user.first_name
 			if message.from_user.id:
-				member = await Utils.find_chat_user_by_id(client, chat_id, message.from_user.id)
-				return f'<a href="tg://user?id={member.user.id}">{member.user.username}</a>'
+				return str(message.from_user.mention(style=enums.ParseMode.HTML))
 		if message.sender_chat:
 			if message.sender_chat.username:
 				return message.sender_chat.username
