@@ -138,7 +138,7 @@ class Handlers(object):
 		urls, msg_leftover = [], ''
 		if urls_raw:
 			msg_leftover = Utils.compute_leftover(urls_raw, message_text)
-			msg_leftover = Utils.handle_mentions(chat.id, client, msg_leftover)
+			msg_leftover = await Utils.handle_mentions(chat.id, client, msg_leftover)
 			# remove duplicates
 			urls = list(set(urls_raw))
 

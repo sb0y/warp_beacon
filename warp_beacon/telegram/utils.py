@@ -106,21 +106,22 @@ class Utils(object):
 		return ret
 
 	@staticmethod
-	def handle_mentions(chat_id: int, client: Client, message: str) -> str:
+	async def handle_mentions(chat_id: int, client: Client, message: str) -> str:
 		try:
 			username = ''
-			members = client.get_chat_members(chat_id)
-			mentions = Utils.mention_re.findall(message)
-			for mention in mentions:
-				username = mention[1:].strip()
-				if username:
-					user_id = 0
-					for member in members:
-						if member.user.username == username:
-							user_id = member.user.id
-							break
-					if user_id:
-						message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{username}</a>')
+			async with client:
+				members = client.get_chat_members(chat_id)
+				mentions = Utils.mention_re.findall(message)
+				async for mention in mentions:
+					username = mention[1:].strip()
+					if username:
+						user_id = 0
+						async for member in members:
+							if member.user.username == username:
+								user_id = member.user.id
+								break
+						if user_id:
+							message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{username}</a>')
 		except Exception as e:
 			logging.warning("Exception occurred while handling TG mentions!")
 			logging.exception(e)
