@@ -122,13 +122,24 @@ class Utils(object):
 			for mention in mentions:
 				username = mention[1:].strip()
 				if username:
-					user_id = 0
+					user_id = None
+					display_name = username
+
 					for member in members:
-						if member.user.username == username:
+						if member.user.username and member.user.username.lower() == username.lower():
 							user_id = member.user.id
+							display_name = member.user.first_name or member.user.last_name or username
 							break
+
+					if user_id is None:
+						for member in members:
+							if member.user.first_name and member.user.first_name.lower() == username.lower():
+								user_id = member.user.id
+								display_name = member.user.first_name
+								break
+
 					if user_id:
-						message = message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{username}</a>')
+						message = message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{display_name}</a>')
 		except Exception as e:
 			logging.warning("Exception occurred while handling TG mentions!")
 			logging.exception(e)
