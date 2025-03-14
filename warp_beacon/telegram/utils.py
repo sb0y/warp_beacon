@@ -109,13 +109,13 @@ class Utils(object):
 	async def handle_mentions(chat_id: int, client: Client, message: str) -> str:
 		try:
 			username = ''
-			members = client.get_chat_members(chat_id)
+			members = [member async for member in client.get_chat_members(chat_id)]
 			mentions = Utils.mention_re.findall(message)
 			for mention in mentions:
 				username = mention[1:].strip()
 				if username:
 					user_id = 0
-					async for member in members:
+					for member in members:
 						if member.user.username == username:
 							user_id = member.user.id
 							break
