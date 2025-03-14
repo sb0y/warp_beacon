@@ -3,8 +3,7 @@ from typing import Union, Optional
 import re
 
 from pyrogram import Client
-from pyrogram.types import Message
-from pyrogram.types import ChatMember
+from pyrogram.types import Message, ChatMember
 from pyrogram import enums
 
 from warp_beacon.jobs import Origin
@@ -108,6 +107,15 @@ class Utils(object):
 	@staticmethod
 	async def handle_mentions(chat_id: int, client: Client, message: str) -> str:
 		try:
+			logging.info("Processing chat_id: '%s'", str(chat_id))
+			chat = await client.get_chat(chat_id)
+			chat_id = chat.id
+
+			chat_member = await client.get_chat_member(chat_id, client.me.id)
+			if chat_member.status not in (enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER):
+				logging.warning("Bot is not an admin in this channel!")
+				return message
+
 			username = ''
 			members = [member async for member in client.get_chat_members(chat_id)]
 			mentions = Utils.mention_re.findall(message)
@@ -120,7 +128,7 @@ class Utils(object):
 							user_id = member.user.id
 							break
 					if user_id:
-						message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{username}</a>')
+						message = message.replace(f"@{username}", f'<a href="tg://user?id={user_id}">{username}</a>')
 		except Exception as e:
 			logging.warning("Exception occurred while handling TG mentions!")
 			logging.exception(e)
