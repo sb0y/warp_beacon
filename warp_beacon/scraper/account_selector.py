@@ -1,4 +1,5 @@
 import os
+import time
 import random
 import json
 import re
@@ -55,6 +56,7 @@ class AccountSelector(object):
 						logging.info("Account proxy matched '%s'", proxy)
 						matched_proxy.append(proxy)
 				if matched_proxy:
+					random.seed(random.seed(time.time_ns() ^ int.from_bytes(os.urandom(len(matched_proxy)), "big")))
 					prox_choice = random.choice(matched_proxy)
 					logging.info("Chosen proxy: '%s'", prox_choice)
 					return prox_choice
