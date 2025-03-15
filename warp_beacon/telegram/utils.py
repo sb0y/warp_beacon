@@ -71,19 +71,19 @@ class Utils(object):
 
 	@staticmethod
 	def extract_message_author(message: Message) -> str:
-		if message.from_user:
-			if message.from_user.username:
-				return message.from_user.username
-			if message.from_user.first_name:
-				return message.from_user.first_name
-			if message.from_user.id:
-				return str(message.from_user.mention(style=enums.ParseMode.HTML))
-		if message.sender_chat:
-			if message.sender_chat.username:
-				return message.sender_chat.username
-			if message.sender_chat.title:
-				return message.sender_chat.title
-		return ''
+		#if message.from_user:
+		#	if message.from_user.username:
+		#		return message.from_user.username
+		#	if message.from_user.first_name:
+		#		return message.from_user.first_name
+		#	if message.from_user.id:
+		return str(message.from_user.mention(style=enums.ParseMode.HTML))
+		#if message.sender_chat:
+		#	if message.sender_chat.username:
+		#		return message.sender_chat.username
+		#	if message.sender_chat.title:
+		#		return message.sender_chat.title
+		#return ''
 
 	@staticmethod
 	def compute_leftover(urls: list, message: str) -> str:
@@ -107,6 +107,10 @@ class Utils(object):
 	@staticmethod
 	async def handle_mentions(chat_id: int, client: Client, message: str) -> str:
 		try:
+			mentions = Utils.mention_re.findall(message)
+			if not mentions:
+				return message
+
 			logging.info("Processing chat_id: '%s'", str(chat_id))
 			chat = await client.get_chat(chat_id)
 			chat_id = chat.id
@@ -118,7 +122,6 @@ class Utils(object):
 
 			username = ''
 			members = [member async for member in client.get_chat_members(chat_id)]
-			mentions = Utils.mention_re.findall(message)
 			for mention in mentions:
 				username = mention[1:].strip()
 				if username:
