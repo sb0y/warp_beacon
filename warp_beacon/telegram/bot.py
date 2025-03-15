@@ -257,7 +257,6 @@ class Bot(object):
 					args["duration"] = round(job.media_info["duration"])
 					args["title"] = job.canonical_name
 					args["caption"] = self.build_signature_caption(job)
-				#args["file_name"] = "%s%s" % (job.canonical_name, os.path.splitext(job.local_media_path)[-1]),
 		elif job.media_type == JobType.ANIMATION:
 			if job.tg_file_id:
 				if job.placeholder_message_id:

@@ -14,7 +14,7 @@ import urllib3
 from urllib.parse import urljoin, urlparse
 
 from instagrapi.mixins.story import Story
-#from instagrapi.types import Media
+from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
@@ -187,19 +187,20 @@ class InstagramScraper(ScraperAbstract):
 
 		return ret_val
 
-	def download_video(self, url: str, media_info: dict) -> dict:
+	def download_video(self, url: str, media_info: Media) -> dict:
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
 		path = self._download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
-		return {"local_media_path": str(path), "media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration)}}
+		return {"local_media_path": str(path), "canonical_name": self.extract_canonical_name(media_info), \
+			"media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration)}}
 
-	def download_photo(self, url: str) -> dict:
+	def download_photo(self, url: str, media_info: Media) -> dict:
 		path = str(self._download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
 		path_lowered = path.lower()
 		if ".webp" in path_lowered:
 			path = InstagramScraper.convert_webp_to_png(path)
 		if ".heic" in path_lowered:
 			path = InstagramScraper.convert_heic_to_png(path)
-		return {"local_media_path": path, "media_type": JobType.IMAGE}
+		return {"local_media_path": path, "canonical_name": self.extract_canonical_name(media_info), "media_type": JobType.IMAGE}
 	
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", JobType.UNKNOWN, {}
@@ -236,19 +237,32 @@ class InstagramScraper(ScraperAbstract):
 
 		return {"media_type": JobType.COLLECTION, "save_items": True, "items": chunks}
 
-	def download_album(self, media_info: dict) -> dict:
+	def download_album(self, media_info: Media) -> dict:
 		chunks = []
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
 				_media_info = self._download_hndlr(self.cl.media_info, media.pk)
 				if media.media_type == 1: # photo
-					chunk.append(self.download_photo(url=_media_info.thumbnail_url))
+					chunk.append(self.download_photo(url=_media_info.thumbnail_url, media_info=_media_info))
 				elif media.media_type == 2: # video
 					chunk.append(self.download_video(url=_media_info.video_url, media_info=_media_info))
 			chunks.append(chunk)
 
 		return {"media_type": JobType.COLLECTION, "items": chunks}
+
+	def extract_canonical_name(self, media: Media) -> str:
+		ret = ""
+		try:
+			if media.title:
+				ret = media.title
+			if media.caption_text:
+				ret += "\n" + media.caption_text
+		except Exception as e:
+			logging.warning("Failed to extract canonical media name!")
+			logging.exception(e)
+
+		return ret
 
 	def download(self, job: DownloadJob) -> Optional[list[dict]]:
 		res = []
@@ -261,7 +275,7 @@ class InstagramScraper(ScraperAbstract):
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
 					elif media_info.media_type == 1: # Photo
-						res.append(self.download_photo(url=media_info.thumbnail_url))
+						res.append(self.download_photo(url=media_info.thumbnail_url, media_info=media_info))
 					elif media_info.media_type == 8: # Album
 						res.append(self.download_album(media_info=media_info))
 				elif scrap_type == "story":
