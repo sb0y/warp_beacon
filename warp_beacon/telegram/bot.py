@@ -173,7 +173,7 @@ class Bot(object):
 			# Captions only for YouTube in groups; empty otherwise.
 			# Might be too long for Telegram, so we skip them.
 			if is_youtube and is_group:
-				caption = f"<b>{caption}</b>"
+				caption = f"<b>{html.escape(job.canonical_name)}</b>"
 		if is_group:
 			if job.canonical_name:
 				caption += "\n—\n"
