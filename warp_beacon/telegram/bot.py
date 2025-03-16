@@ -1,5 +1,6 @@
 import os
 import signal
+from typing import Optional
 
 import html
 
@@ -167,7 +168,8 @@ class Bot(object):
 				caption = f"{html.escape(CaptionShortner.smart_truncate_html(job.canonical_name))} ..."
 				job.short_text = True
 			else:
-				caption = f"<b>{html.escape(job.canonical_name)}</b>"
+				#caption = f"<b>{html.escape(job.canonical_name)}</b>"
+				return "" # may be too long so empty, no needed
 		if is_group:
 			if job.canonical_name:
 				caption += "\n—\n"
@@ -347,6 +349,7 @@ class Bot(object):
 		if job.media_type is not JobType.COLLECTION:
 			render_donates = os.environ.get("ENABLE_DONATES", None) == "true"
 			keyboard_buttons = [[]]
+			# short_text is True only for groups
 			if job.short_text:
 				keyboard_buttons[0].append(InlineKeyboardButton("📖 Read more", callback_data=f"read_more:{job.job_origin.value}:{job.uniq_id}"))
 			if render_donates:
@@ -417,10 +420,9 @@ class Bot(object):
 							elif msg.photo:
 								tg_file_ids.append(msg.photo.file_id + ':image')
 					logging.info("Uploaded to Telegram")
-					#TODO send message with caption if request from private chat
-					#if job.chat_type not in (ChatType.GROUP, ChatType.SUPERGROUP):
-					#	if job.canonical_name:
-					#		self.client.send_message()
+					if job.chat_type not in (ChatType.GROUP, ChatType.SUPERGROUP):
+						if job.canonical_name:
+							await self.send_text(chat_id=job.user_id, text=job.canonical_name)
 					break
 				except MultiMediaTooLong as e:
 					logging.error("Failed to upload due telegram limitations :(")

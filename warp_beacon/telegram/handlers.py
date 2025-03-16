@@ -38,6 +38,7 @@ class Handlers(object):
 			UploadJob(
 				tg_file_id=d["tg_file_id"],
 				chat_id=message.chat.id,
+				user_id=message.from_user.id,
 				media_type=JobType[d["media_type"].upper()],
 				message_id=message.id,
 				chat_type=message.chat.type,
@@ -179,6 +180,7 @@ class Handlers(object):
 								message_id=effective_message_id,
 								media_type=JobType.COLLECTION,
 								chat_id=chat.id,
+								user_id=message.from_user.id,
 								chat_type=message.chat.type,
 								source_username=Utils.extract_message_author(message),
 								message_leftover=msg_leftover
@@ -196,6 +198,7 @@ class Handlers(object):
 								message_id=effective_message_id,
 								media_type=media_type,
 								chat_id=chat.id,
+								user_id=message.from_user.id,
 								chat_type=message.chat.type,
 								source_username=Utils.extract_message_author(message),
 								canonical_name=canonical_name,
@@ -207,6 +210,7 @@ class Handlers(object):
 							url=url,
 							message_id=effective_message_id,
 							chat_id=chat.id,
+							user_id=message.from_user.id,
 							in_process=self.bot.uploader.is_inprocess(uniq_id),
 							uniq_id=uniq_id,
 							job_origin=origin,
