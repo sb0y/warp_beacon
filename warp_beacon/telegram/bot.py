@@ -170,6 +170,9 @@ class Bot(object):
 			if is_group and not is_youtube and CaptionShortner.need_short(job.canonical_name):
 				caption = f"{html.escape(CaptionShortner.smart_truncate_html(job.canonical_name))} ..."
 				job.short_text = True
+			elif is_group:
+				# short enough
+				caption = html.escape(job.canonical_name)
 			# Captions only for YouTube in groups; empty otherwise.
 			# Might be too long for Telegram, so we skip them.
 			if is_youtube and is_group:
