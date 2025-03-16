@@ -245,11 +245,27 @@ class Handlers(object):
 			first_entity = db_results[0]
 
 		try:
+			text = first_entity.get("canonical_name", "Failed to fetch data.")
+			if len(text) > 200:
+				text = text[:134] + "... \nText exceeds Telegram's limits. Use 'source link' in message."
 			await client.answer_callback_query(
 				callback_query_id=query.id,
 				show_alert=True,
-				text=first_entity.get("canonical_name", "Failed to fetch data.")
+				text=text
 			)
 		except Exception as e:
-			logging.warning("read_more_handler: Failed for uniq_id='%s', origin='%s", uniq_id, origin)
+			logging.warning("read_more_handler: Failed for uniq_id='%s', origin='%s'", uniq_id, origin)
 			logging.exception(e)
+
+			try:
+				error_text = str(e)
+				if len(error_text) > 200:
+					error_text = error_text[:197] + "..."
+
+				await client.answer_callback_query(
+					callback_query_id=query.id,
+					show_alert=True,
+					text=error_text
+				)
+			except Exception as _:
+				pass
