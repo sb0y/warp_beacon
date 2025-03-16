@@ -103,8 +103,8 @@ class AccountSelector(object):
 	def bump_acc_fail(self, key: str, amount: int = 1) -> int:
 		try:
 			idx = self.account_index[self.current_module_name].value
-			self.accounts_meta_data[idx][key] += amount
-			return self.accounts_meta_data[idx][key]
+			self.accounts_meta_data[self.current_module_name][idx][key] += amount
+			return self.accounts_meta_data[self.current_module_name][idx][key]
 		except Exception as e:
 			logging.warning("Failed to record fail stats")
 			logging.exception(e)
