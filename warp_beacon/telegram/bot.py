@@ -347,7 +347,7 @@ class Bot(object):
 			render_donates = os.environ.get("ENABLE_DONATES", None) == "true"
 			keyboard_buttons = [[]]
 			if job.short_text:
-				keyboard_buttons[0].append(InlineKeyboardButton("📖 Read more", callback_data=f"read_more:{job.job_origin}:{job.uniq_id}"))
+				keyboard_buttons[0].append(InlineKeyboardButton("📖 Read more", callback_data=f"read_more:{job.job_origin.value}:{job.uniq_id}"))
 			if render_donates:
 				keyboard_buttons[0].append(InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E")))
 

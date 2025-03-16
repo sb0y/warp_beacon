@@ -41,6 +41,8 @@ class Handlers(object):
 				media_type=JobType[d["media_type"].upper()],
 				message_id=message.id,
 				chat_type=message.chat.type,
+				uniq_id=d["uniq_id"],
+				job_origin=Origin(d["origin"]),
 				source_username=Utils.extract_message_author(message)
 			)
 		)
@@ -171,6 +173,8 @@ class Handlers(object):
 						await self.bot.upload_job(
 							UploadJob(
 								url=url,
+								uniq_id=uniq_id,
+								job_origin=origin,
 								tg_file_id=",".join(tg_file_ids),
 								message_id=effective_message_id,
 								media_type=JobType.COLLECTION,
@@ -186,6 +190,8 @@ class Handlers(object):
 						await self.bot.upload_job(
 							UploadJob(
 								url=url,
+								uniq_id=uniq_id,
+								job_origin=origin,
 								tg_file_id=tg_file_ids.pop(),
 								message_id=effective_message_id,
 								media_type=media_type,
@@ -230,7 +236,7 @@ class Handlers(object):
 			parts = query.data.split(':')
 			if len(parts) == 3:
 				_, origin, uniq_id = parts
-		logging.info("Handling read_more request: uniq_id='%s', origin='%s", uniq_id, origin)
+		logging.info("Handling read_more request: uniq_id='%s', origin='%s'", uniq_id, origin)
 		db_results = []
 		if uniq_id and origin:
 			db_results = self.storage.db_find(uniq_id=uniq_id.strip(), origin=origin.strip())

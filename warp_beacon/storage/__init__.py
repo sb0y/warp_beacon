@@ -117,6 +117,3 @@ class Storage(object):
 			logging.error("Error occurred while trying to read from the database!")
 			logging.exception(e)
 		return ret
-
-
-
