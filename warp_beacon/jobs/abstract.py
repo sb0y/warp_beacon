@@ -44,6 +44,7 @@ class JobSettings(TypedDict):
 	job_postponed_until: int
 	message_leftover: str
 	replay: bool
+	short_text: bool
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -80,6 +81,7 @@ class AbstractJob(ABC):
 	job_postponed_until: int = -1
 	message_leftover: str = ""
 	replay: bool = False
+	short_text: bool = False
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

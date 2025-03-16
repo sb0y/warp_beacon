@@ -64,6 +64,7 @@ setup(
 		"warp_beacon/telegram/placeholder_message",
 		"warp_beacon/telegram/handlers",
 		"warp_beacon/telegram/utils",
+		"warp_beacon/telegram/caption_shortener",
 		"warp_beacon/jobs/abstract",
 		"warp_beacon/jobs/download_job",
 		"warp_beacon/jobs/upload_job",

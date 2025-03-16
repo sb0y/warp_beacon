@@ -10,3 +10,4 @@ urlextract
 pillow
 pymongo
 instagrapi==2.0.0
+bs4

@@ -24,7 +24,8 @@ dependencies = [
 	"urlextract",
 	"pillow",
 	"pymongo",
-	"instagrapi == 2.0.0"
+	"instagrapi == 2.0.0",
+	"bs4"
 ]
 keywords = ["bot", "telegram", "instagram", "export"]
 classifiers = [

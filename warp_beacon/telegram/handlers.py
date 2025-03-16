@@ -221,3 +221,27 @@ class Handlers(object):
 		)
 		self.bot.downloader.auth_event.set()
 		self.bot.downloader.auth_event.clear()
+
+	async def read_more_handler(self, client: Client, query: CallbackQuery) -> None:
+		origin, uniq_id = '', ''
+		#read_more:{job.job_origin}:{job.uniq_id}
+		if query.data:
+			parts = query.data.split(':')
+			if len(parts) == 3:
+				_, origin, uniq_id = parts
+		db_results = []
+		if uniq_id and origin:
+			db_results = self.storage.db_find(uniq_id=uniq_id.strip(), origin=origin.strip())
+		first_entity = {}
+		if db_results:
+			first_entity = db_results[0]
+
+		try:
+			await client.answer_callback_query(
+				callback_query_id=query.id,
+				show_alert=True,
+				text=first_entity.get("canonical_name", "Failed to fetch data.")
+			)
+		except Exception as e:
+			logging.warning("read_more_handler: Failed for uniq_id='%s', origin='%s", uniq_id, origin)
+			logging.exception(e)

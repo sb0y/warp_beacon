@@ -52,12 +52,15 @@ class Storage(object):
 		path = urlparse(url).path.strip('/')
 		return path
 	
-	def db_find(self, uniq_id: str) -> list[dict]:
+	def db_find(self, uniq_id: str, origin: str = "") -> list[dict]:
 		document = None
 		ret = []
 		try:
 			logging.debug("uniq_id to search is '%s'", uniq_id)
-			cursor = self.db.find({"uniq_id": uniq_id})
+			find_opts = {"uniq_id": uniq_id}
+			if origin:
+				find_opts["origin"] = origin
+			cursor = self.db.find(find_opts)
 			for document in cursor:
 				ret.append(
 				{

@@ -56,8 +56,15 @@ class AccountSelector(object):
 						logging.info("Account proxy matched '%s'", proxy)
 						matched_proxy.append(proxy)
 				if matched_proxy:
-					random.seed(random.seed(time.time_ns() ^ int.from_bytes(os.urandom(len(matched_proxy)), "big")))
+					if len(matched_proxy) > 1:
+						random.seed(random.seed(time.time_ns() ^ int.from_bytes(os.urandom(len(matched_proxy)), "big")))
+						# ensure new proxy in case if previous account required captcha
+						last_proxy = self.accounts.get("last_proxy", None)
+						if last_proxy and last_proxy in matched_proxy:
+							matched_proxy.remove(last_proxy)
 					prox_choice = random.choice(matched_proxy)
+					# saving chosen proxy for history
+					self.accounts["last_proxy"] = prox_choice
 					logging.info("Chosen proxy: '%s'", prox_choice)
 					return prox_choice
 			except Exception as e:

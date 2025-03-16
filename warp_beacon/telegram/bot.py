@@ -21,6 +21,7 @@ from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
 from warp_beacon.telegram.utils import Utils
+from warp_beacon.telegram.caption_shortener import CaptionShortner
 from warp_beacon.scheduler.scheduler import IGScheduler
 
 import logging
@@ -91,6 +92,8 @@ class Bot(object):
 		self.client.add_handler(MessageHandler(self.handlers.random, filters.command("random")))
 		self.client.add_handler(MessageHandler(self.handlers.handler))
 		self.client.add_handler(CallbackQueryHandler(self.handlers.simple_button_handler))
+		self.client.add_handler(CallbackQueryHandler(self.handlers.read_more_handler, filters=filters.create(lambda _, q: q.data.startswith("readmore:"))))
+
 
 		self.placeholder = PlaceholderMessage(self)
 
@@ -158,9 +161,14 @@ class Bot(object):
 
 	def build_signature_caption(self, job: UploadJob) -> str:
 		caption = ""
+		is_group = job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP)
 		if job.canonical_name:
-			caption = f"<b>{html.escape(job.canonical_name)}</b>"
-		if job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP):
+			if is_group and CaptionShortner.need_short(job.canonical_name):
+				caption = f"{html.escape(CaptionShortner.smart_truncate_html(job.canonical_name))} ..."
+				job.short_text = True
+			else:
+				caption = f"<b>{html.escape(job.canonical_name)}</b>"
+		if is_group:
 			if job.canonical_name:
 				caption += "\n—\n"
 			if job.message_leftover:
@@ -336,8 +344,16 @@ class Bot(object):
 			args["disable_notification"] = True
 			args["reply_to_message_id"] = job.message_id
 
-		if os.environ.get("ENABLE_DONATES", None) == "true" and job.media_type is not JobType.COLLECTION:
-			args["reply_markup"] = InlineKeyboardMarkup([[InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E"))]])
+		if job.media_type is not JobType.COLLECTION:
+			render_donates = os.environ.get("ENABLE_DONATES", None) == "true"
+			keyboard_buttons = [[]]
+			if job.short_text:
+				keyboard_buttons[0].append(InlineKeyboardButton("📖 Read more", callback_data=f"read_more:{job.job_origin}:{job.uniq_id}"))
+			if render_donates:
+				keyboard_buttons[0].append(InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E")))
+
+			if keyboard_buttons[0]:  #job.short_text or render_donates:
+				args["reply_markup"] = InlineKeyboardMarkup(keyboard_buttons)
 
 		return args
 
