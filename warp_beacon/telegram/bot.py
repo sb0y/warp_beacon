@@ -1,6 +1,7 @@
 import os
 import signal
-from typing import Optional
+
+import logging
 
 import html
 
@@ -21,11 +22,10 @@ from warp_beacon.storage import Storage
 from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
+from warp_beacon.jobs import Origin
 from warp_beacon.telegram.utils import Utils
 from warp_beacon.telegram.caption_shortener import CaptionShortner
 from warp_beacon.scheduler.scheduler import IGScheduler
-
-import logging
 
 class Bot(object):
 	storage = None
@@ -42,6 +42,8 @@ class Bot(object):
 		logging.basicConfig(
 			format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 		)
+
+		logging.getLogger("pyrogram").setLevel(logging.ERROR)
 
 		db_connect = DBClient()
 		self.storage = Storage(db_connect)
@@ -108,7 +110,7 @@ class Bot(object):
 		self.client.run()
 
 	def stop(self) -> None:
-		logging.info("Warp Beacon terminating. This may take a while ...")
+		logging.info("Warp Beacon is terminating. This may take a while ...")
 		self.scheduler.stop()
 		self.downloader.stop_all()
 		self.uploader.stop_all()
@@ -163,13 +165,15 @@ class Bot(object):
 	def build_signature_caption(self, job: UploadJob) -> str:
 		caption = ""
 		is_group = job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP)
+		is_youtube = job.job_origin is Origin.YOUTUBE
 		if job.canonical_name:
-			if is_group and CaptionShortner.need_short(job.canonical_name):
+			if is_group and not is_youtube and CaptionShortner.need_short(job.canonical_name):
 				caption = f"{html.escape(CaptionShortner.smart_truncate_html(job.canonical_name))} ..."
 				job.short_text = True
-			else:
-				#caption = f"<b>{html.escape(job.canonical_name)}</b>"
-				return "" # may be too long so empty, no needed
+			# Captions only for YouTube in groups; empty otherwise.
+			# Might be too long for Telegram, so we skip them.
+			if is_youtube and is_group:
+				caption = f"<b>{caption}</b>"
 		if is_group:
 			if job.canonical_name:
 				caption += "\n—\n"

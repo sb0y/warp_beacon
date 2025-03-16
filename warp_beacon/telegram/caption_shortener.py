@@ -3,7 +3,7 @@ from typing import Union
 from bs4 import NavigableString, Tag, Comment
 from bs4 import BeautifulSoup
 
-CAPTION_LENGTH_LIMIT = 85
+CAPTION_LENGTH_LIMIT = 130
 
 class CaptionShortner(object):
 	@staticmethod
