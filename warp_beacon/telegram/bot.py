@@ -91,7 +91,10 @@ class Bot(object):
 		self.client.add_handler(MessageHandler(self.handlers.help, filters.command("help")))
 		self.client.add_handler(MessageHandler(self.handlers.random, filters.command("random")))
 		self.client.add_handler(MessageHandler(self.handlers.handler))
-		self.client.add_handler(self.handlers.simple_button_handler, filters=filters.create(lambda _, q: not q.data.startswith("readmore:")))
+		self.client.add_handler(
+			self.handlers.simple_button_handler,
+			filters=filters.create(lambda _, q: not q.data.startswith("readmore:"))
+		)
 		self.client.add_handler(CallbackQueryHandler(self.handlers.read_more_handler, filters=filters.create(lambda _, q: q.data.startswith("readmore:"))))
 
 
