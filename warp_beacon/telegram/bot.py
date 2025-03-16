@@ -165,7 +165,7 @@ class Bot(object):
 	def build_signature_caption(self, job: UploadJob) -> str:
 		caption = ""
 		is_group = job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP)
-		is_youtube = job.job_origin is Origin.YOUTUBE
+		is_youtube = job.job_origin in (Origin.YOUTUBE, Origin.YT_SHORTS)
 		if job.canonical_name:
 			if is_group and not is_youtube and CaptionShortner.need_short(job.canonical_name):
 				caption = f"{html.escape(CaptionShortner.smart_truncate_html(job.canonical_name))} ..."
