@@ -230,6 +230,7 @@ class Handlers(object):
 			parts = query.data.split(':')
 			if len(parts) == 3:
 				_, origin, uniq_id = parts
+		logging.info("Handling read_more request: uniq_id='%s', origin='%s", uniq_id, origin)
 		db_results = []
 		if uniq_id and origin:
 			db_results = self.storage.db_find(uniq_id=uniq_id.strip(), origin=origin.strip())
