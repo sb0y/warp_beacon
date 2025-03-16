@@ -417,6 +417,10 @@ class Bot(object):
 							elif msg.photo:
 								tg_file_ids.append(msg.photo.file_id + ':image')
 					logging.info("Uploaded to Telegram")
+					#TODO send message with caption if request from private chat
+					#if job.chat_type not in (ChatType.GROUP, ChatType.SUPERGROUP):
+					#	if job.canonical_name:
+					#		self.client.send_message()
 					break
 				except MultiMediaTooLong as e:
 					logging.error("Failed to upload due telegram limitations :(")

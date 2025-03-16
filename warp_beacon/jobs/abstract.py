@@ -13,6 +13,7 @@ class JobSettings(TypedDict):
 	job_id: uuid.UUID
 	message_id: int
 	chat_id: int
+	user_id: int
 	placeholder_message_id: int
 	local_media_path: str
 	local_compressed_media_path: str
@@ -49,6 +50,7 @@ class JobSettings(TypedDict):
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
 	message_id: int = 0
+	user_id: int = 0
 	chat_id: int = 0
 	placeholder_message_id: int = 0
 	local_media_path: str = ""

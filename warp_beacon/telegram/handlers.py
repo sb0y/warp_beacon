@@ -243,29 +243,33 @@ class Handlers(object):
 		first_entity = {}
 		if db_results:
 			first_entity = db_results[0]
+		
+		text = first_entity.get("canonical_name", "Failed to fetch data.")
 
 		try:
-			text = first_entity.get("canonical_name", "Failed to fetch data.")
-			if len(text) > 200:
-				text = text[:133] + "... \n\nText exceeds Telegram's limits. Use 'source link' in message."
-			await client.answer_callback_query(
-				callback_query_id=query.id,
-				show_alert=True,
-				text=text
+			await client.send_message(
+				query.from_user.id,
+				text,
+				parse_mode=ParseMode.HTML
 			)
-		except Exception as e:
-			logging.warning("read_more_handler: Failed for uniq_id='%s', origin='%s'", uniq_id, origin)
-			logging.exception(e)
-
+		except Exception as _:
 			try:
-				error_text = str(e)
-				if len(error_text) > 200:
-					error_text = error_text[:197] + "..."
-
 				await client.answer_callback_query(
 					callback_query_id=query.id,
 					show_alert=True,
-					text=error_text
+					text="You haven’t messaged the bot yet. Please start the chat using the /start bot command."
 				)
-			except Exception as _:
-				pass
+			except Exception as e:
+				logging.warning("Failed to return error to user about TG restrictions!")
+				logging.exception(e)
+			return
+
+		try:
+			await client.answer_callback_query(
+				callback_query_id=query.id,
+				show_alert=True,
+				text="Check your private chat — I've sent you the message!"
+			)
+		except Exception as e:
+			logging.error("Failed to report sent message status!")
+			logging.exception(e)
