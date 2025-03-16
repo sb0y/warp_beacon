@@ -1,6 +1,7 @@
 import os
 import time
 from random import randrange
+import datetime
 import threading
 import json
 
@@ -81,6 +82,12 @@ class IGScheduler(object):
 		self.load_state()
 		while self.running:
 			try:
+				now = datetime.datetime.now()
+				if 4 <= now.hour < 7:
+					logging.info("Scheduler is paused due to night hours (4:00 - 7:00)")
+					self.event.wait(timeout=10800)
+					continue
+
 				if self.state["remaining"] <= 0:
 					self.state["remaining"] = randrange(8400, 26200)
 					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
