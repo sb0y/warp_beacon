@@ -1,15 +1,13 @@
 import os
+import logging
+from typing import Callable
+import asyncio
 import threading
 import multiprocessing
-from warp_beacon.jobs.upload_job import UploadJob
-import logging
 
-import asyncio
-
-from typing import Callable
-
-from warp_beacon.storage import Storage
 from warp_beacon.jobs.types import JobType
+from warp_beacon.jobs.upload_job import UploadJob
+from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
 	__JOE_BIDEN_WAKEUP = None
@@ -40,10 +38,9 @@ class AsyncUploader(object):
 			self.threads.append(thread)
 
 	def add_callback(self, message_id: int, callback: Callable) -> None:
-		def callback_wrap(*args, **kwargs) -> None:
-			ret = callback(*args, **kwargs)
+		async def callback_wrap(*args, **kwargs) -> None:
+			await callback(*args, **kwargs)
 			#self.remove_callback(message_id)
-			return ret
 		self.callbacks[message_id] = {"callback": callback_wrap}
 
 	def remove_callback(self, message_id: int) -> None:
@@ -83,7 +80,11 @@ class AsyncUploader(object):
 					if job is self.__JOE_BIDEN_WAKEUP:
 						break
 					if job.is_message_to_admin and job.message_text and self.admin_message_callback:
-						asyncio.ensure_future(self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth), loop=self.loop)
+						#asyncio.ensure_future(self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth), loop=self.loop)
+						self.loop.call_soon_threadsafe(
+							asyncio.create_task,
+							self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth)
+						)
 						continue
 
 					path = ""
@@ -106,20 +107,29 @@ class AsyncUploader(object):
 							if job.job_failed:
 								logging.info("URL '%s' download failed. Skipping upload job ...", job.url)
 								if job.job_failed_msg: # we want to say something to user
-									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+									self.loop.call_soon_threadsafe(
+										asyncio.create_task,
+										self.callbacks[message_id]["callback"](job)
+									)
 								self.process_done(uniq_id)
 								self.remove_callback(message_id)
 								continue
 							
 							if job.replay:
-								asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+								self.loop.call_soon_threadsafe(
+									asyncio.create_task,
+									self.callbacks[message_id]["callback"](job)
+								)
 								self.remove_callback(message_id)
 								continue
 
 							if job.job_warning:
 								logging.info("Job warning occurred ...")
 								if job.job_warning_msg:
-									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+									self.loop.call_soon_threadsafe(
+										asyncio.create_task,
+										self.callbacks[message_id]["callback"](job)
+									)
 								continue
 							if in_process:
 								db_list_dicts = self.storage.db_lookup_id(uniq_id)
@@ -131,14 +141,22 @@ class AsyncUploader(object):
 										job.media_type = JobType.COLLECTION
 									elif dlds_len:
 										job.tg_file_id = ",".join(tg_file_ids)
-										job.media_type = JobType[db_list_dicts.pop()["media_type"].upper()]
-									asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+										db_data = db_list_dicts.pop()
+										job.media_type = JobType[db_data["media_type"].upper()]
+										job.canonical_name = db_data.get("canonical_name", "")
+									self.loop.call_soon_threadsafe(
+										asyncio.create_task,
+										self.callbacks[message_id]["callback"](job)
+									)
 									self.process_done(uniq_id)
 									self.remove_callback(message_id)
 								else:
 									self.queue_task(job)
 							else:
-								asyncio.ensure_future(self.callbacks[message_id]["callback"](job), loop=self.loop)
+								self.loop.call_soon_threadsafe(
+									asyncio.create_task,
+									self.callbacks[message_id]["callback"](job)
+								)
 								self.process_done(uniq_id)
 								self.remove_callback(message_id)
 						else:
