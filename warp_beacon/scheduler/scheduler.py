@@ -89,7 +89,7 @@ class IGScheduler(object):
 					self.save_state()
 
 				if self.state["remaining"] <= 0:
-					self.state["remaining"] = randrange(8400, 26200)
+					self.state["remaining"] = randrange(4100, 22300)
 					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
 
 				start_time = time.time()
