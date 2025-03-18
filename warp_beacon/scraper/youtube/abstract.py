@@ -181,7 +181,7 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return None
 
-	def _download_hndlr(self, func: Callable, *args: tuple[Union[str, int, dict, tuple]], **kwargs: dict[Union[str, int, dict, tuple]]) -> Union[str, dict, io.BytesIO]:
+	def download_hndlr(self, func: Callable, *args: tuple[Union[str, int, dict, tuple]], **kwargs: dict[Union[str, int, dict, tuple]]) -> Union[str, dict, io.BytesIO]:
 		ret_val = ''
 		max_retries = int(os.environ.get("YT_MAX_RETRIES", default=self.YT_MAX_RETRIES_DEFAULT))
 		pause_secs = int(os.environ.get("YT_PAUSE_BEFORE_RETRY", default=self.YT_PAUSE_BEFORE_RETRY_DEFAULT))
@@ -247,4 +247,4 @@ class YoutubeAbstract(ScraperAbstract):
 		raise NotImplementedError("Implement _download method")
 
 	def download(self, job: DownloadJob) -> list:
-		return self._download_hndlr(self._download, job.url)
+		return self.download_hndlr(self._download, job.url)

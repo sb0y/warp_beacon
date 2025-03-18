@@ -16,7 +16,7 @@ class YoutubeMusicScraper(YoutubeAbstract):
 		yt = self.build_yt(url)
 
 		if yt:
-			thumbnail = self._download_hndlr(self.download_thumbnail, yt.video_id)
+			thumbnail = self.download_hndlr(self.download_thumbnail, yt.video_id)
 		
 		stream = yt.streams.get_audio_only()
 		

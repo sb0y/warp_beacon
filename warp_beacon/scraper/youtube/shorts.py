@@ -31,7 +31,7 @@ class YoutubeShortsScraper(YoutubeAbstract):
 
 		local_file = self.rename_local_file(local_file)
 		vinfo = VideoInfo(local_file)
-		thumbnail = self._download_hndlr(self.download_thumbnail, video_id=yt.video_id, crop_center=vinfo.get_demensions())
+		thumbnail = self.download_hndlr(self.download_thumbnail, video_id=yt.video_id, crop_center=vinfo.get_demensions())
 
 		logging.debug("Temp filename: '%s'", local_file)
 		res.append({

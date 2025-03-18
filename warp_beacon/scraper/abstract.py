@@ -37,7 +37,7 @@ class ScraperAbstract(ABC):
 		raise NotImplementedError
 
 	@abstractmethod
-	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
+	def download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
 		raise NotImplementedError
 
 	@staticmethod

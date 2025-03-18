@@ -74,6 +74,7 @@ setup(
 		"warp_beacon/mediainfo/silencer",
 		"warp_beacon/compress/video",
 		"warp_beacon/scheduler/scheduler",
+		"warp_beacon/scheduler/instagram_human",
 		"warp_beacon/scraper/abstract",
 		"warp_beacon/scraper/exceptions",
 		"warp_beacon/scraper/types",

@@ -38,7 +38,7 @@ class YoutubeScraper(YoutubeAbstract):
 				raise YoutubeLiveError("Youtube Live is not supported")
 
 			if yt:
-				thumbnail = self._download_hndlr(self.download_thumbnail, yt.video_id)
+				thumbnail = self.download_hndlr(self.download_thumbnail, yt.video_id)
 
 			stream = yt.streams.get_highest_resolution()
 

@@ -91,7 +91,7 @@ class InstagramScraper(ScraperAbstract):
 					del js["warp_timeline_cursor"]
 				self.cl.set_settings(js)
 		else:
-			self._download_hndlr(self.login)
+			self.download_hndlr(self.login)
 
 	def login(self) -> None:
 		username = self.account["login"]
@@ -101,12 +101,10 @@ class InstagramScraper(ScraperAbstract):
 		self.safe_write_session()
 
 	def validate_session(self) -> None:
+		from warp_beacon.scheduler.instagram_human import InstagramHuman
 		self.load_session()
-		self.timeline_cursor = self._download_hndlr(self.cl.get_timeline_feed, "pull_to_refresh", self.timeline_cursor.get("next_max_id", None))
-		self._download_hndlr(self.cl.get_reels_tray_feed, "pull_to_refresh")
-		self._download_hndlr(self.cl.direct_active_presence)
-		self._download_hndlr(self.cl.reels)
-		#self._download_hndlr(self.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
+		inst_human = InstagramHuman(self)
+		inst_human.simulate_activity()
 		self.safe_write_session()
 
 	def scrap(self, url: str) -> tuple[str]:
@@ -146,7 +144,7 @@ class InstagramScraper(ScraperAbstract):
 		logging.info("media_id is '%s'", media_id)
 		return media_id
 	
-	def _download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
+	def download_hndlr(self, func: Callable, *args: tuple[str], **kwargs: dict[str]) -> Union[str, dict]:
 		ret_val = {}
 		max_retries = int(os.environ.get("IG_MAX_RETRIES", default=5))
 		retries = 0
@@ -189,12 +187,12 @@ class InstagramScraper(ScraperAbstract):
 
 	def download_video(self, url: str, media_info: Media) -> dict:
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
-		path = self._download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
+		path = self.download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
 		return {"local_media_path": str(path), "canonical_name": self.extract_canonical_name(media_info), \
 			"media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration)}}
 
 	def download_photo(self, url: str, media_info: Media) -> dict:
-		path = str(self._download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
+		path = str(self.download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
 		path_lowered = path.lower()
 		if ".webp" in path_lowered:
 			path = InstagramScraper.convert_webp_to_png(path)
@@ -213,7 +211,7 @@ class InstagramScraper(ScraperAbstract):
 		logging.info("Effective story id is '%s'", effective_story_id)
 		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
 		if story_info.media_type == 1: # photo
-			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
+			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
 			path_lowered = path.lower()
 			if ".webp" in path_lowered:
 				path = InstagramScraper.convert_webp_to_png(path)
@@ -221,7 +219,7 @@ class InstagramScraper(ScraperAbstract):
 				path = InstagramScraper.convert_heic_to_png(path)
 			media_type = JobType.IMAGE
 		elif story_info.media_type == 2: # video
-			path = str(self._download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp'))
+			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp'))
 			media_type = JobType.VIDEO
 			media_info["duration"] = story_info.video_duration
 
@@ -242,7 +240,7 @@ class InstagramScraper(ScraperAbstract):
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
-				_media_info = self._download_hndlr(self.cl.media_info, media.pk)
+				_media_info = self.download_hndlr(self.cl.media_info, media.pk)
 				if media.media_type == 1: # photo
 					chunk.append(self.download_photo(url=_media_info.thumbnail_url, media_info=_media_info))
 				elif media.media_type == 2: # video
@@ -270,7 +268,7 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				scrap_type, media_id = self.scrap(job.url)
 				if scrap_type == "media":
-					media_info = self._download_hndlr(self.cl.media_info, media_id)
+					media_info = self.download_hndlr(self.cl.media_info, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
