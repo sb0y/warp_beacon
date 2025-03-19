@@ -240,11 +240,16 @@ class YoutubeAbstract(ScraperAbstract):
 			proxy_dsn = self.proxy.get("dsn", "")
 			if proxy_dsn:
 				logging.info("Using proxy DSN '%s'", proxy_dsn)
-				yt_opts["proxies"] = {"http": proxy_dsn, "https": proxy_dsn}
+				if "https://" in proxy_dsn:
+					yt_opts["proxies"] = {"https": proxy_dsn}
+				elif "http://" in proxy_dsn:
+					yt_opts["proxies"] = {"http": proxy_dsn}
+				else:
+					logging.warning("Proxy DSN malformed!")
 		return YouTube(**yt_opts)
 	
-	def _download(self, url: str) -> list:
-		raise NotImplementedError("Implement _download method")
+	def _download(self, _: str) -> list:
+		raise NotImplementedError("You should to implement _download method")
 
 	def download(self, job: DownloadJob) -> list:
 		return self.download_hndlr(self._download, job.url)
