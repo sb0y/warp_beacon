@@ -98,7 +98,7 @@ class AccountSelector(object):
 	def next(self) -> dict:
 		idx = self.account_index[self.current_module_name].value
 		idx += 1
-		if idx > len(self.accounts[self.current_module_name]):
+		if idx >= len(self.accounts[self.current_module_name]):
 			idx = 0
 		self.account_index[self.current_module_name].value = idx
 		self.current = self.accounts[self.current_module_name][idx]
@@ -110,7 +110,7 @@ class AccountSelector(object):
 			idx = self.account_index[self.current_module_name].value
 			meta_list = self.accounts_meta_data[self.current_module_name]
 			if idx >= len(meta_list):
-				logging.warning("Index %d out of range for module '%s' with length '%d'", idx, self.current_module_name, len(meta_list))
+				logging.warning("Index '%d' out of range for module '%s' with length '%d'", idx, self.current_module_name, len(meta_list))
 				return 0
 			self.accounts_meta_data[self.current_module_name][idx][key] += amount
 			return meta_list[idx][key]
