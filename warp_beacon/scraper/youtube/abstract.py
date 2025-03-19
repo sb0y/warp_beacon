@@ -1,4 +1,5 @@
-import os, io
+import os
+import io
 import pathlib
 import time
 import math
@@ -8,8 +9,8 @@ import ssl
 from typing import Callable, Union, Optional
 import json
 import urllib
-import requests
 import http.client
+import requests
 from PIL import Image
 import numpy as np
 
@@ -181,8 +182,8 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return None
 
-	def download_hndlr(self, func: Callable, *args: tuple[Union[str, int, dict, tuple]], **kwargs: dict[Union[str, int, dict, tuple]]) -> Union[str, dict, io.BytesIO]:
-		ret_val = ''
+	def download_hndlr(self, func: Callable, *args: tuple[Union[str, int, dict, tuple, bool]], **kwargs: dict[Union[str, int, dict, tuple, bool]]) -> Optional[Union[list, dict, str, io.BytesIO]]:
+		ret_val = None
 		max_retries = int(os.environ.get("YT_MAX_RETRIES", default=self.YT_MAX_RETRIES_DEFAULT))
 		pause_secs = int(os.environ.get("YT_PAUSE_BEFORE_RETRY", default=self.YT_PAUSE_BEFORE_RETRY_DEFAULT))
 		timeout = int(os.environ.get("YT_TIMEOUT", default=self.YT_TIMEOUT_DEFAULT))
@@ -224,18 +225,20 @@ class YoutubeAbstract(ScraperAbstract):
 		pass
 		#logging.info("bytes: %d, bytes remaining: %d", chunk, bytes_remaining)
 
-	def build_yt(self, url: str) -> YouTube:
-		InnerTube.send_message_to_admin_func = self.send_message_to_admin_func
-		InnerTube.auth_event = self.auth_event
-		InnerTube.wb_account = self.account
-		InnerTube.fetch_bearer_token = patched_fetch_bearer_token
+	def build_yt(self, url: str, session: bool = True) -> YouTube:
+		if session:
+			InnerTube.send_message_to_admin_func = self.send_message_to_admin_func
+			InnerTube.auth_event = self.auth_event
+			InnerTube.wb_account = self.account
+			InnerTube.fetch_bearer_token = patched_fetch_bearer_token
 		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
 		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]
 		yt_opts = {"url": url, "on_progress_callback": self.yt_on_progress}
-		yt_opts["client"] = "TV_EMBED"
-		yt_opts["use_oauth"] = True
-		yt_opts["allow_oauth_cache"] = True
-		yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
+		if session:
+			yt_opts["client"] = "TV_EMBED"
+			yt_opts["use_oauth"] = True
+			yt_opts["allow_oauth_cache"] = True
+			yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
 		if self.proxy:
 			proxy_dsn = self.proxy.get("dsn", "")
 			if proxy_dsn:
@@ -252,4 +255,10 @@ class YoutubeAbstract(ScraperAbstract):
 		raise NotImplementedError("You should to implement _download method")
 
 	def download(self, job: DownloadJob) -> list:
-		return self.download_hndlr(self._download, job.url)
+		try:
+			return self.download_hndlr(self._download, job.url, session=False)
+		except Unavailable:
+			logging.warning("Failed sessionless download attempt. Trying with session.")
+			time.sleep(2)
+		
+		return self.download_hndlr(self._download, job.url, session=True)

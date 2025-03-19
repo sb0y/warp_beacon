@@ -28,11 +28,11 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return False
 
-	def _download(self, url: str, timeout: int = 0) -> list:
+	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
 		res = []
 		try:
 			thumbnail = None
-			yt = self.build_yt(url)
+			yt = self.build_yt(url, session=session)
 
 			if self.is_live(yt.initial_data):
 				raise YoutubeLiveError("Youtube Live is not supported")
