@@ -34,13 +34,14 @@ class InstagramHuman(object):
 			time.sleep(random.uniform(3, 7))
 			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
+				time.sleep(random.uniform(2, 5))
 			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
-			self.random_pause()
+				self.random_pause()
 			if random.random() > 0.5:
 				logging.info("Simulation updating reels tray feed ...")
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
-			self.random_pause()
+				self.random_pause()
 			if random.random() > 0.8:
 				self.profile_view()
 		except Exception as e:
@@ -51,9 +52,10 @@ class InstagramHuman(object):
 		try:
 			logging.info("Starting day fast check activity simulation")
 			self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh")
+			time.sleep(random.uniform(2, 5))
 			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
-			self.random_pause()
+				self.random_pause()
 		except Exception as e:
 			logging.warning("Error in daytime_routine")
 			logging.exception(e)
@@ -67,9 +69,10 @@ class InstagramHuman(object):
 			time.sleep(random.uniform(2, 5))
 			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
+				time.sleep(random.uniform(2, 5))
 			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
-			self.random_pause()
+				self.random_pause()
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
 				self.scrapler.download_hndlr(self.scrapler.cl.reels)
@@ -77,7 +80,6 @@ class InstagramHuman(object):
 			if random.random() > 0.6:
 				logging.info("Simulation profile view ...")
 				self.profile_view()
-			self.random_pause()
 		except Exception as e:
 			logging.warning("Error in evening_routine")
 			logging.exception(e)
@@ -87,7 +89,7 @@ class InstagramHuman(object):
 			logging.info("Starting night activity simulation")
 			if random.random() > 0.8:
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
-			self.random_pause(short=True)
+				self.random_pause(short=True)
 		except Exception as e:
 			logging.warning("Error in night_routine")
 			logging.exception(e)
@@ -115,8 +117,12 @@ class InstagramHuman(object):
 				target_user_id = self.scrapler.download_hndlr(self.scrapler.cl.user_id_from_username, random_friend)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
 
+			time.sleep(random.uniform(2, 5))
+
 			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.user_medias, target_user_id, amount=random.randint(1, 5))
+
+			self.random_pause()
 		except Exception as e:
 			logging.warning("Error in profile view")
 			logging.exception(e)
