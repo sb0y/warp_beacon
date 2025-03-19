@@ -10,10 +10,10 @@ class YoutubeMusicScraper(YoutubeAbstract):
 	YT_TIMEOUT_DEFAULT = 2
 	YT_TIMEOUT_INCREMENT_DEFAULT = 60
 
-	def _download(self, url: str, timeout: int = 0) -> list:
+	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
 		res = []
 		thumbnail = None
-		yt = self.build_yt(url)
+		yt = self.build_yt(url, session=session)
 
 		if yt:
 			thumbnail = self.download_hndlr(self.download_thumbnail, yt.video_id)
