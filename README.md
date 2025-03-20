@@ -12,6 +12,24 @@ Just send a media link to the chat with bot and get a video or audio reply.
 |<img width="700" alt="Instagram Photo post usage example" src="https://github.com/user-attachments/assets/29324b94-7314-4a38-8790-3483011d355d"> Instagram Photo post usage example|<img width="700" alt="Instagram Photo Carousel usage" src="https://github.com/user-attachments/assets/2598e329-e16e-455e-91e9-a027e8994283"> Instagram Photo Carousel usage example|<img width="757" alt="Instagram Photo bulk Strories download usage example" src="https://github.com/user-attachments/assets/2c8c91ac-6ade-4d1d-a677-2b36bb40ff39"> Instagram Photo bulk Strories download usage example|
 |<img width="700" alt="Instagram specific Story download usage example" src="https://github.com/user-attachments/assets/03dc70c5-6933-4122-9c7c-5f7d734d117b"> Instagram specific Story download usage example|<img width="700" alt="Group chat usage example" src="https://github.com/user-attachments/assets/649fcb1e-785b-4efd-9153-69644c6d898b"> Group chat usage example|
 
+### **Warp Beacon manifesto**
+
+> Once, the Internet was built as a borderless network — a space where knowledge, culture, and ideas could flow freely across the globe.  
+> But over time, freedom gave way to artificial walls, anti-bot shields, and region locks.
+>
+> **warp_beacon** is our answer to that shift.
+>
+> This is a tool for those who refuse to accept "access denied by geolocation" or "content unavailable in your region."  
+> It is a bridge over ML filters, CAPTCHAs, and man-made barriers.
+>
+> We don’t break the rules — we restore the original spirit of the Internet:  
+> 📡 **free exchange of information**,  
+> 🌍 **unrestricted access to global content**,  
+> 🤖 **tools that serve the user**, not the platform.
+>
+> **warp_beacon** — the freedom to deliver content where it’s needed most.
+
+## Configuration example ##
 
 In order to setup your own instance, you will need:
 
@@ -19,8 +37,6 @@ In order to setup your own instance, you will need:
 2. Obtain `TG_API_ID`, `TG_API_HASH`, `TG_BOT_NAME`. Learn more [here](https://core.telegram.org/api/obtaining_api_id).
 
 All bot configuration stored in [warp_beacon.conf](https://github.com/sb0y/warp_beacon/blob/main/etc/warp_beacon.conf) file.
-
-## Configuration example ##
 
 ```env
 TG_TOKEN="you telegram token received from @BotFather"
