@@ -38,6 +38,8 @@ class IGScheduler(object):
 			if os.path.exists(self.state_file):
 				with open(self.state_file, 'r', encoding="utf-8") as f:
 					self.state = json.loads(f.read())
+				if "remaining" in self.state:
+					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
 		except Exception as e:
 			logging.error("Failed to load Scheduler state!")
 			logging.exception(e)
@@ -89,7 +91,7 @@ class IGScheduler(object):
 					self.save_state()
 
 				if self.state["remaining"] <= 0:
-					self.state["remaining"] = randrange(4100, 22300)
+					self.state["remaining"] = randrange(4292, 8623)
 					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
 
 				start_time = time.time()

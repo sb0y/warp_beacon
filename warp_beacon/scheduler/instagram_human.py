@@ -80,6 +80,7 @@ class InstagramHuman(object):
 			if random.random() > 0.6:
 				logging.info("Simulation profile view ...")
 				self.profile_view()
+				self.random_pause()
 		except Exception as e:
 			logging.warning("Error in evening_routine")
 			logging.exception(e)
@@ -101,7 +102,9 @@ class InstagramHuman(object):
 
 	def profile_view(self) -> None:
 		try:
+			logging.info("profile_view ...")
 			my_user_id = self.scrapler.cl.user_id
+			logging.info("user_following ...")
 			friends = list(self.scrapler.download_hndlr(self.scrapler.cl.user_following, my_user_id, amount=random.randint(5, 50)).values())
 			time.sleep(random.uniform(2, 5))
 			if not friends:
@@ -111,15 +114,18 @@ class InstagramHuman(object):
 			target_user_id = ""
 			if isinstance(random_friend, UserShort):
 				target_user_id = random_friend.pk
+				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
 				time.sleep(random.uniform(2, 5))
 			elif isinstance(random_friend, str):
 				target_user_id = self.scrapler.download_hndlr(self.scrapler.cl.user_id_from_username, random_friend)
+				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
 
 			time.sleep(random.uniform(2, 5))
 
 			if random.random() > 0.7:
+				logging.info("user_medias with target_user_id = '%s' ...", target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_medias, target_user_id, amount=random.randint(1, 5))
 
 			self.random_pause()
