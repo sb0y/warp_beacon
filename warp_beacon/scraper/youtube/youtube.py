@@ -73,12 +73,11 @@ class YoutubeScraper(YoutubeAbstract):
 		video_id = self.get_video_id(url)
 		if video_id:
 			thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
-		with self.build_yt_dlp() as ydl:
+		with self.build_yt_dlp(timeout) as ydl:
 			info = ydl.extract_info(url, download=True)
 			local_file = ydl.prepare_filename(info)
 			logging.debug("Temp filename: '%s'", local_file)
 			res.append({
-				"socket_timeout": timeout,
 				"local_media_path": local_file,
 				"performer": info.get("uploader", "Unknown"),
 				"thumb": thumbnail,

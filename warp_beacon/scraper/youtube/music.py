@@ -1,8 +1,14 @@
+import logging
+
+import time
+import json
+
+import yt_dlp
+
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
 from warp_beacon.scraper.exceptions import NotFound, FileTooBig
 
-import logging
 
 class YoutubeMusicScraper(YoutubeAbstract):
 	YT_MAX_RETRIES_DEFAULT = 6
@@ -13,10 +19,12 @@ class YoutubeMusicScraper(YoutubeAbstract):
 	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
 		res = []
 		thumbnail = None
-		yt = self.build_yt(url, session=session)
+		audio_id = self.get_video_id(url)
 
-		if yt:
-			thumbnail = self.download_hndlr(self.download_thumbnail, yt.video_id)
+		if audio_id:
+			thumbnail = self.download_hndlr(self.download_thumbnail, audio_id)
+
+		yt = self.build_yt(url, session=session)
 		
 		stream = yt.streams.get_audio_only()
 		
@@ -43,5 +51,47 @@ class YoutubeMusicScraper(YoutubeAbstract):
 			"canonical_name": stream.title,
 			"media_type": JobType.AUDIO
 		})
+
+		return res
+
+	def build_yt_dlp(self, timeout: int = 60) -> yt_dlp.YoutubeDL:
+		auth_data = {}
+		with open(self.YT_SESSION_FILE % self.account_index, 'r', encoding="utf-8") as f:
+			auth_data = json.loads(f.read())
+		time_name = str(time.time()).replace('.', '_')
+		ydl_opts = {
+			'socket_timeout': timeout,
+			'outtmpl': f'{self.DOWNLOAD_DIR}/{time_name}.%(ext)s',
+			'format': 'bestaudio[ext=m4a]/bestaudio/best',
+			'noplaylist': True,
+			'keepvideo': False,
+			'tv_auth': auth_data
+		}
+
+		if self.proxy:
+			proxy_dsn = self.proxy.get("dsn", "")
+			logging.info("Using proxy DSN '%s'", proxy_dsn)
+			if proxy_dsn:
+				ydl_opts["proxy"] = proxy_dsn
+
+		return yt_dlp.YoutubeDL(ydl_opts)
+
+	def _download_yt_dlp(self, url: str, timeout: int = 60) -> list:
+		res = []
+		thumbnail = None
+		video_id = self.get_video_id(url)
+		if video_id:
+			thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
+		with self.build_yt_dlp(timeout) as ydl:
+			info = ydl.extract_info(url, download=True)
+			local_file = ydl.prepare_filename(info)
+			logging.debug("Temp filename: '%s'", local_file)
+			res.append({
+				"local_media_path": local_file,
+				"performer": info.get("uploader", "Unknown"),
+				"thumb": thumbnail,
+				"canonical_name": info.get("title", ''),
+				"media_type": JobType.AUDIO
+			})
 
 		return res

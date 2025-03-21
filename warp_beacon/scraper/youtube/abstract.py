@@ -279,12 +279,13 @@ class YoutubeAbstract(ScraperAbstract):
 					logging.warning("Proxy DSN malformed!")
 		return YouTube(**yt_opts)
 	
-	def build_yt_dlp(self, timeout: int = 0) -> yt_dlp.YoutubeDL:
+	def build_yt_dlp(self, timeout: int = 60) -> yt_dlp.YoutubeDL:
 		auth_data = {}
 		with open(self.YT_SESSION_FILE % self.account_index, 'r', encoding="utf-8") as f:
 			auth_data = json.loads(f.read())
 		time_name = str(time.time()).replace('.', '_')
 		ydl_opts = {
+			'socket_timeout': timeout,
 			'outtmpl': f'{self.DOWNLOAD_DIR}/{time_name}.%(ext)s',
 			'format': 'bestvideo+bestaudio/best',
 			'merge_output_format': 'mp4',
@@ -317,6 +318,6 @@ class YoutubeAbstract(ScraperAbstract):
 			ret = self.download_hndlr(self._download_yt_dlp, job.url)
 		except NotImplementedError:
 			logging.info("yt_dlp is not supported for this submodule yet")
-			raise Unavailable("Video unvailable")
+			raise Unavailable("Сontent unvailable")
 
 		return ret
