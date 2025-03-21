@@ -38,7 +38,6 @@ class AccountSelector(object):
 			if proxy_file_path:
 				with open(proxy_file_path, 'r', encoding="utf-8") as f:
 					self.proxies = json.loads(f.read())
-				self.current_proxy = self.get_random_account_proxy()
 		else:
 			raise ValueError("Accounts file not found")
 
@@ -129,6 +128,7 @@ class AccountSelector(object):
 		self.current_module_name = module_name
 		if self.current is None:
 			self.current = self.accounts[self.current_module_name][self.account_index[self.current_module_name].value]
+		self.current_proxy = self.get_random_account_proxy()
 
 	def next(self) -> dict:
 		idx = self.account_index[self.current_module_name].value
