@@ -3,8 +3,9 @@ import time
 import random
 import json
 import re
-from typing import Optional
+from typing import Optional, List
 
+from itertools import cycle
 import multiprocessing
 import multiprocessing.managers
 
@@ -21,6 +22,7 @@ class AccountSelector(object):
 	session_dir = "/var/warp_beacon"
 	manager = None
 	account_index = {}
+	current_proxy = None
 
 	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str, proxy_file_path: str=None) -> None:
 		self.manager = manager
@@ -36,22 +38,35 @@ class AccountSelector(object):
 			if proxy_file_path:
 				with open(proxy_file_path, 'r', encoding="utf-8") as f:
 					self.proxies = json.loads(f.read())
+				self.current_proxy = self.get_random_account_proxy()
 		else:
 			raise ValueError("Accounts file not found")
 
-	def get_account_proxy(self) -> Optional[dict]:
+	def get_current_proxy(self) -> Optional[dict]:
+		return self.current_proxy
+
+	def get_proxy_list(self) -> List[dict]:
+		matched_proxy = []
+		try:
+			acc_id, acc_data = self.get_current()
+			current_acc_pid = acc_data.get("proxy_id", "").strip()
+			for proxy in self.proxies:
+				pid = proxy.get("id", "").strip()
+				if pid and current_acc_pid and pid == current_acc_pid:
+					if "override_force_ipv6" in proxy:
+						self.accounts[self.current_module_name][acc_id]["force_ipv6"] = proxy.get("override_force_ipv6", False)
+					logging.info("Account proxy matched '%s'", proxy)
+					matched_proxy.append(proxy)
+		except Exception as e:
+			logging.warning("Failed to form proxy list!")
+			logging.exception(e)
+
+		return matched_proxy
+
+	def get_random_account_proxy(self) -> Optional[dict]:
 		if self.proxies:
 			try:
-				acc_id, acc_data = self.get_current()
-				current_acc_pid = acc_data.get("proxy_id", "").strip()
-				matched_proxy = []
-				for proxy in self.proxies:
-					pid = proxy.get("id", "").strip()
-					if pid and current_acc_pid and pid == current_acc_pid:
-						if "override_force_ipv6" in proxy:
-							self.accounts[self.current_module_name][acc_id]["force_ipv6"] = proxy.get("override_force_ipv6", False)
-						logging.info("Account proxy matched '%s'", proxy)
-						matched_proxy.append(proxy)
+				matched_proxy = self.get_proxy_list()
 				if matched_proxy:
 					if len(matched_proxy) > 1:
 						random.seed(random.seed(time.time_ns() ^ int.from_bytes(os.urandom(len(matched_proxy)), "big")))
@@ -62,12 +77,32 @@ class AccountSelector(object):
 					prox_choice = random.choice(matched_proxy)
 					# saving chosen proxy for history
 					self.accounts_meta_data["last_proxy"] = prox_choice
+					self.current_proxy = prox_choice
 					logging.info("Chosen proxy: '%s'", prox_choice)
 					return prox_choice
 			except Exception as e:
 				logging.warning("Error on selecting account proxy!")
 				logging.exception(e)
 		return None
+	
+	def next_proxy(self) -> Optional[dict]:
+		if not self.proxies:
+			return None
+		proxy = None
+		try:
+			matched_proxies = self.get_proxy_list()
+			if matched_proxies:
+				lit = cycle(matched_proxies)
+				proxy = next(lit)
+				if proxy.get("dsn", {}) == self.accounts_meta_data["last_proxy"].get("dsn", {}):
+					proxy = next(lit)
+				self.current_proxy = proxy
+				self.accounts_meta_data["last_proxy"] = proxy
+		except Exception as e:
+			logging.warning("Error on selection next proxy!")
+			logging.exception(e)
+
+		return proxy
 
 	def load_yt_sessions(self) -> None:
 		if "youtube" not in self.accounts:

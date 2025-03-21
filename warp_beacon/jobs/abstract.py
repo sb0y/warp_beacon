@@ -38,6 +38,7 @@ class JobSettings(TypedDict):
 	unvailable_error_count: int
 	geoblock_error_count: int
 	account_switches: int
+	bad_proxy_error_count: int
 	yt_auth: bool
 	session_validation: bool
 	chat_type: ChatType
@@ -76,6 +77,7 @@ class AbstractJob(ABC):
 	unvailable_error_count: int = 0
 	geoblock_error_count: int = 0
 	account_switches: int = 0
+	bad_proxy_error_count: int = 0
 	yt_auth: bool = False
 	session_validation: bool = False
 	chat_type: ChatType = None

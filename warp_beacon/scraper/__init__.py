@@ -7,7 +7,8 @@ from queue import Empty
 
 import logging
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YoutubeLiveError, YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YoutubeLiveError, \
+	YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed, BadProxy
 from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.mediainfo.audio import AudioInfo
 from warp_beacon.mediainfo.silencer import Silencer
@@ -116,21 +117,23 @@ class AsyncDownloader(object):
 									continue
 							actor = None
 							self.acc_selector.set_module(job.job_origin)
+							proxy = selector.get_current_proxy()
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
-								actor = InstagramScraper(selector.get_current(), selector.get_account_proxy())
+								actor = InstagramScraper(selector.get_current(), proxy)
 							elif job.job_origin is Origin.YT_SHORTS:
 								from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
-								actor = YoutubeShortsScraper(selector.get_current(), selector.get_account_proxy())
+								actor = YoutubeShortsScraper(selector.get_current(), proxy)
 							elif job.job_origin is Origin.YT_MUSIC:
 								from warp_beacon.scraper.youtube.music import YoutubeMusicScraper
-								actor = YoutubeMusicScraper(selector.get_current(), selector.get_account_proxy())
+								actor = YoutubeMusicScraper(selector.get_current(), proxy)
 							elif job.job_origin is Origin.YOUTUBE:
 								from warp_beacon.scraper.youtube.youtube import YoutubeScraper
-								actor = YoutubeScraper(selector.get_current(), selector.get_account_proxy())
+								actor = YoutubeScraper(selector.get_current(), proxy)
 							actor.send_message_to_admin_func = self.send_message_to_admin
 							actor.auth_event = self.auth_event
-							while True:
+							# job retry loop
+							while self.allow_loop.value == 1:
 								try:
 									if job.session_validation:
 										logging.info("Validating '%s' session ...", job.job_origin.value)
@@ -154,7 +157,7 @@ class AsyncDownloader(object):
 								except Unavailable as e:
 									logging.warning("Not found or unavailable error occurred!")
 									logging.exception(e)
-									if job.unvailable_error_count > self.acc_selector.count_service_accounts(job.job_origin):
+									if job.unvailable_error_count > selector.count_service_accounts(job.job_origin):
 										self.uploader.queue_task(job.to_upload_job(
 											job_failed=True,
 											job_failed_msg="Video is unvailable for all your service accounts.")
@@ -165,17 +168,22 @@ class AsyncDownloader(object):
 									selector.next()
 									self.job_queue.put(job)
 									break
-								except TimeOut as e:
-									logging.warning("Timeout error occurred!")
+								except (TimeOut, BadProxy) as e:
+									logging.warning("Timeout or BadProxy error occurred!")
 									logging.exception(e)
-									self.send_message_to_admin(
-										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>TimeOut</b>'."
-									)
-									self.uploader.queue_task(job.to_upload_job(
-										job_failed=True,
-										job_failed_msg="Failed to download content due timeout error. Please check you Internet connection, retry amount or request timeout bot configuration settings.")
-									)
-									break
+									if job.bad_proxy_error_count > len(selector.proxies):
+										self.send_message_to_admin(
+											f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>TimeOut</b>'."
+										)
+										self.uploader.queue_task(job.to_upload_job(
+											job_failed=True,
+											job_failed_msg="Failed to download content due timeout error. Please check you Internet connection, retry amount or request timeout bot configuration settings.")
+										)
+										break
+									job.bad_proxy_error_count += 1
+									logging.info("Trying next proxy")
+									selector.next_proxy()
+									self.job_queue.put(job)
 								except FileTooBig as e:
 									logging.warning("Telegram limits exceeded :(")
 									logging.exception(e)

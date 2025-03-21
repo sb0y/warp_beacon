@@ -41,6 +41,9 @@ class CaptchaIssue(ScraperError):
 class AllAccountsFailed(ScraperError):
 	pass
 
+class BadProxy(ScraperError):
+	pass
+
 class UnknownError(ScraperError):
 	pass
 
