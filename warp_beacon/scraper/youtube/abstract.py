@@ -218,7 +218,8 @@ class YoutubeAbstract(ScraperAbstract):
 					http.client.HTTPException,
 					requests.RequestException,
 					urllib.error.URLError,
-					urllib.error.HTTPError) as e:
+					urllib.error.HTTPError,
+					KeyError) as e:
 				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
 					raise Unavailable(extract_exception_message(e))
 				logging.warning("Youtube read timeout! Retrying in '%d' seconds ...", pause_secs)
