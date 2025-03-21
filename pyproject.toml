@@ -25,7 +25,8 @@ dependencies = [
 	"pillow",
 	"pymongo",
 	"instagrapi == 2.0.0",
-	"bs4"
+	"bs4",
+	"yt_dlp"
 ]
 keywords = ["bot", "telegram", "instagram", "export"]
 classifiers = [

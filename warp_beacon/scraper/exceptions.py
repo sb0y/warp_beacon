@@ -54,6 +54,8 @@ def extract_exception_message(e: Exception) -> str:
 		msg = e.message
 	elif hasattr(e, "reason"):
 		msg = e.reason
+	elif hasattr(e, "msg"):
+		msg = e.msg
 	elif hasattr(e, "args"):
 		msg = str(e.args)
 		

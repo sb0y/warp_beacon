@@ -7,26 +7,29 @@ import socket
 import ssl
 #from abc import abstractmethod
 from typing import Callable, Union, Optional
+import logging
 import json
 import urllib
 import http.client
+import pytubefix.exceptions
 import requests
 from PIL import Image
 import numpy as np
+from urllib.parse import urlparse, parse_qs
+
+import pytubefix
+from pytubefix import YouTube
+from pytubefix.innertube import _default_clients
+from pytubefix.streams import Stream
+from pytubefix.innertube import InnerTube, _client_id, _client_secret
+#from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
+from pytubefix import request
+import yt_dlp
 
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.scraper.abstract import ScraperAbstract
 #from warp_beacon.mediainfo.abstract import MediaInfoAbstract
 from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
-
-from pytubefix import YouTube
-from pytubefix.innertube import _default_clients
-from pytubefix.streams import Stream
-from pytubefix.innertube import InnerTube, _client_id, _client_secret
-from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
-from pytubefix import request
-
-import logging
 
 def patched_fetch_bearer_token(self) -> None:
 	"""Fetch an OAuth token."""
@@ -101,13 +104,24 @@ class YoutubeAbstract(ScraperAbstract):
 		os.rename(filename, new_filepath)
 
 		return new_filepath
+	
+	def get_video_id(self, url: str) -> Optional[str]:
+		parsed_url = urlparse(url)
+		query = parse_qs(parsed_url.query)
+		return query.get('v', [None])[0]
 
 	def remove_tmp_files(self) -> None:
 		for i in os.listdir(self.DOWNLOAD_DIR):
 			if "yt_download_" in i:
 				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
 
-	def calculate_size_with_padding(self, image: Image, aspect_ratio_width: int, aspect_ratio_height: int, target_size: tuple=(320, 320), background_color: tuple=(0, 0, 0)) -> Image:
+	def calculate_size_with_padding(self,
+		image: Image,
+		aspect_ratio_width: int,
+		aspect_ratio_height: int,
+		target_size: tuple=(320, 320),
+		background_color: tuple=(0, 0, 0)
+	) -> Image:
 		aspect_ratio = aspect_ratio_width / aspect_ratio_height
 		target_width, target_height = target_size
 
@@ -194,7 +208,7 @@ class YoutubeAbstract(ScraperAbstract):
 				kwargs["timeout"] = timeout
 				ret_val = func(*args, **kwargs)
 				break
-			except MaxRetriesExceeded:
+			except pytubefix.exceptions.MaxRetriesExceeded:
 				# do noting, not interested
 				pass
 			#except http.client.IncompleteRead as e:
@@ -216,7 +230,21 @@ class YoutubeAbstract(ScraperAbstract):
 				retries += 1
 				timeout += timeout_increment
 				time.sleep(pause_secs)
-			except (VideoUnavailable, VideoPrivate) as e:
+			except (pytubefix.exceptions.VideoUnavailable, pytubefix.exceptions.VideoPrivate) as e:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.DownloadError as e:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.GeoRestrictedError:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.PostProcessingError as e:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.ExtractorError as e:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.MaxDownloadsReached as e:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.UnavailableVideoError as e:
+				raise Unavailable(extract_exception_message(e))
+			except yt_dlp.utils.ThrottledDownload as e:
 				raise Unavailable(extract_exception_message(e))
 
 		return ret_val
@@ -241,8 +269,8 @@ class YoutubeAbstract(ScraperAbstract):
 			yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
 		if self.proxy:
 			proxy_dsn = self.proxy.get("dsn", "")
+			logging.info("Using proxy DSN '%s'", proxy_dsn)
 			if proxy_dsn:
-				logging.info("Using proxy DSN '%s'", proxy_dsn)
 				if "https://" in proxy_dsn:
 					yt_opts["proxies"] = {"https": proxy_dsn}
 				elif "http://" in proxy_dsn:
@@ -251,14 +279,44 @@ class YoutubeAbstract(ScraperAbstract):
 					logging.warning("Proxy DSN malformed!")
 		return YouTube(**yt_opts)
 	
+	def build_yt_dlp(self) -> yt_dlp.YoutubeDL:
+		auth_data = {}
+		with open(self.YT_SESSION_FILE % self.account_index, 'r', encoding="utf-8") as f:
+			auth_data = json.loads(f.read())
+		time_name = str(time.time()).replace('.', '_')
+		ydl_opts = {
+			'outtmpl': f'{self.DOWNLOAD_DIR}/{time_name}.%(ext)s',
+			'format': 'bestvideo+bestaudio/best',
+			'merge_output_format': 'mp4',
+			'noplaylist': True,
+			'tv_auth': auth_data
+		}
+
+		if self.proxy:
+			proxy_dsn = self.proxy.get("dsn", "")
+			logging.info("Using proxy DSN '%s'", proxy_dsn)
+			if proxy_dsn:
+				ydl_opts["proxy"] = proxy_dsn
+
+		return yt_dlp.YoutubeDL(ydl_opts)
+	
 	def _download(self, _: str) -> list:
 		raise NotImplementedError("You should to implement _download method")
+	
+	def _download_yt_dlp(self, _: str) -> list:
+		raise NotImplementedError("You should to implement _download_yt_dlp method")
 
 	def download(self, job: DownloadJob) -> list:
+		ret = []
 		try:
-			return self.download_hndlr(self._download, job.url, session=False)
-		except Unavailable:
-			logging.warning("Failed sessionless download attempt. Trying with session.")
-			time.sleep(2)
+			ret = self.download_hndlr(self._download, job.url, session=True)
+		except (Unavailable, TimeOut):
+			logging.warning("Download failed, trying to download with yt_dlp")
 		
-		return self.download_hndlr(self._download, job.url, session=True)
+		try:
+			ret = self.download_hndlr(self._download_yt_dlp, job.url)
+		except NotImplementedError:
+			logging.info("yt_dlp is not supported for this submodule yet")
+			raise Unavailable("Video unvailable")
+
+		return ret

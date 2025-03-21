@@ -1,10 +1,10 @@
-from warp_beacon.jobs.types import JobType
-from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
-from warp_beacon.scraper.exceptions import YoutubeLiveError, NotFound, YotubeAgeRestrictedError
+import logging
 
 from pytubefix.exceptions import AgeRestrictedError
 
-import logging
+from warp_beacon.jobs.types import JobType
+from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
+from warp_beacon.scraper.exceptions import YoutubeLiveError, NotFound, YotubeAgeRestrictedError
 
 class YoutubeScraper(YoutubeAbstract):
 	YT_MAX_RETRIES_DEFAULT = 8
@@ -32,13 +32,13 @@ class YoutubeScraper(YoutubeAbstract):
 		res = []
 		try:
 			thumbnail = None
+			video_id = self.get_video_id(url)
+			if video_id:
+				thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
 			yt = self.build_yt(url, session=session)
 
 			if self.is_live(yt.initial_data):
 				raise YoutubeLiveError("Youtube Live is not supported")
-
-			if yt:
-				thumbnail = self.download_hndlr(self.download_thumbnail, yt.video_id)
 
 			stream = yt.streams.get_highest_resolution()
 
@@ -64,5 +64,25 @@ class YoutubeScraper(YoutubeAbstract):
 			})
 		except AgeRestrictedError as e:
 			raise YotubeAgeRestrictedError("Youtube Age Restricted error")
+
+		return res
+	
+	def _download_yt_dlp(self, url: str) -> list:
+		res = []
+		thumbnail = None
+		video_id = self.get_video_id(url)
+		if video_id:
+			thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
+		with self.build_yt_dlp() as ydl:
+			info = ydl.extract_info(url, download=True)
+			local_file = ydl.prepare_filename(info)
+			logging.debug("Temp filename: '%s'", local_file)
+			res.append({
+				"local_media_path": local_file,
+				"performer": info.get("uploader", "Unknown"),
+				"thumb": thumbnail,
+				"canonical_name": info.get("title", ''),
+				"media_type": JobType.VIDEO
+			})
 
 		return res
