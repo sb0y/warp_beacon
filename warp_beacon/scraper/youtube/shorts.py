@@ -1,10 +1,10 @@
+import logging
+
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
 from warp_beacon.scraper.exceptions import NotFound
 
 from warp_beacon.mediainfo.video import VideoInfo
-
-import logging
 
 class YoutubeShortsScraper(YoutubeAbstract):
 	YT_MAX_RETRIES_DEFAULT = 8

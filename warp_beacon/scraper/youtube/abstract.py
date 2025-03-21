@@ -301,16 +301,17 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return yt_dlp.YoutubeDL(ydl_opts)
 	
-	def _download(self, _: str, __: int = 60) -> list:
+	def _download(self, _: str, timeout: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download method")
 	
-	def _download_yt_dlp(self, _: str, __: int = 60) -> list:
+	def _download_yt_dlp(self, _: str, timeout: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download_yt_dlp method")
 
 	def download(self, job: DownloadJob) -> list:
 		ret = []
 		try:
 			ret = self.download_hndlr(self._download, job.url, session=True)
+			return ret
 		except (Unavailable, TimeOut):
 			logging.warning("Download failed, trying to download with yt_dlp")
 		
