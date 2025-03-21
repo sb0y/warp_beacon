@@ -219,10 +219,10 @@ class YoutubeAbstract(ScraperAbstract):
 					requests.RequestException,
 					urllib.error.URLError,
 					urllib.error.HTTPError) as e:
-				if hasattr(e, "code") and int(e.code) == 403:
+				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
 					raise Unavailable(extract_exception_message(e))
-				logging.warning("Youtube read timeout! Retrying in %d seconds ...", pause_secs)
-				logging.info("Your `YT_MAX_RETRIES` values is %d", max_retries)
+				logging.warning("Youtube read timeout! Retrying in '%d' seconds ...", pause_secs)
+				logging.info("Your `YT_MAX_RETRIES` values is '%d'", max_retries)
 				logging.exception(extract_exception_message(e))
 				if max_retries <= retries:
 					self.remove_tmp_files()
@@ -286,7 +286,7 @@ class YoutubeAbstract(ScraperAbstract):
 		time_name = str(time.time()).replace('.', '_')
 		ydl_opts = {
 			'socket_timeout': timeout,
-			'outtmpl': f'{self.DOWNLOAD_DIR}/{time_name}.%(ext)s',
+			'outtmpl': f'{self.DOWNLOAD_DIR}/yt_download_{time_name}.%(ext)s',
 			'format': 'bestvideo+bestaudio/best',
 			'merge_output_format': 'mp4',
 			'noplaylist': True,

@@ -11,7 +11,7 @@ from warp_beacon.scraper.exceptions import NotFound, FileTooBig
 
 
 class YoutubeMusicScraper(YoutubeAbstract):
-	YT_MAX_RETRIES_DEFAULT = 6
+	YT_MAX_RETRIES_DEFAULT = 3
 	YT_PAUSE_BEFORE_RETRY_DEFAULT = 3
 	YT_TIMEOUT_DEFAULT = 2
 	YT_TIMEOUT_INCREMENT_DEFAULT = 60
@@ -61,7 +61,7 @@ class YoutubeMusicScraper(YoutubeAbstract):
 		time_name = str(time.time()).replace('.', '_')
 		ydl_opts = {
 			'socket_timeout': timeout,
-			'outtmpl': f'{self.DOWNLOAD_DIR}/{time_name}.%(ext)s',
+			'outtmpl': f'{self.DOWNLOAD_DIR}/yt_download_{time_name}.%(ext)s',
 			'format': 'bestaudio[ext=m4a]/bestaudio/best',
 			'noplaylist': True,
 			'keepvideo': False,
