@@ -7,7 +7,7 @@ import yt_dlp
 
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
-from warp_beacon.scraper.exceptions import NotFound, FileTooBig
+from warp_beacon.scraper.exceptions import NotFound, FileTooBig, Unavailable
 
 
 class YoutubeMusicScraper(YoutubeAbstract):
@@ -18,39 +18,42 @@ class YoutubeMusicScraper(YoutubeAbstract):
 
 	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
 		res = []
-		thumbnail = None
-		audio_id = self.get_video_id(url)
+		try:
+			thumbnail = None
+			audio_id = self.get_video_id(url)
 
-		if audio_id:
-			thumbnail = self.download_hndlr(self.download_thumbnail, audio_id)
+			if audio_id:
+				thumbnail = self.download_hndlr(self.download_thumbnail, audio_id)
 
-		yt = self.build_yt(url, session=session)
-		
-		stream = yt.streams.get_audio_only()
-		
-		if not stream:
-			raise NotFound("No suitable audio stream found")
-		
-		logging.info("Announced audio file size: '%d'", stream.filesize)
-		if stream.filesize > 2e+9:
-			logging.warning("Downloading size reported by YouTube is over than 2 GB!")
-			raise FileTooBig("YouTube file is larger than 2 GB")
-		logging.info("Operation timeout is '%d'", timeout)
-		local_file = stream.download(
-			output_path=self.DOWNLOAD_DIR,
-			max_retries=0,
-			timeout=timeout,
-			skip_existing=False,
-			filename_prefix='yt_download_'
-		)
-		logging.debug("Temp filename: '%s'", local_file)
-		res.append({
-			"local_media_path": self.rename_local_file(local_file),
-			"performer": yt.author,
-			"thumb": thumbnail,
-			"canonical_name": stream.title,
-			"media_type": JobType.AUDIO
-		})
+			yt = self.build_yt(url, session=session)
+			
+			stream = yt.streams.get_audio_only()
+			
+			if not stream:
+				raise NotFound("No suitable audio stream found")
+			
+			logging.info("Announced audio file size: '%d'", stream.filesize)
+			if stream.filesize > 2e+9:
+				logging.warning("Downloading size reported by YouTube is over than 2 GB!")
+				raise FileTooBig("YouTube file is larger than 2 GB")
+			logging.info("Operation timeout is '%d'", timeout)
+			local_file = stream.download(
+				output_path=self.DOWNLOAD_DIR,
+				max_retries=0,
+				timeout=timeout,
+				skip_existing=False,
+				filename_prefix='yt_download_'
+			)
+			logging.debug("Temp filename: '%s'", local_file)
+			res.append({
+				"local_media_path": self.rename_local_file(local_file),
+				"performer": yt.author,
+				"thumb": thumbnail,
+				"canonical_name": stream.title,
+				"media_type": JobType.AUDIO
+			})
+		except Exception:
+			raise Unavailable("Content unavailable")
 
 		return res
 
