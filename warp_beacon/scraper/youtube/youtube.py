@@ -28,7 +28,7 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return False
 
-	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
+	def _download(self, url: str, session: bool = True, timeout: int = 60) -> list:
 		res = []
 		try:
 			thumbnail = None
@@ -67,7 +67,7 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return res
 	
-	def _download_yt_dlp(self, url: str) -> list:
+	def _download_yt_dlp(self, url: str, timeout: int = 60) -> list:
 		res = []
 		thumbnail = None
 		video_id = self.get_video_id(url)
@@ -78,6 +78,7 @@ class YoutubeScraper(YoutubeAbstract):
 			local_file = ydl.prepare_filename(info)
 			logging.debug("Temp filename: '%s'", local_file)
 			res.append({
+				"socket_timeout": timeout,
 				"local_media_path": local_file,
 				"performer": info.get("uploader", "Unknown"),
 				"thumb": thumbnail,

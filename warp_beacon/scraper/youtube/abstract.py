@@ -279,7 +279,7 @@ class YoutubeAbstract(ScraperAbstract):
 					logging.warning("Proxy DSN malformed!")
 		return YouTube(**yt_opts)
 	
-	def build_yt_dlp(self) -> yt_dlp.YoutubeDL:
+	def build_yt_dlp(self, timeout: int = 0) -> yt_dlp.YoutubeDL:
 		auth_data = {}
 		with open(self.YT_SESSION_FILE % self.account_index, 'r', encoding="utf-8") as f:
 			auth_data = json.loads(f.read())
@@ -300,10 +300,10 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return yt_dlp.YoutubeDL(ydl_opts)
 	
-	def _download(self, _: str) -> list:
+	def _download(self, _: str, __: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download method")
 	
-	def _download_yt_dlp(self, _: str) -> list:
+	def _download_yt_dlp(self, _: str, __: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download_yt_dlp method")
 
 	def download(self, job: DownloadJob) -> list:
