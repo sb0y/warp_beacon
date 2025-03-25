@@ -12,11 +12,12 @@ import logging
 
 class IGScheduler(object):
 	state_file = "/var/warp_beacon/scheduler_state.json"
+	yt_sessions_dir = "/var/warp_beacon"
 	downloader = None
 	running = True
 	thread = None
 	event = None
-	state = {"remaining": randrange(8400, 26200)}
+	state = {"remaining": randrange(8400, 26200), "yt_sess_exp": []}
 
 	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
 		self.downloader = downloader
@@ -29,8 +30,23 @@ class IGScheduler(object):
 		try:
 			with open(self.state_file, 'w+', encoding="utf-8") as f:
 				f.write(json.dumps(self.state))
+			self.load_yt_sessions()
 		except Exception as e:
 			logging.error("Failed to save Scheduler state!")
+			logging.exception(e)
+
+	def load_yt_sessions(self) -> None:
+		try:
+			for f in os.listdir(self.yt_sessions_dir):
+				if f.startswith("yt_session") and f.endswith(".json"):
+					yt_sess_file = f"{self.yt_sessions_dir}/{f}"
+					if os.path.exists(yt_sess_file):
+						with open(yt_sess_file, 'r', encoding="utf-8") as f:
+							yt_sess_data = json.loads(f.read())
+							exp = yt_sess_data.get("expires", "")
+							self.state["yt_sess_exp"].append({"expires": exp, "file_path": yt_sess_file})
+		except Exception as e:
+			logging.error("Failed to load yt sessions!")
 			logging.exception(e)
 
 	def load_state(self) -> None:
@@ -39,7 +55,7 @@ class IGScheduler(object):
 				with open(self.state_file, 'r', encoding="utf-8") as f:
 					self.state = json.loads(f.read())
 				if "remaining" in self.state:
-					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
+					logging.info("Next scheduler activity in '%d' seconds", int(self.state["remaining"]))
 		except Exception as e:
 			logging.error("Failed to load Scheduler state!")
 			logging.exception(e)
@@ -73,6 +89,20 @@ class IGScheduler(object):
 				session_validation=True,
 				job_origin=Origin.INSTAGRAM
 			))
+			return True
+		except Exception as e:
+			logging.warning("An error occurred while validating instagram session!")
+			logging.exception(e)
+
+		return False
+	
+	def validate_yt_session(self) -> bool:
+		try:
+			self.downloader.queue_task(warp_beacon.jobs.download_job.DownloadJob.build(
+				session_validation=True,
+				job_origin=Origin.YOUTUBE
+			))
+			return True
 		except Exception as e:
 			logging.warning("An error occurred while validating instagram session!")
 			logging.exception(e)
@@ -91,7 +121,7 @@ class IGScheduler(object):
 					self.save_state()
 
 				if self.state["remaining"] <= 0:
-					self.state["remaining"] = randrange(4292, 8623)
+					self.state["remaining"] = randrange(2292, 4623)
 					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
 
 				start_time = time.time()

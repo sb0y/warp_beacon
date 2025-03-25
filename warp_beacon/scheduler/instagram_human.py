@@ -32,10 +32,10 @@ class InstagramHuman(object):
 			logging.info("Starting morning activity simulation")
 			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh", self.scrapler.timeline_cursor.get("next_max_id"))
 			time.sleep(random.uniform(3, 7))
-			if random.random() > 0.7:
+			if random.random() > 0.5:
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				time.sleep(random.uniform(2, 5))
-			if random.random() > 0.7:
+			if random.random() > 0.3:
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 				self.random_pause()
 			if random.random() > 0.5:
@@ -53,7 +53,7 @@ class InstagramHuman(object):
 			logging.info("Starting day fast check activity simulation")
 			self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh")
 			time.sleep(random.uniform(2, 5))
-			if random.random() > 0.7:
+			if random.random() > 0.5:
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
 				self.random_pause()
 		except Exception as e:
@@ -67,10 +67,10 @@ class InstagramHuman(object):
 			time.sleep(random.uniform(2, 5))
 			self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
 			time.sleep(random.uniform(2, 5))
-			if random.random() > 0.7:
+			if random.random() > 0.5:
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				time.sleep(random.uniform(2, 5))
-			if random.random() > 0.7:
+			if random.random() > 0.5:
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 				self.random_pause()
 			if random.random() > 0.4:
@@ -88,7 +88,7 @@ class InstagramHuman(object):
 	def night_routine(self) -> None:
 		try:
 			logging.info("Starting night activity simulation")
-			if random.random() > 0.8:
+			if random.random() > 0.7:
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				self.random_pause(short=True)
 		except Exception as e:
@@ -124,11 +124,10 @@ class InstagramHuman(object):
 
 			time.sleep(random.uniform(2, 5))
 
-			if random.random() > 0.7:
+			if random.random() > 0.5:
 				logging.info("user_medias with target_user_id = '%s' ...", target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_medias, target_user_id, amount=random.randint(1, 5))
-
-			self.random_pause()
+				self.random_pause()
 		except Exception as e:
 			logging.warning("Error in profile view")
 			logging.exception(e)
