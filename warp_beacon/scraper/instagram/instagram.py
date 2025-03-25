@@ -18,7 +18,7 @@ from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
-	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
+	ChallengeSelfieCaptcha, ChallengeUnknownStep, AssertionError, UnknownError as IGUnknownError
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
@@ -167,6 +167,8 @@ class InstagramScraper(ScraperAbstract):
 					os.unlink(self.inst_session_file)
 				time.sleep(5)
 				self.load_session()
+			except AssertionError as e:
+				raise IGRateLimitOccurred("IG rate limit occurred")
 			except (socket.timeout,
 					ssl.SSLError,
 					requests.exceptions.ConnectionError,

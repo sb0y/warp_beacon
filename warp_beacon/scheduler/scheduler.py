@@ -37,6 +37,10 @@ class IGScheduler(object):
 
 	def load_yt_sessions(self) -> None:
 		try:
+			# old versions migration
+			if not "yt_sess_exp" in self.state:
+				self.state["yt_sess_exp"] = []
+			
 			for f in os.listdir(self.yt_sessions_dir):
 				if f.startswith("yt_session") and f.endswith(".json"):
 					yt_sess_file = f"{self.yt_sessions_dir}/{f}"

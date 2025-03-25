@@ -275,13 +275,15 @@ class AsyncDownloader(object):
 										self.job_queue.put(job)
 										break
 									self.send_message_to_admin(
-										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>UnknownError</b>'."
-										f"Exception:\n<pre code=\"python\">\n{exception_msg}\n</pre>"
+										f"Task <code>{job.job_id}</code> failed. URL: {job.url}. Reason: '<b>UnknownError</b>'."
+										f"Exception:\n<pre code=\"python\">{exception_msg}\n</pre>"
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
-										job_failed_msg="WOW, unknown error occured! Please <a href=\"https://github.com/sb0y/warp_beacon/issues\">create issue</a> with service logs.")
-									)
+										job_failed_msg=("Unknown error occured. Please <a href=\"https://github.com/sb0y/warp_beacon/issues\">create issue</a> with service logs.\n",
+										f"Task <code>{job.job_id}</code> failed. URL: {job.url}. Reason: '<b>UnknownError</b>'.\n",
+										f"Exception:\n<pre code=\"python\">{exception_msg}\n</pre>")
+									))
 									break
 
 							if items:
