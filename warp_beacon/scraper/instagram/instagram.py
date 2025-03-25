@@ -18,7 +18,7 @@ from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
-	ChallengeSelfieCaptcha, ChallengeUnknownStep, AssertionError, UnknownError as IGUnknownError
+	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
