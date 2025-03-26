@@ -23,6 +23,7 @@ class AccountSelector(object):
 	manager = None
 	account_index = {}
 	current_proxy = None
+	ig_request_count = None
 
 	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str, proxy_file_path: str=None) -> None:
 		self.manager = manager
@@ -31,6 +32,7 @@ class AccountSelector(object):
 			with open(acc_file_path, 'r', encoding="utf-8") as f:
 				self.accounts = json.loads(f.read())
 			if self.accounts:
+				self.ig_request_count = self.manager.Value('i', 0)
 				self.__init_meta_data()
 				#self.load_yt_sessions()
 				for acc_type, _ in self.accounts.items():
@@ -171,3 +173,12 @@ class AccountSelector(object):
 		if module_name not in self.accounts:
 			return 0
 		return len(self.accounts[module_name])
+	
+	def inc_ig_request_count(self) -> None:
+		self.ig_request_count.value += 1
+
+	def reset_ig_request_count(self) -> None:
+		self.ig_request_count.value = 0
+
+	def get_ig_request_count(self) -> int:
+		return self.ig_request_count.value
