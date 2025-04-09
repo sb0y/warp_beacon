@@ -138,7 +138,7 @@ class IGScheduler(object):
 					self.save_state()
 
 				if ig_sched <= 0:
-					self.state["remaining"] = randrange(4292, 8623)
+					self.state["remaining"] = randrange(9292, 26200)
 					logging.info("Next scheduler activity in '%s' seconds", ig_sched)
 
 				if yt_expires <= time.time() + 60:
