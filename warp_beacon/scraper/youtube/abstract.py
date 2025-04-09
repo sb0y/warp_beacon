@@ -44,11 +44,11 @@ class YoutubeAbstract(ScraperAbstract):
 					if os.path.exists(yt_sess_file):
 						account_index = int(f.split('_')[-1].rstrip('.json'))
 						logging.info("Validating YT session #%d ...", account_index)
-						yt_sess_data = {}, 0
+						yt_sess_data, exp = {}, 0
 						with open(yt_sess_file, 'r', encoding="utf-8") as f:
 							yt_sess_data = json.loads(f.read())
 							exp = int(yt_sess_data.get("expires", 0))
-						if exp <= time.time():
+						if exp <= time.time() + 60:
 							yt_auth = YtAuth(account_index=account_index)
 							requests_data = yt_auth.refresh_token(refresh_token=yt_sess_data.get("refresh_token", ""))
 							if requests_data:
