@@ -20,7 +20,7 @@ from instagrapi.mixins.challenge import ChallengeChoice
 from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
 	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, BadProxy, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.jobs.download_job import DownloadJob
@@ -152,6 +152,9 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				ret_val = func(*args, **kwargs)
 				break
+			except urllib3.exceptions.ProxyError as e:
+				logging.warning("Proxy error!")
+				raise BadProxy(extract_exception_message(e.original_error))
 			except (ChallengeRequired, ChallengeSelfieCaptcha, ChallengeUnknownStep) as e:
 				logging.warning("Instagram wants Challange!")
 				logging.exception(e)

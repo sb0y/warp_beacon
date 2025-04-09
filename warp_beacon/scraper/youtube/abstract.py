@@ -15,81 +15,49 @@ import pytubefix.exceptions
 import requests
 from PIL import Image
 import numpy as np
+import urllib3
 from urllib.parse import urlparse, parse_qs
 
 import pytubefix
 from pytubefix import YouTube
 from pytubefix.innertube import _default_clients
 from pytubefix.streams import Stream
-from pytubefix.innertube import InnerTube, _client_id, _client_secret
 #from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
-from pytubefix import request
 import yt_dlp
 
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.scraper.abstract import ScraperAbstract
-#from warp_beacon.mediainfo.abstract import MediaInfoAbstract
-from warp_beacon.scraper.exceptions import TimeOut, Unavailable, extract_exception_message
-
-def patched_fetch_bearer_token(self) -> None:
-	"""Fetch an OAuth token."""
-	# Subtracting 30 seconds is arbitrary to avoid potential time discrepencies
-	start_time = int(time.time() - 30)
-	data = {
-		'client_id': _client_id,
-		'scope': 'https://www.googleapis.com/auth/youtube'
-	}
-	response = request._execute_request(
-		'https://oauth2.googleapis.com/device/code',
-		'POST',
-		headers={
-			'Content-Type': 'application/json'
-		},
-		data=data
-	)
-	response_data = json.loads(response.read())
-	verification_url = response_data['verification_url']
-	user_code = response_data['user_code']
-
-	logging.warning("Please open %s and input code '%s'", verification_url, user_code)
-	self.send_message_to_admin_func(
-		f"Please open {verification_url} and input code <code>{user_code}</code>.\n\n"
-		"Please select a Google account with verified age.\n"
-		"This will allow you to avoid error the <b>AgeRestrictedError</b> when accessing some content.",
-		account_admins=self.wb_account.get("account_admins", None),
-		yt_auth=True)
-	self.auth_event.wait()
-
-	data = {
-		'client_id': _client_id,
-		'client_secret': _client_secret,
-		'device_code': response_data['device_code'],
-		'grant_type': 'urn:ietf:params:oauth:grant-type:device_code'
-	}
-	response = request._execute_request(
-		'https://oauth2.googleapis.com/token',
-		'POST',
-		headers={
-			'Content-Type': 'application/json'
-		},
-		data=data
-	)
-	response_data = json.loads(response.read())
-
-	self.access_token = response_data['access_token']
-	self.refresh_token = response_data['refresh_token']
-	self.expires = start_time + response_data['expires_in']
-	self.cache_tokens()
+from warp_beacon.yt_auth import YtAuth
+from warp_beacon.scraper.exceptions import TimeOut, Unavailable, BadProxy, extract_exception_message
 
 class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
 	YT_SESSION_FILE = '/var/warp_beacon/yt_session_%d.json'
 
-	#def __init__(self, account: tuple, proxy: dict=None) -> None:
-	#	super().__init__(account, proxy)
-
-	#def __del__(self) -> None:
-	#	pass
+	def validate_session(self) -> None:
+		try:
+			logging.info("Validating YT session(s) ...")
+			session_dir = os.path.dirname(self.YT_SESSION_FILE)
+			for f in os.listdir(session_dir):
+				if f.startswith("yt_session") and f.endswith(".json"):
+					yt_sess_file = f"{session_dir}/{f}"
+					if os.path.exists(yt_sess_file):
+						account_index = int(f.split('_')[-1].rstrip('.json'))
+						logging.info("Validating YT session #%d ...", account_index)
+						yt_sess_data = {}, 0
+						with open(yt_sess_file, 'r', encoding="utf-8") as f:
+							yt_sess_data = json.loads(f.read())
+							exp = int(yt_sess_data.get("expires", 0))
+						if exp <= time.time():
+							yt_auth = YtAuth(account_index=account_index)
+							requests_data = yt_auth.refresh_token(refresh_token=yt_sess_data.get("refresh_token", ""))
+							if requests_data:
+								yt_sess_data.update(requests_data)
+								if yt_auth.safe_write_session(yt_sess_data):
+									logging.info("YT session #%d validated", account_index)
+		except Exception as e:
+			logging.error("Failed to refresh Youtube session!")
+			logging.exception(e)
 
 	def rename_local_file(self, filename: str) -> str:
 		if not os.path.exists(filename):
@@ -214,6 +182,9 @@ class YoutubeAbstract(ScraperAbstract):
 			#except http.client.IncompleteRead as e:
 			except KeyError:
 				raise Unavailable("Library failed")
+			except urllib3.exceptions.ProxyError as e:
+				logging.warning("Proxy error!")
+				raise BadProxy(extract_exception_message(e.original_error))
 			except (socket.timeout,
 					ssl.SSLError,
 					http.client.IncompleteRead,
@@ -256,11 +227,6 @@ class YoutubeAbstract(ScraperAbstract):
 		#logging.info("bytes: %d, bytes remaining: %d", chunk, bytes_remaining)
 
 	def build_yt(self, url: str, session: bool = True) -> YouTube:
-		if session:
-			InnerTube.send_message_to_admin_func = self.send_message_to_admin_func
-			InnerTube.auth_event = self.auth_event
-			InnerTube.wb_account = self.account
-			InnerTube.fetch_bearer_token = patched_fetch_bearer_token
 		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
 		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]
 		yt_opts = {"url": url, "on_progress_callback": self.yt_on_progress}
@@ -269,6 +235,18 @@ class YoutubeAbstract(ScraperAbstract):
 			yt_opts["use_oauth"] = True
 			yt_opts["allow_oauth_cache"] = True
 			yt_opts["token_file"] = self.YT_SESSION_FILE % self.account_index
+			if not os.path.exists(yt_opts["token_file"]):
+				logging.warning("YT session '%s' file is not found", yt_opts["token_file"])
+				self.request_yt_auth()
+				self.auth_event.wait()
+				yt_auth = YtAuth(account_index=self.account_index)
+				device_code = yt_auth.load_device_code()
+				if device_code:
+					auth_data = yt_auth.confirm_token(device_code=device_code)
+					if auth_data:
+						yt_auth.safe_write_session(auth_data)
+				else:
+					logging.error("Failed to fetch YT auth token!")
 		if self.proxy:
 			proxy_dsn = self.proxy.get("dsn", "")
 			logging.info("Using proxy DSN '%s'", proxy_dsn)

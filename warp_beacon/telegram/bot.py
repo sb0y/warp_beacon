@@ -1,5 +1,6 @@
 import os
 import signal
+from typing import Optional, Union
 
 import logging
 
@@ -74,6 +75,7 @@ class Bot(object):
 		self.uploader = AsyncUploader(
 			storage=self.storage,
 			admin_message_callback=self.send_text_to_admin,
+			request_yt_auth_callback=self.request_yt_auth,
 			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=workers_amount)),
 			loop=self.client.loop
 		)
@@ -130,7 +132,31 @@ class Bot(object):
 
 		return 0
 
-	async def send_text_to_admin(self, text: str, account_admins: str = None, yt_auth: bool = False) -> list[int]:
+	async def request_yt_auth(self) -> None:
+		from warp_beacon.yt_auth import YtAuth
+		acc_index, acc = self.downloader.acc_selector.get_current_for_module(Origin.YOUTUBE)
+		yt_auth = YtAuth(account_index=acc_index)
+		data = yt_auth.fetch_token()
+		if all(data.values()):
+			if yt_auth.store_device_code(data["device_code"]):
+				reply_markup = InlineKeyboardMarkup(
+					[
+						[
+							InlineKeyboardButton("✅ Done", callback_data=f"confirm_yt_auth:{acc_index}")
+						]
+					]
+				)
+				await self.send_text_to_admin(
+					f"Please open {data['verification_url']} and input code <code>{data['user_code']}</code>.\n\n"
+					"Please authorize with a Google account with verified age.\n"
+					"This will allow you to avoid error the <b>AgeRestrictedError</b> when accessing some content.",
+					account_admins=acc.get("account_admins", None),
+					reply_markup=reply_markup
+				)
+		else:
+			logging.error("Wrong YT auth dataset: '%s'", str(data))
+
+	async def send_text_to_admin(self, text: str, account_admins: str = None, reply_markup: Optional[Union[InlineKeyboardMarkup]] = None) -> list[int]:
 		try:
 			admins = None
 			if account_admins:
@@ -145,14 +171,8 @@ class Bot(object):
 			for adm in admins_array:
 				adm = adm.strip()
 				msg_opts = {"chat_id": adm, "text": text, "parse_mode": ParseMode.HTML}
-				if yt_auth:
-					msg_opts["reply_markup"] = InlineKeyboardMarkup(
-						[
-							[
-								InlineKeyboardButton("✅ Done", callback_data="auth_process_done")
-							]
-						]
-					)
+				if reply_markup:
+					msg_opts["reply_markup"] = reply_markup
 				message_reply = await self.client.send_message(**msg_opts)
 				msg_ids.append(message_reply.id)
 			return msg_ids

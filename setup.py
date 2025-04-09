@@ -60,6 +60,7 @@ setup(
 	py_modules=[
 		"warp_beacon/__version__",
 		"warp_beacon/warp_beacon",
+		"warp_beacon/yt_auth",
 		"warp_beacon/telegram/bot",
 		"warp_beacon/telegram/placeholder_message",
 		"warp_beacon/telegram/handlers",

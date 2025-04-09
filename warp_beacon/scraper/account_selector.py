@@ -125,8 +125,12 @@ class AccountSelector(object):
 			for index, _ in enumerate(lst):
 				self.accounts_meta_data[module_name].insert(index, {"auth_fails": 0, "rate_limits": 0, "captcha": 0})
 
-	def set_module(self, module_origin: Origin) -> None:
+	def get_module_name(self, module_origin: Origin) -> str:
 		module_name = 'youtube' if next((s for s in ("yt", "youtube", "youtu_be") if s in module_origin.value), None) else 'instagram'
+		return module_name
+
+	def set_module(self, module_origin: Origin) -> None:
+		module_name = self.get_module_name(module_origin)
 		self.current_module_name = module_name
 		if self.current is None:
 			self.current = self.accounts[self.current_module_name][self.account_index[self.current_module_name].value]
@@ -163,6 +167,11 @@ class AccountSelector(object):
 	def get_current(self) -> tuple:
 		idx = self.account_index[self.current_module_name].value
 		return (idx, self.accounts[self.current_module_name][idx])
+	
+	def get_current_for_module(self, module_origin: Origin) -> tuple:
+		module_name = self.get_module_name(module_origin)
+		idx = self.account_index[module_name].value
+		return (idx, self.accounts[module_name][idx])
 
 	def get_meta_data(self) -> dict:
 		idx = self.account_index[self.current_module_name].value - 1

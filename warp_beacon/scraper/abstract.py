@@ -14,12 +14,12 @@ import logging
 
 class ScraperAbstract(ABC):
 	original_gai_family = None
-	send_message_to_admin_func = None
+	send_message_to_admin_func: Callable = lambda: None
+	request_yt_auth: Callable = lambda: None
 	auth_event = None
 	account = None
 	account_index = 0
 	proxy = None
-
 
 	def __init__(self, account: tuple, proxy: dict=None) -> None:
 		self.account_index = account[0]

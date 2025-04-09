@@ -85,6 +85,7 @@ class AsyncDownloader(object):
 		cur_acc = selector.get_current()
 		logging.info("Current account: '%s'", str(cur_acc))
 		job.account_switches += 1
+		selector.reset_ig_request_count()
 
 	def do_work(self, selector: AccountSelector) -> None:
 		logging.info("download worker started")
@@ -136,11 +137,17 @@ class AsyncDownloader(object):
 								from warp_beacon.scraper.youtube.youtube import YoutubeScraper
 								actor = YoutubeScraper(selector.get_current(), proxy)
 							actor.send_message_to_admin_func = self.send_message_to_admin
+							actor.request_yt_auth = self.request_yt_auth
 							actor.auth_event = self.auth_event
 							# job retry loop
 							while self.allow_loop.value == 1:
 								try:
 									if job.session_validation:
+										if job.job_origin is Origin.INSTAGRAM:
+											if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="20")):
+												logging.info("The account request limit has been reached. Selecting the next account.")
+												selector.reset_ig_request_count()
+												selector.next()
 										logging.info("Validating '%s' session ...", job.job_origin.value)
 										actor.validate_session()
 										logging.info("done")
@@ -281,13 +288,13 @@ class AsyncDownloader(object):
 										break
 									self.send_message_to_admin(
 										f"Task <code>{job.job_id}</code> failed. URL: {job.url}. Reason: '<b>UnknownError</b>'."
-										f"Exception:\n<pre code=\"python\">{exception_msg}\n</pre>"
+										f"Exception:<br><pre code=\"python\">{exception_msg}<br></pre>"
 									)
 									self.uploader.queue_task(job.to_upload_job(
 										job_failed=True,
-										job_failed_msg=("Unknown error occured. Please <a href=\"https://github.com/sb0y/warp_beacon/issues\">create issue</a> with service logs.\n",
-										f"Task <code>{job.job_id}</code> failed. URL: {job.url}. Reason: '<b>UnknownError</b>'.\n",
-										f"Exception:\n<pre code=\"python\">{exception_msg}\n</pre>")
+										job_failed_msg=f"Unknown error occured. Please <a href=\"https://github.com/sb0y/warp_beacon/issues\">create issue</a> with service logs.\n"
+										f"Task <code>{job.job_id}</code> failed. URL: {job.url}. Reason: '<b>UnknownError</b>'.\n"
+										f"Exception:<br><pre code=\"python\">{exception_msg}</pre>"
 									))
 									break
 
@@ -398,10 +405,12 @@ class AsyncDownloader(object):
 	def notify_task_failed(self, job: DownloadJob) -> None:
 		self.uploader.queue_task(job.to_upload_job(job_failed=True))
 
-	def send_message_to_admin(self, text: str, account_admins: str = None, yt_auth: bool = False) -> None:
+	def send_message_to_admin(self, text: str, account_admins: str = None, _: object = None) -> None:
 		self.uploader.queue_task(UploadJob.build(
 			is_message_to_admin=True,
 			message_text=text,
-			account_admins=account_admins,
-			yt_auth=yt_auth
+			account_admins=account_admins
 		))
+
+	def request_yt_auth(self) -> None:
+		self.uploader.queue_task(UploadJob.build(yt_auth=True))

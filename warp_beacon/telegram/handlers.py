@@ -1,5 +1,6 @@
+import os
 from pyrogram import Client
-from pyrogram.types import Message, CallbackQuery
+from pyrogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.enums import ChatType, ParseMode
 from pyrogram.types import BotCommand
 
@@ -24,12 +25,12 @@ class Handlers(object):
 		self.bot = bot
 		self.storage = bot.storage
 
-	async def help(self, client: Client, message: Message) -> None:
+	async def help(self, _: Client, message: Message) -> None:
 		"""Send a message when the command /help is issued."""
 		await self.bot.send_text(text="Send me a link to remote media", reply_id=message.id, chat_id=message.chat.id)
 		#await message.reply_text("<code>test</code>\n<b>bold</b>\n<pre code=\"python\">print('hello')</pre> @BelisariusCawl", parse_mode=ParseMode.HTML)
 
-	async def random(self, client: Client, message: Message) -> None:
+	async def random(self, _: Client, message: Message) -> None:
 		d = self.storage.get_random()
 		if not d:
 			await message.reply_text("No random content yet. Try to send link first.")
@@ -48,7 +49,10 @@ class Handlers(object):
 			)
 		)
 
-	async def start(self, client: Client, message: Message) -> None:
+	async def yt_auth(self, _: Client, __: Message) -> None:
+		await self.bot.request_yt_auth()
+
+	async def start(self, _: Client, message: Message) -> None:
 		bot_name = await self.bot.client.get_me()
 		await self.bot.client.set_bot_commands([
 			BotCommand("start", "Start bot"),

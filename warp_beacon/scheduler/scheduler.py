@@ -5,10 +5,10 @@ import datetime
 import threading
 import json
 
+import logging
+
 from warp_beacon.jobs import Origin
 import warp_beacon
-
-import logging
 
 class IGScheduler(object):
 	state_file = "/var/warp_beacon/scheduler_state.json"
@@ -30,7 +30,6 @@ class IGScheduler(object):
 		try:
 			with open(self.state_file, 'w+', encoding="utf-8") as f:
 				f.write(json.dumps(self.state))
-			self.load_yt_sessions()
 		except Exception as e:
 			logging.error("Failed to save Scheduler state!")
 			logging.exception(e)
@@ -48,7 +47,13 @@ class IGScheduler(object):
 						with open(yt_sess_file, 'r', encoding="utf-8") as f:
 							yt_sess_data = json.loads(f.read())
 							exp = yt_sess_data.get("expires", "")
-							self.state["yt_sess_exp"].append({"expires": exp, "file_path": yt_sess_file})
+							self.state["yt_sess_exp"].append({
+								"expires": exp,
+								"file_path": yt_sess_file,
+								"access_token": yt_sess_data.get("access_token", ""),
+								"refresh_token": yt_sess_data.get("refresh_token", ""),
+								"expires_in": yt_sess_data.get("expires_in", ""),
+							})
 		except Exception as e:
 			logging.error("Failed to load yt sessions!")
 			logging.exception(e)
@@ -60,6 +65,7 @@ class IGScheduler(object):
 					self.state = json.loads(f.read())
 				if "remaining" in self.state:
 					logging.info("Next scheduler activity in '%d' seconds", int(self.state["remaining"]))
+			self.load_yt_sessions()
 		except Exception as e:
 			logging.error("Failed to load Scheduler state!")
 			logging.exception(e)
@@ -113,23 +119,33 @@ class IGScheduler(object):
 
 		return False
 
+	def yt_nearest_expire(self) -> int:
+		return int(min(self.state["yt_sess_exp"], key=lambda x: x.get("expires", 0)).get("expires", 0))
+
 	def do_work(self) -> None:
 		logging.info("Scheduler thread started ...")
 		self.load_state()
 		while self.running:
 			try:
+				yt_expires = self.yt_nearest_expire()
+				ig_sched = self.state["remaining"]
+				min_val = min(yt_expires, ig_sched)
+				#max_val = max(yt_expires, ig_sched)
 				now = datetime.datetime.now()
-				if 4 <= now.hour < 7:
+				if 4 <= now.hour < 7 and min_val != yt_expires:
 					logging.info("Scheduler is paused due to night hours (4:00 - 7:00)")
 					self.state["remaining"] = 10800
 					self.save_state()
 
-				if self.state["remaining"] <= 0:
-					self.state["remaining"] = randrange(2292, 4623)
-					logging.info("Next scheduler activity in '%s' seconds", self.state["remaining"])
+				if ig_sched <= 0:
+					self.state["remaining"] = randrange(4292, 8623)
+					logging.info("Next scheduler activity in '%s' seconds", ig_sched)
+
+				if yt_expires <= time.time() + 60:
+					self.validate_yt_session()
 
 				start_time = time.time()
-				self.event.wait(timeout=self.state["remaining"])
+				self.event.wait(timeout=min_val)
 				elapsed = time.time() - start_time
 				self.state["remaining"] -= elapsed
 

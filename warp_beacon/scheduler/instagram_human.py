@@ -115,12 +115,14 @@ class InstagramHuman(object):
 			if isinstance(random_friend, UserShort):
 				target_user_id = random_friend.pk
 				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
-				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
+				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
+				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
 				time.sleep(random.uniform(2, 5))
 			elif isinstance(random_friend, str):
 				target_user_id = self.scrapler.download_hndlr(self.scrapler.cl.user_id_from_username, random_friend)
 				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
-				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
+				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
+				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
 
 			time.sleep(random.uniform(2, 5))
 

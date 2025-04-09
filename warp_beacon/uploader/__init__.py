@@ -19,13 +19,21 @@ class AsyncUploader(object):
 	in_process = set()
 	loop = None
 	admin_message_callback = None
+	request_yt_auth_callback = None
 	pool_size = 1
 
-	def __init__(self, loop: asyncio.AbstractEventLoop, storage: Storage, admin_message_callback: Callable, pool_size: int=min(32, os.cpu_count() + 4)) -> None:
+	def __init__(self,
+			loop: asyncio.AbstractEventLoop,
+			storage: Storage,
+			admin_message_callback: Callable,
+			request_yt_auth_callback: Callable,
+			pool_size: int=min(32, os.cpu_count() + 4)
+		) -> None:
 		self.storage = storage
 		self.loop = loop
 		self.job_queue = multiprocessing.Queue()
 		self.admin_message_callback = admin_message_callback
+		self.request_yt_auth_callback = request_yt_auth_callback
 		self.pool_size = pool_size
 	
 	def __del__(self) -> None:
@@ -80,10 +88,15 @@ class AsyncUploader(object):
 					if job is self.__JOE_BIDEN_WAKEUP:
 						break
 					if job.is_message_to_admin and job.message_text and self.admin_message_callback:
-						#asyncio.ensure_future(self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth), loop=self.loop)
 						self.loop.call_soon_threadsafe(
 							asyncio.create_task,
-							self.admin_message_callback(job.message_text, job.account_admins, job.yt_auth)
+							self.admin_message_callback(job.message_text, job.account_admins)
+						)
+						continue
+					if job.yt_auth and self.request_yt_auth_callback:
+						self.loop.call_soon_threadsafe(
+							asyncio.create_task,
+							self.request_yt_auth_callback()
 						)
 						continue
 
@@ -91,7 +104,7 @@ class AsyncUploader(object):
 					if job.media_type == JobType.COLLECTION:
 						for i in job.media_collection:
 							for j in i:
-								path += "%s; " % j.local_media_path
+								path += f"{j.local_media_path}; "
 					else:
 						path = job.local_media_path
 	
