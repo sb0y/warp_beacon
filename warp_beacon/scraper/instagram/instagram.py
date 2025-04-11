@@ -13,12 +13,13 @@ import requests
 import urllib3
 from urllib.parse import urljoin, urlparse
 
+from instagrapi import exceptions
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
 from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
-from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
-	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
+#from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
+#	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
 
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, BadProxy, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
@@ -155,11 +156,22 @@ class InstagramScraper(ScraperAbstract):
 			except urllib3.exceptions.ProxyError as e:
 				logging.warning("Proxy error!")
 				raise BadProxy(extract_exception_message(e.original_error))
-			except (ChallengeRequired, ChallengeSelfieCaptcha, ChallengeUnknownStep) as e:
+			except exceptions.ClientConnectionError as e:
+				msg = str(e.message)
+				if "ProxyError" in msg:
+					raise BadProxy(msg)
+				logging.warning("Instagram read timeout! Retrying in 2 seconds ...")
+				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
+				logging.exception(e)
+				if max_retries <= retries:
+					raise TimeOut(extract_exception_message(e))
+				retries += 1
+				time.sleep(2)
+			except(exceptions.ChallengeRequired, exceptions.ChallengeSelfieCaptcha, exceptions.ChallengeUnknownStep) as e:
 				logging.warning("Instagram wants Challange!")
 				logging.exception(e)
 				raise CaptchaIssue("a captcha issue arose")
-			except LoginRequired as e:
+			except exceptions.LoginRequired as e:
 				logging.error("LoginRequired occurred in download handler!")
 				logging.exception(e)
 				old_session = self.cl.get_settings()
