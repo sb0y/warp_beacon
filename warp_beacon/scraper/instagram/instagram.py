@@ -14,6 +14,7 @@ import urllib3
 from urllib.parse import urljoin, urlparse
 
 from instagrapi import exceptions
+from instagrapi.exceptions import UnknownError as IGUnknownError
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
 from instagrapi import Client
@@ -301,13 +302,13 @@ class InstagramScraper(ScraperAbstract):
 					logging.info("Stories download mode")
 					res.append(self.download_stories(self.scrap_stories(media_id)))
 				break
-			except PleaseWaitFewMinutes as e:
+			except exceptions.PleaseWaitFewMinutes as e:
 				logging.warning("Please wait a few minutes error.")
 				logging.exception(e)
 				if os.path.exists(self.inst_session_file):
 					os.unlink(self.inst_session_file)
 				raise IGRateLimitOccurred("Instagram ratelimit")
-			except (MediaNotFound, ClientNotFoundError, UserNotFound) as e:
+			except (exceptions.MediaNotFound, exceptions.ClientNotFoundError, exceptions.UserNotFound) as e:
 				raise NotFound(extract_exception_message(e))
 			except IGUnknownError as e:
 				raise UnknownError(extract_exception_message(e))
