@@ -92,5 +92,7 @@ class ScraperAbstract(ABC):
 		urllib3_cn.allowed_gai_family = allowed_gai_family
 
 	def restore_gai(self) -> None:
-		logging.info("Restoring normal IP stack ...")
-		urllib3_cn.allowed_gai_family = self.original_gai_family
+		if self.original_gai_family:
+			logging.info("Restoring normal IP stack ...")
+			urllib3_cn.allowed_gai_family = self.original_gai_family
+			self.original_gai_family = None

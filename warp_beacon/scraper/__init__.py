@@ -116,14 +116,13 @@ class AsyncDownloader(object):
 									time.sleep(2)
 									self.job_queue.put(job)
 									continue
-							actor = None
 							self.acc_selector.set_module(job.job_origin)
 							proxy = selector.get_current_proxy()
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
 								actor = InstagramScraper(selector.get_current(), proxy)
 								selector.inc_ig_request_count()
-								if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="20")):
+								if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
 									logging.info("The account request limit has been reached. Selecting the next account.")
 									selector.reset_ig_request_count()
 									selector.next()
@@ -379,6 +378,9 @@ class AsyncDownloader(object):
 						logging.error("Error inside download worker!")
 						logging.exception(e)
 						self.notify_task_failed(job)
+					finally:
+						if actor:
+							actor.restore_gai()
 				except Empty:
 					pass
 			except Exception as e:
