@@ -33,6 +33,7 @@ class InstagramHuman(object):
 			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh", self.scrapler.timeline_cursor.get("next_max_id"))
 			time.sleep(random.uniform(3, 7))
 			if random.random() > 0.5:
+				logging.info("Checking direct ...")
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				time.sleep(random.uniform(2, 5))
 			if random.random() > 0.3:
@@ -71,6 +72,7 @@ class InstagramHuman(object):
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				time.sleep(random.uniform(2, 5))
 			if random.random() > 0.5:
+				logging.info("Checking notifications, tags ...")
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 				self.random_pause()
 			if random.random() > 0.4:
@@ -123,12 +125,21 @@ class InstagramHuman(object):
 				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
 				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
+				time.sleep(random.uniform(2, 5))
+			
+			if random.random() > 0.5:
+				logging.info("Checking direct ...")
+				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
+				self.random_pause()
 
-			time.sleep(random.uniform(2, 5))
-
+			if random.random() > 0.3:
+				logging.info("Checking notifications, tags ...")
+				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
+				self.random_pause()
+			
 			if random.random() > 0.5:
 				logging.info("user_medias with target_user_id = '%s' ...", target_user_id)
-				self.scrapler.download_hndlr(self.scrapler.cl.user_medias, target_user_id, amount=random.randint(1, 5))
+				self.scrapler.download_hndlr(self.scrapler.cl.user_medias_v1, target_user_id, amount=random.randint(1, 5))
 				self.random_pause()
 		except Exception as e:
 			logging.warning("Error in profile view")
