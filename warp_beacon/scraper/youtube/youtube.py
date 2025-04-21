@@ -116,15 +116,15 @@ class YoutubeScraper(YoutubeAbstract):
 				output_path=f"{self.DOWNLOAD_DIR}/yt_muxed_video_{int(time.time())}.mp4")
 			if muxed_video:
 				muxed_video = self.rename_local_file(muxed_video)
-			logging.debug("Temp muxed filename: '%s'", muxed_video)
+				logging.debug("Temp muxed filename: '%s'", muxed_video)
 
-			res.append({
-				"local_media_path": muxed_video,
-				"performer": yt.author,
-				"thumb": thumbnail,
-				"canonical_name": yt.title,
-				"media_type": JobType.VIDEO
-			})
+				res.append({
+					"local_media_path": muxed_video,
+					"performer": yt.author,
+					"thumb": thumbnail,
+					"canonical_name": yt.title,
+					"media_type": JobType.VIDEO
+				})
 		except AgeRestrictedError as e:
 			raise YotubeAgeRestrictedError("Youtube Age Restricted error")
 		finally:
