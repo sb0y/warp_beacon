@@ -22,7 +22,7 @@ RUN set -x \
 	deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse\n" /etc/apt/sources.list \
 	&& apt-get update -y \
 	&& apt-get install python-is-python3 python3-pip ffmpeg pkg-config \
-	libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev -y \
+	libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev libavcodec-dev libavformat-dev libavdevice-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libdav1d-dev -y \
 	&& mkdir -p /var/warp_beacon/
 
 # Build prod image

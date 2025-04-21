@@ -54,19 +54,19 @@ class YoutubeScraper(YoutubeAbstract):
 				in_video_stream = input_video.streams.video[0]
 				in_audio_stream = input_audio.streams.audio[0]
 
-				out_video_stream = output.add_stream(codec_name=in_video_stream.codec.name)
-				out_audio_stream = output.add_stream(codec_name=in_audio_stream.codec.name)
+				video_stream_map = output.add_stream(template=in_video_stream)
+				audio_stream_map = output.add_stream(template=in_audio_stream)
 
 				for packet in input_video.demux(in_video_stream):
 					if packet.dts is None:
 						continue
-					packet.stream = out_video_stream
+					packet.stream = video_stream_map
 					output.mux(packet)
 
 				for packet in input_audio.demux(in_audio_stream):
 					if packet.dts is None:
 						continue
-					packet.stream = out_audio_stream
+					packet.stream = audio_stream_map
 					output.mux(packet)
 		except Exception as e:
 			logging.error("Failed to mux audio and video!")
