@@ -198,7 +198,7 @@ class YoutubeAbstract(ScraperAbstract):
 				logging.info("Your `YT_MAX_RETRIES` values is '%d'", max_retries)
 				logging.exception(extract_exception_message(e))
 				if max_retries <= retries:
-					self.remove_tmp_files()
+					#self.remove_tmp_files()
 					raise TimeOut(extract_exception_message(e))
 				retries += 1
 				timeout += timeout_increment
