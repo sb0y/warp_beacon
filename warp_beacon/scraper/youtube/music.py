@@ -49,7 +49,7 @@ class YoutubeMusicScraper(YoutubeAbstract):
 				"local_media_path": self.rename_local_file(local_file),
 				"performer": yt.author,
 				"thumb": thumbnail,
-				"canonical_name": stream.title,
+				"canonical_name": yt.title,
 				"media_type": JobType.AUDIO
 			})
 		except Exception:
