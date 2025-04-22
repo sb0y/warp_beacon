@@ -9,12 +9,12 @@ import ssl
 from typing import Callable, Union, Optional
 import logging
 import json
-import urllib
 import http.client
 import pytubefix.exceptions
 import requests
 from PIL import Image
 import numpy as np
+import urllib
 import urllib3
 from urllib.parse import urlparse, parse_qs
 
@@ -193,6 +193,8 @@ class YoutubeAbstract(ScraperAbstract):
 					urllib.error.URLError,
 					urllib.error.HTTPError) as e:
 				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
+					raise Unavailable(extract_exception_message(e))
+				if hasattr(e, "reason") and "Remote end closed connection without response" in str(e.reason):
 					raise Unavailable(extract_exception_message(e))
 				logging.warning("Youtube read timeout! Retrying in '%d' seconds ...", pause_secs)
 				logging.info("Your `YT_MAX_RETRIES` values is '%d'", max_retries)

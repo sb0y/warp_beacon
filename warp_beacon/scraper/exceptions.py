@@ -48,18 +48,17 @@ class UnknownError(ScraperError):
 	pass
 
 def extract_exception_message(e: Exception) -> str:
-	msg = ""
 	if hasattr(e, "expected"):
-		msg = "Expected bytes: %d" % int(e.expected)
+		return f"Expected bytes: {int(e.expected)}"
 	elif hasattr(e, "error_string"):
-		msg = e.error_string
-	elif hasattr(e, "message"):
-		msg = e.message
+		return str(e.error_string)
 	elif hasattr(e, "reason"):
-		msg = e.reason
+		return str(e.reason)
 	elif hasattr(e, "msg"):
-		msg = e.msg
-	elif hasattr(e, "args"):
-		msg = str(e.args)
-		
-	return msg
+		return str(e.msg)
+	elif hasattr(e, "args") and len(e.args) == 1:
+		return str(e.args[0])
+	elif hasattr(e, "args") and len(e.args) > 1:
+		return ", ".join(map(str, e.args))
+	else:
+		return str(e)
