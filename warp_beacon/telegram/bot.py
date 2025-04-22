@@ -248,7 +248,7 @@ class Bot(object):
 					args["thumb"] = job.media_info["thumb"]
 					args["caption"] = self.build_signature_caption(job)
 
-				args["file_name"] = "downloaded_via_warp_beacon_bot%s" % (os.path.splitext(job.local_media_path)[-1])
+				args["file_name"] = job.local_media_path
 		elif job.media_type == JobType.IMAGE:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -268,6 +268,8 @@ class Bot(object):
 				else:
 					args["photo"] = job.local_media_path
 					args["caption"] = self.build_signature_caption(job)
+
+				args["file_name"] = job.local_media_path
 		elif job.media_type == JobType.AUDIO:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -294,6 +296,8 @@ class Bot(object):
 					args["duration"] = round(job.media_info["duration"])
 					args["title"] = job.canonical_name
 					args["caption"] = self.build_signature_caption(job)
+
+				args["file_name"] = job.local_media_path
 		elif job.media_type == JobType.ANIMATION:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -321,6 +325,8 @@ class Bot(object):
 					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
 					args["caption"] = self.build_signature_caption(job)
+
+				args["file_name"] = job.local_media_path
 		elif job.media_type == JobType.COLLECTION:
 			if job.tg_file_id:
 				args["media"] = []
