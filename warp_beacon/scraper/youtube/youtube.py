@@ -32,19 +32,9 @@ class YoutubeScraper(YoutubeAbstract):
 		return False
 
 	def _download(self, url: str, session: bool = True, timeout: int = 60) -> list:
-		res = None
-		try:
-			res = self._download_pytubefix_max_res(url=url, session=session, timeout=timeout)
-		except Exception as e:
-			logging.error("Failed to download video with highest resolution via pytubefix!")
-			logging.exception(e)
-
+		res = self._download_pytubefix_max_res(url=url, session=session, timeout=timeout)
 		if not res:
-			try:
-				res = self._download_pytube_dash(url=url, session=session, timeout=timeout)
-			except Exception as e:
-				logging.error("Failed to download DASH stream video via pytubefix!")
-				logging.exception(e)
+			res = self._download_pytube_dash(url=url, session=session, timeout=timeout)
 
 		return res
 	
