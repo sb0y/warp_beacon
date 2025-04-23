@@ -195,7 +195,7 @@ class YoutubeAbstract(ScraperAbstract):
 				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
 					raise Unavailable(extract_exception_message(e))
 				if hasattr(e, "reason") and "Remote end closed connection without response" in str(e.reason):
-					raise BadProxy(extract_exception_message(e))
+					raise Unavailable(extract_exception_message(e))
 				logging.warning("Youtube read timeout! Retrying in '%d' seconds ...", pause_secs)
 				logging.info("Your `YT_MAX_RETRIES` values is '%d'", max_retries)
 				logging.exception(extract_exception_message(e))
