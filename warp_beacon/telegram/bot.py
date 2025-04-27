@@ -83,10 +83,6 @@ class Bot(object):
 
 		self.scheduler = IGScheduler(self.downloader)
 
-		self.downloader.start()
-		self.uploader.start()
-		self.scheduler.start()
-
 		self.handlers = Handlers(self)
 
 		self.client.add_handler(MessageHandler(self.handlers.start, filters.command("start")))
@@ -103,7 +99,7 @@ class Bot(object):
 		self.stop()
 
 	def start(self) -> None:
-		self.client.run(self.run)
+		self.client.run(self.run())
 
 	async def run(self) -> None:
 		loop = asyncio.get_running_loop()
@@ -114,6 +110,9 @@ class Bot(object):
 			self.client.me = self.me
 			if self.me.is_premium:
 				os.environ["TG_PREMIUM"] = "true"
+			self.downloader.start()
+			self.uploader.start()
+			self.scheduler.start()
 			logging.info("Warp Beacon version '%s' started", __version__)
 			await self.should_exit.wait()
 
