@@ -112,6 +112,8 @@ class Bot(object):
 		async with self.client:
 			self.me = await self.client.get_me()
 			self.client.me = self.me
+			if self.me.is_premium:
+				os.environ["TG_PREMIUM"] = "true"
 			logging.info("Warp Beacon version '%s' started", __version__)
 			await self.should_exit.wait()
 
