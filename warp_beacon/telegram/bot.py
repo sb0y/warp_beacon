@@ -1,5 +1,6 @@
 import os
 import signal
+import asyncio
 from typing import Optional, Union
 
 import logging
@@ -29,6 +30,7 @@ from warp_beacon.telegram.caption_shortener import CaptionShortner
 from warp_beacon.scheduler.scheduler import IGScheduler
 
 class Bot(object):
+	should_exit = None
 	storage = None
 	uploader = None
 	downloader = None
@@ -37,6 +39,7 @@ class Bot(object):
 	handlers = None
 	placeholder = None
 	scheduler = None
+	me = None
 
 	def __init__(self, tg_bot_name: str, tg_token: str, tg_api_id: str, tg_api_hash: str) -> None:
 		# Enable logging
@@ -46,10 +49,12 @@ class Bot(object):
 
 		logging.getLogger("pyrogram").setLevel(logging.ERROR)
 
+		logging.info("Starting Warp Beacon version '%s' ...", __version__)
+
 		db_connect = DBClient()
 		self.storage = Storage(db_connect)
 
-		logging.info("Starting Warp Beacon version '%s' ...", __version__)
+		self.should_exit = asyncio.Event()
 
 		workers_amount = min(32, os.cpu_count() + 4)
 
@@ -63,14 +68,6 @@ class Bot(object):
 			workdir='/var/warp_beacon',
 			workers=int(os.environ.get("TG_WORKERS_POOL_SIZE", default=workers_amount))
 		)
-
-		this = self
-		def __terminator() -> None:
-			this.stop()
-
-		stop_signals = (signal.SIGINT, signal.SIGTERM, signal.SIGABRT)
-		for sig in stop_signals:
-			self.client.loop.add_signal_handler(sig, __terminator)
 
 		self.uploader = AsyncUploader(
 			storage=self.storage,
@@ -102,20 +99,32 @@ class Bot(object):
 
 		self.placeholder = PlaceholderMessage(self)
 
-		self.client.run()
-
 	def __del__(self) -> None:
 		self.stop()
-		logging.info("Warp Beacon terminated.")
 
 	def start(self) -> None:
-		self.client.run()
+		self.client.run(self.run)
+
+	async def run(self) -> None:
+		loop = asyncio.get_running_loop()
+		for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGABRT):
+			loop.add_signal_handler(sig, self.should_exit.set)
+		async with self.client:
+			self.me = await self.client.get_me()
+			self.client.me = self.me
+			logging.info("Warp Beacon version '%s' started", __version__)
+			await self.should_exit.wait()
+
+		self.stop()
+		logging.info("Warp Beacon version '%s' terminated.", __version__)
 
 	def stop(self) -> None:
 		logging.info("Warp Beacon is terminating. This may take a while ...")
 		self.scheduler.stop()
 		self.downloader.stop_all()
 		self.uploader.stop_all()
+		if self.client and self.client.is_initialized and self.client.is_connected:
+			asyncio.run_coroutine_threadsafe(self.client.stop(), self.client.loop)
 
 	async def send_text(self, chat_id: int, text: str, reply_id: int = None) -> int:
 		try:
