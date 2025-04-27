@@ -321,7 +321,10 @@ class AsyncDownloader(object):
 											)
 											ffmpeg = VideoCompress(file_path=item["local_media_path"])
 											new_filepath = ffmpeg.generate_filepath(base_filepath=item["local_media_path"])
-											if ffmpeg.compress_to(new_filepath, target_size=2000 * 1000):
+											target_size = 2000 * 1000
+											if os.environ.get("TG_PREMIUM", default="false") == "true":
+												target_size = 4000 * 1000
+											if ffmpeg.compress_to(new_filepath, target_size=target_size):
 												logging.info("Successfully compressed file '%s'", new_filepath)
 												os.unlink(item["local_media_path"])
 												item["local_media_path"] = new_filepath
