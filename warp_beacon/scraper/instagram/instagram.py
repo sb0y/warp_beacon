@@ -319,8 +319,8 @@ class InstagramScraper(ScraperAbstract):
 	
 	def email_challenge_resolver(self, username: str) -> Optional[str]:
 		logging.info("Started email challenge resolver")
-		mail = imaplib.IMAP4_SSL(self.account.get("imap_server", default="imap.bagrintsev.me"))
-		mail.login(self.account.get("imap_login", default=""), self.account.get("imap_password", default="")) # email server creds
+		mail = imaplib.IMAP4_SSL(self.account.get("imap_server", "imap.bagrintsev.me"))
+		mail.login(self.account.get("imap_login", ""), self.account.get("imap_password", "")) # email server creds
 		mail.select("inbox")
 		_, data = mail.search(None, "(UNSEEN)")
 		ids = data.pop().split()
