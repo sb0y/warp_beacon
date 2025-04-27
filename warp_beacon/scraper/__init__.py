@@ -27,6 +27,7 @@ ACC_FILE = os.environ.get("SERVICE_ACCOUNTS_FILE", default="/var/warp_beacon/acc
 PROXY_FILE = os.environ.get("PROXY_FILE", default="/var/warp_beacon/proxies.json")
 
 class AsyncDownloader(object):
+	TG_FILE_LIMIT = 2147483648 # 2 GiB
 	__JOE_BIDEN_WAKEUP = None
 	workers = []
 	allow_loop = None
@@ -44,6 +45,8 @@ class AsyncDownloader(object):
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE, PROXY_FILE)
 		self.uploader = uploader
 		self.workers_count = workers_count
+		if os.environ.get("TG_PREMIUM", default="false") == "true":
+			self.TG_FILE_LIMIT = 4294967296 # 4 GiB
 
 	def __del__(self) -> None:
 		self.stop_all()
@@ -309,7 +312,7 @@ class AsyncDownloader(object):
 										media_info_tmp["thumb"] = item.get("thumb", None)
 										media_info = self.get_media_info(item["local_media_path"], media_info_tmp, JobType.VIDEO)
 										logging.info("Final media info: %s", media_info)
-										if media_info["filesize"] > 2e+9:
+										if media_info["filesize"] > self.TG_FILE_LIMIT:
 											logging.info("Filesize is '%d' MiB", round(media_info["filesize"] / 1024 / 1024))
 											logging.info("Detected big file. Starting compressing with ffmpeg ...")
 											self.uploader.queue_task(job.to_upload_job(
