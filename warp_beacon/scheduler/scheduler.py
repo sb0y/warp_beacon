@@ -95,6 +95,7 @@ class IGScheduler(object):
 
 	def validate_ig_session(self) -> bool:
 		try:
+			logging.info("Setting IG validate task ...")
 			self.downloader.queue_task(warp_beacon.jobs.download_job.DownloadJob.build(
 				session_validation=True,
 				job_origin=Origin.INSTAGRAM
@@ -108,6 +109,7 @@ class IGScheduler(object):
 	
 	def validate_yt_session(self) -> bool:
 		try:
+			logging.info("Setting YT validate task ...")
 			self.downloader.queue_task(warp_beacon.jobs.download_job.DownloadJob.build(
 				session_validation=True,
 				job_origin=Origin.YOUTUBE
@@ -150,7 +152,6 @@ class IGScheduler(object):
 				self.state["remaining"] -= elapsed
 
 				if self.running:
-					logging.info("Scheduler waking up")
 					self.validate_ig_session()
 				self.save_state()
 			except Exception as e:

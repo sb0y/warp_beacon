@@ -248,7 +248,7 @@ class Bot(object):
 					args["thumb"] = job.media_info["thumb"]
 					args["caption"] = self.build_signature_caption(job)
 
-				args["file_name"] = job.local_media_path
+				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.IMAGE:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -269,7 +269,7 @@ class Bot(object):
 					args["photo"] = job.local_media_path
 					args["caption"] = self.build_signature_caption(job)
 
-				args["file_name"] = job.local_media_path
+				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.AUDIO:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -297,7 +297,7 @@ class Bot(object):
 					args["title"] = job.canonical_name
 					args["caption"] = self.build_signature_caption(job)
 
-				args["file_name"] = job.local_media_path
+				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.ANIMATION:
 			if job.tg_file_id:
 				if job.placeholder_message_id:
@@ -326,7 +326,7 @@ class Bot(object):
 					args["thumb"] = job.media_info["thumb"]
 					args["caption"] = self.build_signature_caption(job)
 
-				args["file_name"] = job.local_media_path
+				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.COLLECTION:
 			if job.tg_file_id:
 				args["media"] = []

@@ -294,8 +294,9 @@ class YoutubeAbstract(ScraperAbstract):
 		try:
 			ret = self.download_hndlr(self._download, job.url, session=True)
 			return ret
-		except (Unavailable, TimeOut, KeyError):
+		except (Unavailable, TimeOut, KeyError) as e:
 			logging.warning("Download failed, trying to download with yt_dlp")
+			logging.exception(e)
 		
 		try:
 			ret = self.download_hndlr(self._download_yt_dlp, job.url)

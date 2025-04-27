@@ -125,7 +125,7 @@ class InstagramScraper(ScraperAbstract):
 				return "media", self.scrap_media(url)
 		try:
 			return _scrap()
-		except LoginRequired as e:
+		except exceptions.LoginRequired as e:
 			logging.warning("Session error. Trying to relogin...")
 			logging.exception(e)
 			self.login()

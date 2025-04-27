@@ -93,7 +93,7 @@ class AsyncDownloader(object):
 		fail_handler = FailHandler(DBClient())
 		while self.allow_loop.value == 1:
 			try:
-				job = None
+				job: DownloadJob = None
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
@@ -141,15 +141,15 @@ class AsyncDownloader(object):
 							# job retry loop
 							while self.allow_loop.value == 1:
 								try:
-									if job.session_validation:
+									if job.session_validation and job.job_origin in (Origin.INSTAGRAM, Origin.YOUTUBE):
 										if job.job_origin is Origin.INSTAGRAM:
-											if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="20")):
+											if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
 												logging.info("The account request limit has been reached. Selecting the next account.")
 												selector.reset_ig_request_count()
 												selector.next()
 										logging.info("Validating '%s' session ...", job.job_origin.value)
 										actor.validate_session()
-										logging.info("done")
+										logging.info("Validation done")
 									else:
 										logging.info("Downloading URL '%s'", job.url)
 										items = actor.download(job)

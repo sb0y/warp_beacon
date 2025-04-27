@@ -183,8 +183,8 @@ class AccountSelector(object):
 			return 0
 		return len(self.accounts[module_name])
 	
-	def inc_ig_request_count(self) -> None:
-		self.ig_request_count.value += 1
+	def inc_ig_request_count(self, amount: int = 1) -> None:
+		self.ig_request_count.value += amount
 
 	def reset_ig_request_count(self) -> None:
 		self.ig_request_count.value = 0
