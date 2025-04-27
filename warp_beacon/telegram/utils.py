@@ -147,3 +147,10 @@ class Utils(object):
 			logging.warning("Exception occurred while handling TG mentions!")
 			logging.exception(e)
 		return message
+	
+	@staticmethod
+	async def ensure_me_loaded(client: Client) -> None:
+		if not client.is_connected:
+			return
+		if not client.me or not client.me.is_premium:
+			client.me = await client.get_me()

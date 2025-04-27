@@ -412,6 +412,8 @@ class Bot(object):
 				try:
 					reply_message = None
 					if job.media_type in (JobType.VIDEO, JobType.IMAGE, JobType.AUDIO, JobType.ANIMATION):
+						if job.message_type in (JobType.VIDEO, JobType.AUDIO):
+							await Utils.ensure_me_loaded(self.client)
 						if job.placeholder_message_id:
 							try:
 								reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
