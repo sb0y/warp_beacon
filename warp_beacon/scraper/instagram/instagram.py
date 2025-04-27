@@ -5,6 +5,8 @@ import ssl
 import re
 from typing import Callable, Optional, Union
 
+import logging
+
 import random
 import email
 import imaplib
@@ -27,8 +29,6 @@ from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.telegram.utils import Utils
-
-import logging
 
 INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 
