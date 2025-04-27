@@ -134,25 +134,25 @@ class IGScheduler(object):
 				min_val = min(yt_expires, ig_sched)
 				#max_val = max(yt_expires, ig_sched)
 				now = datetime.datetime.now()
-				if 4 <= now.hour < 7 and min_val != yt_expires:
+				if 3 <= now.hour < 7 and min_val != yt_expires:
 					logging.info("Scheduler is paused due to night hours (4:00 - 7:00)")
 					self.state["remaining"] = 10800
 					self.save_state()
 
 				if ig_sched <= 0:
 					self.state["remaining"] = randrange(9292, 26200)
-					logging.info("Next scheduler activity in '%s' seconds", ig_sched)
-
-				if yt_expires <= time.time() + 60:
-					self.validate_yt_session()
 
 				start_time = time.time()
+				logging.info("Next scheduler activity in '%s' seconds", min_val)
+				logging.info("IG timeout '%d' secs", int(self.state["remaining"]))
 				self.event.wait(timeout=min_val)
 				elapsed = time.time() - start_time
 				self.state["remaining"] -= elapsed
 
 				if self.running:
 					self.validate_ig_session()
+					if yt_expires <= time.time() + 60:
+						self.validate_yt_session()
 				self.save_state()
 			except Exception as e:
 				logging.error("An error occurred in scheduler thread!")
