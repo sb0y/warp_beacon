@@ -33,10 +33,10 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return False
 
-	def _download(self, url: str, session: bool = True, timeout: int = 60) -> list:
-		res = self._download_pytubefix_max_res(url=url, session=session, timeout=timeout)
+	def _download(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
+		res = self._download_pytubefix_max_res(url=url, session=session, thumbnail=thumbnail, timeout=timeout)
 		if not res:
-			res = self._download_pytube_dash(url=url, session=session, timeout=timeout)
+			res = self._download_pytube_dash(url=url, session=session, thumbnail=thumbnail, timeout=timeout)
 
 		return res
 	
