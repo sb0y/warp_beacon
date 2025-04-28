@@ -48,38 +48,50 @@ class CaptchaSolver(object):
 			Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
 		}""")
 
-	async def solve_audio_captcha(self, page: CoroutineType[Any, Any, Page]):
+	async def solve_audio_captcha(self, page: CoroutineType[Any, Any, Page]) -> None:
 		logging.info("Processing audio captcha ..")
-		await page.click('button[aria-label=\"Get an audio challenge\"]')
-		time.sleep(0.3)
-		await page.wait_for_selector('audio', timeout=10000)
-		
 		mp3_path = os.path.join(self.TEMP_DIR, f"{random.randrange(1,1000)}.mp3")
 		wav_path = os.path.join(self.TEMP_DIR, f"{random.randrange(1,1000)}.wav")
-
-		audio_src = await page.get_attribute('audio > source', 'src')
-		audio_content = requests.get(audio_src, timeout=60).content
-		with open(mp3_path, 'wb') as f:
-			f.write(audio_content)
-
-		sound = AudioSegment.from_mp3(mp3_path)
-		sound.export(wav_path, format='wav')
-
-		recognizer = sr.Recognizer()
-		with sr.AudioFile(wav_path) as source:
-			audio = recognizer.record(source)
-
 		try:
-			text = recognizer.recognize_google(audio)
-			logging.info("Detected text '%s'", text)
-		except sr.UnknownValueError:
-			logging.error("Failed to detect text!")
-			text = ''
+			await page.click('button[aria-label=\"Get an audio challenge\"]')
+			time.sleep(0.3)
+			await page.wait_for_selector('audio', timeout=10000)
 
-		if text:
-			await page.fill('input[type=\"text\"]', text)
-			await page.press('input[type=\"text\"]', 'Enter')
-			logging.info("Audio captcha solved!")
+			audio_src = await page.get_attribute('audio > source', 'src')
+			audio_content = requests.get(audio_src, timeout=60).content
+			with open(mp3_path, 'wb') as f:
+				f.write(audio_content)
+
+			if not os.path.exists(mp3_path):
+				logging.error("MP3 file not downloaded!")
+				return
+
+			sound = AudioSegment.from_mp3(mp3_path)
+			sound.export(wav_path, format='wav')
+
+			recognizer = sr.Recognizer()
+			with sr.AudioFile(wav_path) as source:
+				audio = recognizer.record(source)
+
+			try:
+				text = recognizer.recognize_google(audio)
+				logging.info("Detected text '%s'", text)
+			except sr.UnknownValueError:
+				logging.error("Failed to detect text!")
+				text = ''
+
+			if text:
+				await page.fill('input[type=\"text\"]', text)
+				await page.press('input[type=\"text\"]', 'Enter')
+				logging.info("Audio captcha solved!")
+		except Exception as e:
+			logging.error("Exception in captcha audio solve!")
+			logging.exception(e)
+		finally:
+			if os.path.exists(mp3_path):
+				os.unlink(mp3_path)
+			if os.path.exists(wav_path):
+				os.unlink(wav_path)
 
 	async def solve_challenge(self, challenge_url: str) -> None:
 		async with async_playwright() as p:

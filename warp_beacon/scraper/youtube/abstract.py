@@ -291,15 +291,27 @@ class YoutubeAbstract(ScraperAbstract):
 
 	def download(self, job: DownloadJob) -> list:
 		ret = []
+		thumbnail = None
 		try:
-			ret = self.download_hndlr(self._download, job.url, session=True)
+			video_id = self.get_video_id(job.url)
+			# shorts custom thumb
+			##vinfo = VideoInfo(local_file)
+			#thumbnail = self.download_hndlr(self.download_thumbnail, video_id=yt.video_id, crop_center=vinfo.get_demensions())
+			if video_id:
+				thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
+		except Exception as e:
+			logging.error("Failed to download thumb!")
+			logging.exception(e)
+
+		try:
+			ret = self.download_hndlr(self._download, job.url, session=True, thumbnail=thumbnail)
 			return ret
 		except (Unavailable, TimeOut, KeyError) as e:
 			logging.warning("Download failed, trying to download with yt_dlp")
 			logging.exception(e)
 		
 		try:
-			ret = self.download_hndlr(self._download_yt_dlp, job.url)
+			ret = self.download_hndlr(self._download_yt_dlp, job.url, thumbnail=thumbnail)
 		except NotImplementedError:
 			logging.info("yt_dlp is not supported for this submodule yet")
 			raise Unavailable("Сontent unvailable")

@@ -148,9 +148,10 @@ class IGScheduler(object):
 					self.handle_time_planning()
 
 				start_time = time.time()
-				logging.info("Next scheduler activity in '%s' seconds", min_val)
+				logging.info("Next scheduler activity in '%s' seconds", int(min_val))
 				logging.info("IG timeout '%d' secs", int(self.state["remaining"]))
 				self.event.wait(timeout=min_val)
+				self.event.clear()
 				elapsed = time.time() - start_time
 				self.state["remaining"] -= elapsed
 

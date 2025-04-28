@@ -1,5 +1,7 @@
 import time
 import os
+import io
+from typing import Optional
 import logging
 
 import av
@@ -65,14 +67,10 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return output_path
 
-	def _download_pytubefix_max_res(self, url: str, session: bool = True, timeout: int = 60) -> list:
+	def _download_pytubefix_max_res(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
 		local_video_file, local_audio_file = '', ''
 		try:
-			thumbnail = None
-			video_id = self.get_video_id(url)
-			if video_id:
-				thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
 			yt = self.build_yt(url, session=session)
 
 			if self.is_live(yt.initial_data):
@@ -125,13 +123,9 @@ class YoutubeScraper(YoutubeAbstract):
 		
 		return res
 
-	def _download_pytube_dash(self, url: str, session: bool = True, timeout: int = 60) -> list:
+	def _download_pytube_dash(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
 		try:
-			thumbnail = None
-			video_id = self.get_video_id(url)
-			if video_id:
-				thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
 			yt = self.build_yt(url, session=session)
 
 			if self.is_live(yt.initial_data):
@@ -164,12 +158,8 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return res
 	
-	def _download_yt_dlp(self, url: str, timeout: int = 60) -> list:
+	def _download_yt_dlp(self, url: str, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
-		thumbnail = None
-		video_id = self.get_video_id(url)
-		if video_id:
-			thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
 		with self.build_yt_dlp(timeout) as ydl:
 			info = ydl.extract_info(url, download=True)
 			local_file = ydl.prepare_filename(info)

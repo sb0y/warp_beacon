@@ -21,9 +21,15 @@ RUN set -x \
 	deb http://us.archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse\n \
 	deb http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse\n" /etc/apt/sources.list \
 	&& apt-get update -y \
+	# base utils
+	&& apt-get install unzip fonts-liberation libnss3 libatk-bridge2.0-0 libxss1 libasound2 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgtk-3-0 libgbm1 libpango-1.0-0 libcups2 -y \
+	# python
 	&& apt-get install python-is-python3 python3-pip ffmpeg pkg-config python3-dev \
 	libavformat-dev libavcodec-dev libavdevice-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev libavcodec-dev libavformat-dev libavdevice-dev libavfilter-dev libavutil-dev libswscale-dev libswresample-dev libpostproc-dev libdav1d-dev -y \
 	&& mkdir -p /var/warp_beacon/
+
+RUN set -x \
+	&& playwright install --with-deps
 
 # Build prod image
 FROM base AS image-prod

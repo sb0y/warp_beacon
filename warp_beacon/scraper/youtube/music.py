@@ -1,3 +1,6 @@
+import io
+from typing import Optional
+
 import logging
 
 import time
@@ -9,22 +12,15 @@ from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.youtube.abstract import YoutubeAbstract
 from warp_beacon.scraper.exceptions import NotFound, FileTooBig, Unavailable
 
-
 class YoutubeMusicScraper(YoutubeAbstract):
 	YT_MAX_RETRIES_DEFAULT = 3
 	YT_PAUSE_BEFORE_RETRY_DEFAULT = 3
 	YT_TIMEOUT_DEFAULT = 2
 	YT_TIMEOUT_INCREMENT_DEFAULT = 60
 
-	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
+	def _download(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 0) -> list:
 		res = []
 		try:
-			thumbnail = None
-			audio_id = self.get_video_id(url)
-
-			if audio_id:
-				thumbnail = self.download_hndlr(self.download_thumbnail, audio_id)
-
 			yt = self.build_yt(url, session=session)
 			
 			stream = yt.streams.get_audio_only()
@@ -79,12 +75,8 @@ class YoutubeMusicScraper(YoutubeAbstract):
 
 		return yt_dlp.YoutubeDL(ydl_opts)
 
-	def _download_yt_dlp(self, url: str, timeout: int = 60) -> list:
+	def _download_yt_dlp(self, url: str, timeout: int = 60, thumbnail: Optional[io.BytesIO] = None) -> list:
 		res = []
-		thumbnail = None
-		video_id = self.get_video_id(url)
-		if video_id:
-			thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
 		with self.build_yt_dlp(timeout) as ydl:
 			info = ydl.extract_info(url, download=True)
 			local_file = ydl.prepare_filename(info)

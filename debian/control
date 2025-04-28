@@ -2,7 +2,7 @@ Source: warp-beacon
 Section: python
 Priority: optional
 Maintainer: Sb0y <andrey@bagrintsev.me>
-Build-Depends: debhelper (>= 9), python3, dh-virtualenv (>= 1.0), libavformat-dev, libavcodec-dev, libavdevice-dev, libavutil-dev, libavfilter-dev, libswscale-dev, libswresample-dev, libpostproc-dev
+Build-Depends: debhelper (>= 9), python3, dh-virtualenv (>= 1.0), libavformat-dev, libavcodec-dev, libavdevice-dev, libavutil-dev, libavfilter-dev, libswscale-dev, libswresample-dev, libpostproc-dev, unzip, fonts-liberation, libnss3, libatk-bridge2.0-0, libxss1, libasound2, libx11-xcb1, libxcomposite1, libxdamage1, libxrandr2, libgtk-3-0 libgbm1, libpango-1.0-0, libcups2
 Standards-Version: 3.9.5
 Homepage: https://github.com/sb0y/warp_beacon
 Vcs-Browser: https://github.com/sb0y/warp_beacon
