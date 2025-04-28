@@ -29,6 +29,7 @@ RUN set -x \
 	&& mkdir -p /var/warp_beacon/
 
 RUN set -x \
+	&& python3 -m pip install playwright \
 	&& playwright install --with-deps
 
 # Build prod image
