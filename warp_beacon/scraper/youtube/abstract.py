@@ -143,7 +143,7 @@ class YoutubeAbstract(ScraperAbstract):
 			try:
 				url = i.format(VIDEO_ID=video_id)
 				logging.info("Youtube thumbnail url '%s'", url)
-				with requests.get(url, timeout=(timeout, timeout)) as response:
+				with requests.get(url, timeout=(timeout, timeout), proxies=self.build_proxies(self.proxy.get("dsn", ""))) as response:
 					if response.status_code == 200:
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
@@ -228,6 +228,21 @@ class YoutubeAbstract(ScraperAbstract):
 		pass
 		#logging.info("bytes: %d, bytes remaining: %d", chunk, bytes_remaining)
 
+	def build_proxies(self, proxy_dsn: str) -> dict:
+		if not proxy_dsn:
+			logging.warning("Empty DSN!")
+			return {}
+		proxy = {}
+		if proxy_dsn:
+			if "https://" in proxy_dsn:
+				proxy["https"] = proxy_dsn
+			elif "http://" in proxy_dsn:
+				proxy["http"] = proxy_dsn
+			else:
+				logging.warning("Proxy DSN malformed!")
+
+		return proxy
+
 	def build_yt(self, url: str, session: bool = True) -> YouTube:
 		_default_clients["ANDROID"]["innertube_context"]["context"]["client"]["clientVersion"] = "19.08.35"
 		_default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID"]
@@ -253,12 +268,7 @@ class YoutubeAbstract(ScraperAbstract):
 			proxy_dsn = self.proxy.get("dsn", "")
 			logging.info("Using proxy DSN '%s'", proxy_dsn)
 			if proxy_dsn:
-				if "https://" in proxy_dsn:
-					yt_opts["proxies"] = {"https": proxy_dsn}
-				elif "http://" in proxy_dsn:
-					yt_opts["proxies"] = {"http": proxy_dsn}
-				else:
-					logging.warning("Proxy DSN malformed!")
+				yt_opts["proxies"] = self.build_proxies(proxy_dsn)
 		return YouTube(**yt_opts)
 	
 	def build_yt_dlp(self, timeout: int = 60) -> yt_dlp.YoutubeDL:
