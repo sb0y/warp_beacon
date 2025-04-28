@@ -1,3 +1,6 @@
+import io
+from typing import Optional
+
 import logging
 
 from warp_beacon.jobs.types import JobType
@@ -12,9 +15,8 @@ class YoutubeShortsScraper(YoutubeAbstract):
 	YT_TIMEOUT_DEFAULT = 2
 	YT_TIMEOUT_INCREMENT_DEFAULT = 60
 
-	def _download(self, url: str, session: bool = True, timeout: int = 0) -> list:
+	def _download(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 0) -> list:
 		res = []
-		thumbnail = None
 		yt = self.build_yt(url, session=session)
 		stream = yt.streams.get_highest_resolution()
 
@@ -30,8 +32,6 @@ class YoutubeShortsScraper(YoutubeAbstract):
 		)
 
 		local_file = self.rename_local_file(local_file)
-		vinfo = VideoInfo(local_file)
-		thumbnail = self.download_hndlr(self.download_thumbnail, video_id=yt.video_id, crop_center=vinfo.get_demensions())
 
 		logging.debug("Temp filename: '%s'", local_file)
 		res.append({
@@ -44,12 +44,8 @@ class YoutubeShortsScraper(YoutubeAbstract):
 
 		return res
 
-	def _download_yt_dlp(self, url: str, timeout: int = 60) -> list:
+	def _download_yt_dlp(self, url: str, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
-		thumbnail = None
-		video_id = self.get_video_id(url)
-		if video_id:
-			thumbnail = self.download_hndlr(self.download_thumbnail, video_id)
 		with self.build_yt_dlp(timeout) as ydl:
 			info = ydl.extract_info(url, download=True)
 			local_file = ydl.prepare_filename(info)

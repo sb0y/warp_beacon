@@ -22,6 +22,7 @@ class IGScheduler(object):
 	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
 		self.downloader = downloader
 		self.event = threading.Event()
+		self.handle_time_planning()
 
 	def __del__(self) -> None:
 		self.stop()
@@ -63,8 +64,8 @@ class IGScheduler(object):
 			if os.path.exists(self.state_file):
 				with open(self.state_file, 'r', encoding="utf-8") as f:
 					self.state = json.loads(f.read())
-				if "remaining" in self.state:
-					logging.info("Next scheduler activity in '%d' seconds", int(self.state["remaining"]))
+				self.handle_time_planning()
+				logging.info("Next scheduler activity in '%d' seconds", int(self.state["remaining"]))
 			self.load_yt_sessions()
 		except Exception as e:
 			logging.error("Failed to load Scheduler state!")
@@ -124,6 +125,10 @@ class IGScheduler(object):
 	def yt_nearest_expire(self) -> int:
 		return int(min(self.state["yt_sess_exp"], key=lambda x: x.get("expires", 0)).get("expires", 0))
 
+	def handle_time_planning(self) -> None:
+		if int(self.state.get("remaining", 0)) <= 0:
+			self.state["remaining"] = randrange(9292, 26200)
+
 	def do_work(self) -> None:
 		logging.info("Scheduler thread started ...")
 		self.load_state()
@@ -135,22 +140,24 @@ class IGScheduler(object):
 				#max_val = max(yt_expires, ig_sched)
 				now = datetime.datetime.now()
 				if 3 <= now.hour < 7 and min_val != yt_expires:
-					logging.info("Scheduler is paused due to night hours (4:00 - 7:00)")
-					self.state["remaining"] = 10800
+					logging.info("Scheduler is paused due to night hours (3:00 - 7:00)")
+					self.state["remaining"] = 14400
 					self.save_state()
 
 				if ig_sched <= 0:
-					self.state["remaining"] = randrange(9292, 26200)
+					self.handle_time_planning()
 
 				start_time = time.time()
-				logging.info("Next scheduler activity in '%s' seconds", min_val)
+				logging.info("Next scheduler activity in '%s' seconds", int(min_val))
 				logging.info("IG timeout '%d' secs", int(self.state["remaining"]))
 				self.event.wait(timeout=min_val)
+				self.event.clear()
 				elapsed = time.time() - start_time
 				self.state["remaining"] -= elapsed
 
 				if self.running:
-					self.validate_ig_session()
+					if self.state["remaining"] <= 0:
+						self.validate_ig_session()
 					if yt_expires <= time.time() + 60:
 						self.validate_yt_session()
 				self.save_state()

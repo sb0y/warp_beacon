@@ -12,3 +12,6 @@ pymongo
 instagrapi==2.0.0
 bs4
 yt_dlp
+pydub
+SpeechRecognition
+playwright
