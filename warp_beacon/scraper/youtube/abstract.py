@@ -143,7 +143,7 @@ class YoutubeAbstract(ScraperAbstract):
 			try:
 				url = i.format(VIDEO_ID=video_id)
 				logging.info("Youtube thumbnail url '%s'", url)
-				with requests.get(url, timeout=(timeout, timeout), proxies=self.build_proxies(self.proxy.get("dsn", ""))) as response:
+				with requests.get(url, timeout=(timeout, timeout), proxies=self.build_proxies(self.proxy.get("dsn", {}))) as response:
 					if response.status_code == 200:
 						image = Image.open(io.BytesIO(response.content))
 						ratio = self.aspect_ratio(image.size)
