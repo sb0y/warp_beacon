@@ -253,13 +253,9 @@ class AsyncDownloader(object):
 									logging.error("All accounts failed!")
 									logging.exception(e)
 									self.send_message_to_admin(
-										f"Task <code>{e.job.job_id}</code> failed. URL: '{e.job.url}'. Reason: '<b>AllAccountsFailed</b>'."
+										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>AllAccountsFailed</b>'."
 									)
-									self.uploader.queue_task(e.job.to_upload_job(
-										job_failed=True,
-										job_failed_msg="All bot accounts failed to download content. Bot administrator noticed about the issue.")
-									)
-									if e.job.job_origin == Origin.INSTAGRAM:
+									if job.job_origin == Origin.INSTAGRAM:
 										logging.info("Handling captcha postpone")
 										self.uploader.queue_task(job.to_upload_job(
 											job_warning=True,
@@ -268,7 +264,7 @@ class AsyncDownloader(object):
 										#self.try_next_account(selector, job, report_error="captcha")
 										#e.job.job_postponed_until = time.time() + 300
 										#self.job_queue.put(e.job)
-										fail_handler.store_failed_job(e.job)
+										fail_handler.store_failed_job(job)
 									break
 								except (UnknownError, Exception) as e:
 									logging.warning("UnknownError occurred!")
