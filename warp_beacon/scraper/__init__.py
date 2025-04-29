@@ -100,11 +100,11 @@ class AsyncDownloader(object):
 		while self.allow_loop.value == 1:
 			try:
 				job: DownloadJob = None
+				actor = None
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
 						break
-					actor = None
 					try:
 						items = []
 						if job.job_origin is Origin.UNKNOWN:
@@ -249,23 +249,6 @@ class AsyncDownloader(object):
 										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>YotubeAgeRestrictedError</b>'."
 									)
 									break
-								except AllAccountsFailed as e:
-									logging.error("All accounts failed!")
-									logging.exception(e)
-									self.send_message_to_admin(
-										f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>AllAccountsFailed</b>'."
-									)
-									if job.job_origin == Origin.INSTAGRAM:
-										logging.info("Handling captcha postpone")
-										self.uploader.queue_task(job.to_upload_job(
-											job_warning=True,
-											job_warning_msg="Bot is experiencing issues, video delivery may be delayed.")
-										)
-										#self.try_next_account(selector, job, report_error="captcha")
-										#e.job.job_postponed_until = time.time() + 300
-										#self.job_queue.put(e.job)
-										fail_handler.store_failed_job(job)
-									break
 								except (UnknownError, Exception) as e:
 									logging.warning("UnknownError occurred!")
 									logging.exception(e)
@@ -381,6 +364,22 @@ class AsyncDownloader(object):
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 							self.uploader.queue_task(job.to_upload_job())
+			
+					except AllAccountsFailed as e:
+						self.send_message_to_admin(
+							f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>AllAccountsFailed</b>'."
+						)
+						if job.job_origin == Origin.INSTAGRAM:
+							logging.info("Handling captcha postpone")
+							self.uploader.queue_task(job.to_upload_job(
+								job_warning=True,
+								job_warning_msg="The bot is currently experiencing technical issues. Message delivery may be delayed.")
+							)
+							#self.try_next_account(selector, job, report_error="captcha")
+							#e.job.job_postponed_until = time.time() + 300
+							#self.job_queue.put(e.job)
+							fail_handler.store_failed_job(job)
+							self.notify_task_failed(job)
 					except Exception as e:
 						logging.error("Error inside download worker!")
 						logging.exception(e)
