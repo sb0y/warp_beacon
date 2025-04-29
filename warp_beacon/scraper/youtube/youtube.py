@@ -164,7 +164,30 @@ class YoutubeScraper(YoutubeAbstract):
 	def _download_yt_dlp(self, url: str, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
 		with self.build_yt_dlp(timeout) as ydl:
-			info = ydl.extract_info(url, download=True)
+			info = ydl.extract_info(url, download=False)
+			formats = info.get('formats', [])
+
+			dl_format = {}
+			for f in sorted(formats, key=lambda x: (x.get('height') or 0), reverse=True):
+				if f.get('vcodec') != 'none' and f.get('acodec') != 'none' and f.get('ext') == 'mp4':
+					dl_format = f
+					break
+		
+			filesize = dl_format.get('filesize', 0) or dl_format.get('filesize_approx', 0)
+			if filesize:
+				if filesize > 2147483648: # 2 GiB
+					logging.warning("Max resolution exceeding TG limits")
+					for f in sorted(formats, key=lambda x: (x.get('height') or 0), reverse=True):
+						if (f.get('vcodec') != 'none' and f.get('acodec') != 'none'
+								and (f.get('height') or 0) <= 720 and f.get('ext') == 'mp4'):
+							alt_filesize = f.get('filesize', 0) or f.get('filesize_approx', 0)
+							if alt_filesize: #and alt_filesize <= max_size_bytes:
+								dl_format = f
+								break
+			else:
+				logging.warning("Unknown filesize!")
+			ydl.params['format'] = dl_format['format_id']
+			ydl.download([url])
 			local_file = ydl.prepare_filename(info)
 			logging.debug("Temp filename: '%s'", local_file)
 			res.append({
