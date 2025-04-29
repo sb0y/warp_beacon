@@ -78,6 +78,9 @@ class YoutubeScraper(YoutubeAbstract):
 			
 			video_stream = yt.streams.filter(adaptive=True, file_extension='mp4', only_video=True).order_by('resolution').desc().first()
 			audio_stream = yt.streams.filter(adaptive=True, file_extension='mp4', only_audio=True).order_by('abr').desc().first()
+			size_in_bytes = video_stream.filesize + audio_stream.filesize
+			if size_in_bytes > 2147483648: # 2 GiB
+				video_stream = yt.streams.filter(adaptive=True, file_extension='mp4', only_video=True, res='720p').order_by('resolution').desc().first()
 
 			local_video_file = video_stream.download(
 				output_path=self.DOWNLOAD_DIR,
