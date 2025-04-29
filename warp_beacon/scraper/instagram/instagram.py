@@ -102,12 +102,13 @@ class InstagramScraper(ScraperAbstract):
 			self.cl.login(username=username, password=password, verification_code="")
 		self.safe_write_session()
 
-	def validate_session(self) -> None:
+	def validate_session(self) -> int:
 		from warp_beacon.scheduler.instagram_human import InstagramHuman
 		self.load_session()
 		inst_human = InstagramHuman(self)
 		inst_human.simulate_activity()
 		self.safe_write_session()
+		return inst_human.operations_count
 
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()

@@ -154,7 +154,9 @@ class AsyncDownloader(object):
 												selector.reset_ig_request_count()
 												selector.next()
 										logging.info("Validating '%s' session ...", job.job_origin.value)
-										actor.validate_session()
+										operations = actor.validate_session()
+										if job.job_origin is Origin.INSTAGRAM and operations:
+											selector.inc_ig_request_count(amount=operations)
 										logging.info("Validation done")
 									else:
 										logging.info("Downloading URL '%s'", job.url)

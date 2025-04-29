@@ -34,7 +34,7 @@ class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
 	YT_SESSION_FILE = '/var/warp_beacon/yt_session_%d.json'
 
-	def validate_session(self) -> None:
+	def validate_session(self) -> int:
 		try:
 			logging.info("Validating YT session(s) ...")
 			session_dir = os.path.dirname(self.YT_SESSION_FILE)
@@ -58,6 +58,8 @@ class YoutubeAbstract(ScraperAbstract):
 		except Exception as e:
 			logging.error("Failed to refresh Youtube session!")
 			logging.exception(e)
+
+		return 0
 
 	def rename_local_file(self, filename: str) -> str:
 		if not os.path.exists(filename):

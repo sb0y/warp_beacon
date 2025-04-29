@@ -11,12 +11,12 @@ from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
 	__JOE_BIDEN_WAKEUP = None
-	threads = []
+	threads = None
 	allow_loop = True
 	job_queue = None
-	callbacks = {}
+	callbacks = None
 	storage = None
-	in_process = set()
+	in_process = None
 	loop = None
 	admin_message_callback = None
 	request_yt_auth_callback = None
@@ -29,6 +29,9 @@ class AsyncUploader(object):
 			request_yt_auth_callback: Callable,
 			pool_size: int=min(32, os.cpu_count() + 4)
 		) -> None:
+		self.threads = []
+		self.callbacks = {}
+		self.in_process = set()
 		self.storage = storage
 		self.loop = loop
 		self.job_queue = multiprocessing.Queue()
