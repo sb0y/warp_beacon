@@ -2,9 +2,13 @@ import os
 
 from warp_beacon.telegram.bot import Bot
 
-import logging
+#import logging
 
 def main() -> None:
+	if __name__ == "__main__":
+		run()
+
+def run() -> None:
 	bot = Bot(
 		tg_bot_name=os.environ.get("TG_BOT_NAME", default=None),
 		tg_token=os.environ.get("TG_TOKEN", default=None),

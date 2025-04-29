@@ -168,8 +168,8 @@ class YoutubeScraper(YoutubeAbstract):
 			formats = info.get('formats', [])
 
 			dl_format = {}
-			for f in sorted(formats, key=lambda x: (x.get('height') or 0), reverse=True):
-				if f.get('vcodec') != 'none' and f.get('acodec') != 'none' and f.get('ext') == 'mp4':
+			for f in sorted(formats, key=lambda x: (x.get('height', 0) or 0), reverse=True):
+				if f.get('vcodec', '') != 'none' and f.get('acodec', '') != 'none' and f.get('ext', '') == 'mp4':
 					dl_format = f
 					break
 		
@@ -177,9 +177,9 @@ class YoutubeScraper(YoutubeAbstract):
 			if filesize:
 				if filesize > 2147483648: # 2 GiB
 					logging.warning("Max resolution exceeding TG limits")
-					for f in sorted(formats, key=lambda x: (x.get('height') or 0), reverse=True):
-						if (f.get('vcodec') != 'none' and f.get('acodec') != 'none'
-								and (f.get('height') or 0) <= 720 and f.get('ext') == 'mp4'):
+					for f in sorted(formats, key=lambda x: (x.get('height', 0) or 0), reverse=True):
+						if (f.get('vcodec', '') != 'none' and f.get('acodec', '') != 'none'
+								and (f.get('height', 0) or 0) <= 720 and f.get('ext', '') == 'mp4'):
 							alt_filesize = f.get('filesize', 0) or f.get('filesize_approx', 0)
 							if alt_filesize: #and alt_filesize <= max_size_bytes:
 								dl_format = f

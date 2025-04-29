@@ -29,17 +29,20 @@ PROXY_FILE = os.environ.get("PROXY_FILE", default="/var/warp_beacon/proxies.json
 class AsyncDownloader(object):
 	TG_FILE_LIMIT = 2147483648 # 2 GiB
 	__JOE_BIDEN_WAKEUP = None
-	workers = []
+	workers = None
 	allow_loop = None
-	job_queue = multiprocessing.Queue()
+	job_queue = None
 	uploader = None
 	workers_count = 0
-	auth_event = multiprocessing.Event()
+	auth_event = None
 	manager = None
 	acc_selector = None
 	scheduler = None
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
+		self.workers = []
+		self.job_queue = multiprocessing.Queue()
+		self.auth_event = multiprocessing.Event()
 		self.manager = multiprocessing.Manager()
 		self.allow_loop = self.manager.Value('i', 1)
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE, PROXY_FILE)
