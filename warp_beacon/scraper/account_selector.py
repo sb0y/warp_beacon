@@ -40,8 +40,32 @@ class AccountSelector(object):
 			if proxy_file_path:
 				with open(proxy_file_path, 'r', encoding="utf-8") as f:
 					self.proxies = json.loads(f.read())
+
+			self.load_ig_request_count()
 		else:
 			raise ValueError("Accounts file not found")
+
+	def save_ig_request_count(self) -> None:
+		try:
+			state = {"ig_count": self.ig_request_count.value}
+			with open(f"{self.session_dir}/ig_request_counter.json", "w+", encoding="utf-8") as f:
+				f.write(json.dumps(state))
+		except Exception as e:
+			logging.error("Failed to save accounts states!")
+			logging.exception(e)
+
+	def load_ig_request_count(self) -> None:
+		try:
+			state = {}
+			filepath = f"{self.session_dir}/ig_request_counter.json"
+			if os.path.exists(filepath):
+				with open(f"{self.session_dir}/ig_request_counter.json", "r", encoding="utf-8") as f:
+					state = json.loads(f.read())
+				if state:
+					self.ig_request_count.value = int(state.get("ig_count", 0))
+		except Exception as e:
+			logging.error("Failed to save accounts states!")
+			logging.exception(e)
 
 	def get_current_proxy(self) -> Optional[dict]:
 		return self.current_proxy

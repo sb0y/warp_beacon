@@ -397,6 +397,7 @@ class AsyncDownloader(object):
 
 	def stop_all(self) -> None:
 		self.allow_loop.value = 0
+		self.acc_selector.save_ig_request_count()
 		for proc in self.workers:
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)

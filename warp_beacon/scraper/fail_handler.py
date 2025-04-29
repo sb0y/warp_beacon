@@ -1,11 +1,9 @@
-import os
-
 import pickle
+
+import logging
 
 from warp_beacon.storage.mongo import DBClient
 from warp_beacon.jobs.download_job import DownloadJob
-
-import logging
 
 class FailHandler(object):
 	client = None
