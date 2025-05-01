@@ -216,8 +216,8 @@ class InstagramScraper(ScraperAbstract):
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
 		path = self.download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
 		return {"local_media_path": str(path), "canonical_name": self.extract_canonical_name(media_info), \
-			"media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration), \
-			"last_pk": media_info.pk}}
+			"media_type": JobType.VIDEO, "last_pk": media_info.pk, \
+			"media_info": {"duration": round(media_info.video_duration)}}
 
 	def download_photo(self, url: str, media_info: Media) -> dict:
 		path = str(self.download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
