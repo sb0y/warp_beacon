@@ -38,6 +38,7 @@ class AsyncDownloader(object):
 	manager = None
 	acc_selector = None
 	scheduler = None
+	scrolling_now = None
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.workers = []
@@ -45,6 +46,7 @@ class AsyncDownloader(object):
 		self.auth_event = multiprocessing.Event()
 		self.manager = multiprocessing.Manager()
 		self.allow_loop = self.manager.Value('i', 1)
+		self.scrolling_now = self.manager.Value('i', 0)
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE, PROXY_FILE)
 		self.uploader = uploader
 		self.workers_count = workers_count
@@ -156,10 +158,12 @@ class AsyncDownloader(object):
 							while self.allow_loop.value == 1:
 								try:
 									if job.scroll_content and job.last_pk and job.job_origin is Origin.INSTAGRAM:
+										self.scrolling_now.value = 1
 										logging.info("Scrolling relative content with pk '%s'", job.last_pk)
 										operations = actor.scroll_content(last_pk=job.last_pk)
 										if operations:
 											selector.inc_ig_request_count(amount=operations)
+										self.scrolling_now.value = 0
 										logging.info("Scrolling done")
 										break
 									if job.session_validation and job.job_origin in (Origin.INSTAGRAM, Origin.YOUTUBE):
@@ -382,12 +386,15 @@ class AsyncDownloader(object):
 									else:
 										self.uploader.queue_task(upload_job)
 									# watch related reels to simulate human
-									if item.get("last_pk", 0) and "reel/" in job.url:
-										self.queue_task(DownloadJob.build(
-											scroll_content=True,
-											last_pk=int(item.get("last_pk", 0)),
-											job_origin=Origin.INSTAGRAM
-										))
+									if self.scrolling_now.value == 0:
+										if item.get("last_pk", 0) and "reel/" in job.url:
+											self.queue_task(DownloadJob.build(
+												scroll_content=True,
+												last_pk=int(item.get("last_pk", 0)),
+												job_origin=Origin.INSTAGRAM
+											))
+									else:
+										logging.info("Scrolling in progress, ignoring request")
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 							self.uploader.queue_task(job.to_upload_job())
