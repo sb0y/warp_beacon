@@ -27,8 +27,8 @@ class ScraperAbstract(ABC):
 		self.account_index = account[0]
 		self.account = account[1]
 		self.proxy = proxy
-		if self.account.get("force_ipv6", False):
-			self.force_ipv6()
+		#if self.account.get("force_ipv6", False):
+		#	self.force_ipv6()
 
 	#def __del__(self) -> None:
 	#	if self.account.get("force_ipv6", False):
@@ -95,6 +95,7 @@ class ScraperAbstract(ABC):
 			urllib3_cn.allowed_gai_family = allowed_gai_family
 
 	def restore_gai(self) -> None:
+		return
 		with self._gai_lock:
 			if self.original_gai_family:
 				logging.info("Restoring normal IP stack ...")
