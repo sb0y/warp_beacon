@@ -372,7 +372,8 @@ class AsyncDownloader(object):
 									if item.get("last_pk", 0) and "reel/" in job.url:
 										self.queue_task(DownloadJob.build(
 											scroll_content=True,
-											last_pk=int(item.get("last_pk", 0))
+											last_pk=int(item.get("last_pk", 0)),
+											job_origin=Origin.INSTAGRAM
 										))
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
