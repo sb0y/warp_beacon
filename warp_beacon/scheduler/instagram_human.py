@@ -19,9 +19,9 @@ class InstagramHuman(object):
 	def watch_content(self, media: list) -> None:
 		for m in media[:random.randint(2, 4)]:
 			try:
-				logging.info("Wathing content with pk '%d'", m.pk)
+				logging.info("Wathing content with pk '%s'", str(m.pk))
 				content = self.scrapler.cl.media_info(m.pk)
-				logging.info("Watched content with id '%d'", content.pk)
+				logging.info("Watched content with id '%s'", str(content.pk))
 				self.operations_count += 1
 				time.sleep(random.uniform(2, 5))
 			except Exception as e:
@@ -36,7 +36,7 @@ class InstagramHuman(object):
 			self.watch_content(media)
 		
 		if random.random() > 0.3:
-			time.sleep(random.uniform(2, 5))
+			time.sleep(random.uniform(2, 10))
 			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
