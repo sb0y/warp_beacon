@@ -109,6 +109,14 @@ class InstagramScraper(ScraperAbstract):
 		inst_human.simulate_activity()
 		self.safe_write_session()
 		return inst_human.operations_count
+	
+	def scroll_content(self, last_pk: int) -> None:
+		from warp_beacon.scheduler.instagram_human import InstagramHuman
+		self.load_session()
+		inst_human = InstagramHuman(self)
+		inst_human.scroll_content(last_pk)
+		self.safe_write_session()
+		return inst_human.operations_count
 
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
@@ -208,7 +216,8 @@ class InstagramScraper(ScraperAbstract):
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
 		path = self.download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
 		return {"local_media_path": str(path), "canonical_name": self.extract_canonical_name(media_info), \
-			"media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration)}}
+			"media_type": JobType.VIDEO, "media_info": {"duration": round(media_info.video_duration), \
+			"last_pk": media_info.pk}}
 
 	def download_photo(self, url: str, media_info: Media) -> dict:
 		path = str(self.download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
@@ -217,7 +226,7 @@ class InstagramScraper(ScraperAbstract):
 			path = InstagramScraper.convert_webp_to_png(path)
 		if ".heic" in path_lowered:
 			path = InstagramScraper.convert_heic_to_png(path)
-		return {"local_media_path": path, "canonical_name": self.extract_canonical_name(media_info), "media_type": JobType.IMAGE}
+		return {"local_media_path": path, "canonical_name": self.extract_canonical_name(media_info), "media_type": JobType.IMAGE, "last_pk": media_info.pk}
 	
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", JobType.UNKNOWN, {}
@@ -259,7 +268,7 @@ class InstagramScraper(ScraperAbstract):
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
-				_media_info = self.download_hndlr(self.cl.media_info, media.pk)
+				_media_info = self.download_hndlr(self.cl.media_info, media.pk, use_cache=False)
 				if media.media_type == 1: # photo
 					chunk.append(self.download_photo(url=_media_info.thumbnail_url, media_info=_media_info))
 				elif media.media_type == 2: # video
@@ -287,7 +296,7 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				scrap_type, media_id = self.scrap(job.url)
 				if scrap_type == "media":
-					media_info = self.download_hndlr(self.cl.media_info, media_id)
+					media_info = self.download_hndlr(self.cl.media_info, media_id, use_cache=False)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))

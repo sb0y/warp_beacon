@@ -47,6 +47,8 @@ class JobSettings(TypedDict):
 	message_leftover: str
 	replay: bool
 	short_text: bool
+	scroll_content: bool
+	last_pk: int
 
 class AbstractJob(ABC):
 	job_id: uuid.UUID = None
@@ -86,6 +88,8 @@ class AbstractJob(ABC):
 	message_leftover: str = ""
 	replay: bool = False
 	short_text: bool = False
+	scroll_content: bool = False
+	last_pk: int = 0
 
 	def __init__(self, **kwargs: Unpack[JobSettings]) -> None:
 		if kwargs:

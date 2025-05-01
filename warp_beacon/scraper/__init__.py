@@ -147,6 +147,13 @@ class AsyncDownloader(object):
 							# job retry loop
 							while self.allow_loop.value == 1:
 								try:
+									if job.scroll_content and job.last_pk and job.job_origin is Origin.INSTAGRAM:
+										logging.info("Scrolling relative content with pk '%s'", job.last_pk)
+										operations = actor.scroll_content(last_pk=job.last_pk)
+										if operations:
+											selector.inc_ig_request_count(amount=operations)
+										logging.info("Scrolling done")
+										break
 									if job.session_validation and job.job_origin in (Origin.INSTAGRAM, Origin.YOUTUBE):
 										if job.job_origin is Origin.INSTAGRAM:
 											if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
@@ -361,6 +368,12 @@ class AsyncDownloader(object):
 										)
 									else:
 										self.uploader.queue_task(upload_job)
+									# watch related reels to simulate human
+									if item.get("last_pk", 0) and "reel/" in job.url:
+										self.queue_task(DownloadJob.build(
+											scroll_content=True,
+											last_pk=int(item.get("last_pk", 0))
+										))
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 							self.uploader.queue_task(job.to_upload_job())
@@ -384,9 +397,6 @@ class AsyncDownloader(object):
 						logging.error("Error inside download worker!")
 						logging.exception(e)
 						self.notify_task_failed(job)
-					finally:
-						if actor:
-							actor.restore_gai()
 				except Empty:
 					pass
 			except Exception as e:

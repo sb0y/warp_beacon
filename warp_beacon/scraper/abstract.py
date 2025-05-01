@@ -3,6 +3,7 @@ import pathlib
 
 import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
+import multiprocessing
 
 from abc import ABC, abstractmethod
 from typing import Callable, Union
@@ -22,15 +23,18 @@ class ScraperAbstract(ABC):
 	proxy = None
 
 	def __init__(self, account: tuple, proxy: dict=None) -> None:
+		self._gai_lock = multiprocessing.Lock()
 		self.account_index = account[0]
 		self.account = account[1]
 		self.proxy = proxy
 		if self.account.get("force_ipv6", False):
 			self.force_ipv6()
-
-	def __del__(self) -> None:
-		if self.account.get("force_ipv6", False):
+		else:
 			self.restore_gai()
+
+	#def __del__(self) -> None:
+	#	if self.account.get("force_ipv6", False):
+	#		self.restore_gai()
 
 	@abstractmethod
 	def download(self, url: str) -> bool:
@@ -86,13 +90,15 @@ class ScraperAbstract(ABC):
 			if urllib3_cn.HAS_IPV6:
 				family = socket.AF_INET6 # force ipv6 only if it is available
 			return family
-		if self.original_gai_family is None:
-			self.original_gai_family = urllib3_cn.allowed_gai_family
-		logging.info("Forcing IPv6 ...")
-		urllib3_cn.allowed_gai_family = allowed_gai_family
+		with self._gai_lock:
+			if self.original_gai_family is None:
+				self.original_gai_family = urllib3_cn.allowed_gai_family
+			logging.info("Forcing IPv6 ...")
+			urllib3_cn.allowed_gai_family = allowed_gai_family
 
 	def restore_gai(self) -> None:
-		if self.original_gai_family:
-			logging.info("Restoring normal IP stack ...")
-			urllib3_cn.allowed_gai_family = self.original_gai_family
-			self.original_gai_family = None
+		with self._gai_lock:
+			if self.original_gai_family:
+				logging.info("Restoring normal IP stack ...")
+				urllib3_cn.allowed_gai_family = self.original_gai_family
+				self.original_gai_family = None

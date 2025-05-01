@@ -16,6 +16,32 @@ class InstagramHuman(object):
 		self.scrapler = scrapler
 		self.operations_count = 0
 
+	def watch_content(self, media: list) -> None:
+		for m in media[:random.randint(2, 4)]:
+			try:
+				logging.info("Wathing content with pk '%d'", m.pk)
+				content = self.scrapler.cl.media_info(m.pk)
+				logging.info("Watched content with id '%d'", content.pk)
+				self.operations_count += 1
+				time.sleep(random.uniform(2, 5))
+			except Exception as e:
+				logging.warning("Exception while watching content")
+				logging.exception(e)
+
+	def scroll_content(self, last_pk: int) -> None:
+		if random.random() > 0.2:
+			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
+			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10), last_media_pk=last_pk)
+			self.operations_count += 1
+			self.watch_content(media)
+		
+		if random.random() > 0.3:
+			time.sleep(random.uniform(2, 5))
+			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
+			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
+			self.operations_count += 1
+			self.watch_content(media)
+
 	def simulate_activity(self) -> None:
 		now = datetime.now()
 		hour = now.hour
