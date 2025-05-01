@@ -23,7 +23,7 @@ class InstagramHuman(object):
 				content = self.scrapler.cl.media_info(m.pk)
 				logging.info("Watched content with id '%s'", str(content.pk))
 				self.operations_count += 1
-				time.sleep(random.uniform(2, 10))
+				time.sleep(random.uniform(8, 30))
 			except Exception as e:
 				logging.warning("Exception while watching content")
 				logging.exception(e)

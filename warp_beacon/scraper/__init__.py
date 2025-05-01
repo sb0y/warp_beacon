@@ -138,7 +138,7 @@ class AsyncDownloader(object):
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
 								actor = InstagramScraper(selector.get_current(), proxy)
 								selector.inc_ig_request_count()
-								if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
+								if not job.scroll_content and selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
 									logging.info("The account request limit has been reached. Selecting the next account.")
 									selector.reset_ig_request_count()
 									selector.next()
