@@ -299,8 +299,10 @@ class AsyncDownloader(object):
 										f"Exception:<br><pre code=\"python\">{exception_msg}</pre>"
 									))
 									break
+								finally:
+									if actor:
+										actor.restore_gai()
 
-							actor.restore_gai()
 							last_proxy = proxy
 
 							if items:

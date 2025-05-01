@@ -29,8 +29,6 @@ class ScraperAbstract(ABC):
 		self.proxy = proxy
 		if self.account.get("force_ipv6", False):
 			self.force_ipv6()
-		else:
-			self.restore_gai()
 
 	#def __del__(self) -> None:
 	#	if self.account.get("force_ipv6", False):
