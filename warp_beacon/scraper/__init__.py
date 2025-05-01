@@ -97,10 +97,12 @@ class AsyncDownloader(object):
 		logging.info("download worker started")
 		# pymongo is not fork-safe so new connect to DB required
 		fail_handler = FailHandler(DBClient())
+		last_proxy = None
 		while self.allow_loop.value == 1:
 			try:
 				job: DownloadJob = None
 				actor = None
+				proxy = None
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
@@ -122,8 +124,12 @@ class AsyncDownloader(object):
 									time.sleep(2)
 									self.job_queue.put(job)
 									continue
-							self.acc_selector.set_module(job.job_origin)
-							proxy = selector.get_current_proxy()
+							selector.set_module(job.job_origin)
+							# use same proxy as in content request before
+							if job.scroll_content:
+								proxy = last_proxy
+							else:
+								proxy = selector.get_current_proxy()
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
 								actor = InstagramScraper(selector.get_current(), proxy)
@@ -291,6 +297,9 @@ class AsyncDownloader(object):
 										f"Exception:<br><pre code=\"python\">{exception_msg}</pre>"
 									))
 									break
+
+							actor.restore_gai()
+							last_proxy = proxy
 
 							if items:
 								# success
