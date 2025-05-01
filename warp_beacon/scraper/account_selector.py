@@ -69,6 +69,9 @@ class AccountSelector(object):
 
 	def get_current_proxy(self) -> Optional[dict]:
 		return self.current_proxy
+	
+	def get_last_proxy(self) -> Optional[dict]:
+		return self.accounts_meta_data.get("last_proxy", None)
 
 	def get_proxy_list(self) -> List[dict]:
 		matched_proxy = []
@@ -96,7 +99,7 @@ class AccountSelector(object):
 					if len(matched_proxy) > 1:
 						random.seed(random.seed(time.time_ns() ^ int.from_bytes(os.urandom(len(matched_proxy)), "big")))
 						# ensure new proxy in case if previous account required captcha
-						last_proxy = self.accounts_meta_data.get("last_proxy", None)
+						last_proxy = self.get_last_proxy()
 						if last_proxy and last_proxy in matched_proxy:
 							matched_proxy.remove(last_proxy)
 					prox_choice = random.choice(matched_proxy)
@@ -119,7 +122,8 @@ class AccountSelector(object):
 			if matched_proxies:
 				lit = cycle(matched_proxies)
 				proxy = next(lit)
-				if proxy.get("dsn", {}) == self.accounts_meta_data["last_proxy"].get("dsn", {}):
+				last_proxy = self.get_last_proxy()
+				if last_proxy and proxy.get("dsn", "") == last_proxy.get("dsn", ""):
 					proxy = next(lit)
 				self.current_proxy = proxy
 				self.accounts_meta_data["last_proxy"] = proxy

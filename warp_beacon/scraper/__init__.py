@@ -102,7 +102,6 @@ class AsyncDownloader(object):
 			try:
 				job: DownloadJob = None
 				actor = None
-				proxy = None
 				try:
 					job = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
@@ -124,10 +123,13 @@ class AsyncDownloader(object):
 									time.sleep(2)
 									self.job_queue.put(job)
 									continue
+							last_proxy = selector.get_last_proxy()
 							selector.set_module(job.job_origin)
 							# use same proxy as in content request before
+							proxy = None
 							if job.scroll_content:
 								proxy = last_proxy
+								logging.info("Chosen last proxy '%s'", proxy)
 							else:
 								proxy = selector.get_current_proxy()
 							if job.job_origin is Origin.INSTAGRAM:
