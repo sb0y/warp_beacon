@@ -72,11 +72,19 @@ class InstagramScraper(ScraperAbstract):
 			"cpu": device.get("cpu", "exynos2100"),
 			"version_code": device.get("version_code", "493450264")
 		})
+		uuids = device.get("uuids", {})
+		self.cl.set_uuids({
+			"phone_id": uuids.get("phone_id", self.cl.generate_uuid()),
+			"uuid": uuids.get("uuid", self.cl.generate_uuid()),
+			"client_session_id": uuids.get("client_session_id", self.cl.generate_uuid()),
+			"advertising_id": uuids.get("advertising_id", self.cl.generate_uuid()),
+			"device_id": uuids.get("device_id", self.cl.generate_uuid())
+		})
 
 	def safe_write_session(self) -> None:
 		cl_settings = self.cl.get_settings()
 		cl_settings["warp_timeline_cursor"] = self.timeline_cursor
-		tmp_fname = "%s~" % self.inst_session_file
+		tmp_fname = f"{self.inst_session_file}~"
 		with open(tmp_fname, 'w+', encoding="utf-8") as f:
 			f.write(json.dumps(cl_settings))
 		if os.path.exists(self.inst_session_file):
