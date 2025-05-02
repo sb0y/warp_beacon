@@ -161,7 +161,11 @@ class AccountSelector(object):
 		module_name = self.get_module_name(module_origin)
 		self.current_module_name = module_name
 		if self.current is None:
-			self.current = self.accounts[self.current_module_name][self.account_index[self.current_module_name].value]
+			idx = self.account_index[self.current_module_name].value
+			self.current = self.accounts[self.current_module_name][idx]
+			if not self.current.get("enabled", True):
+				logging.info("Account '%d' is disabled. Probing next ...", idx)
+				self.next()
 		self.current_proxy = self.get_random_account_proxy()
 
 	def next(self) -> dict:
@@ -171,6 +175,9 @@ class AccountSelector(object):
 			idx = 0
 		self.account_index[self.current_module_name].value = idx
 		self.current = self.accounts[self.current_module_name][idx]
+		if not self.current.get("enabled", True):
+			logging.info("Account '%d' is disabled. Probing next ...", idx)
+			return self.next()
 		logging.info("Selected account index is '%d'", idx)
 		return self.current
 
