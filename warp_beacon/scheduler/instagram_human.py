@@ -29,14 +29,19 @@ class InstagramHuman(object):
 				logging.exception(e)
 
 	def scroll_content(self, last_pk: int) -> None:
+		timeline_initialized = False
 		if random.random() > 0.7:
+			timeline_initialized = True
+			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
 			self.watch_content(media)
 		
-		if random.random() > 1.0:
+		if random.random() > 0.9:
 			time.sleep(random.uniform(2, 20))
+			if not timeline_initialized:
+				self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
@@ -91,6 +96,12 @@ class InstagramHuman(object):
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
 				self.operations_count += 1
 				self.random_pause()
+			if random.random() > 0.4:
+				logging.info("Watching reels ...")
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels)
+				self.operations_count += 1
+				self.watch_content(reels)
+				self.random_pause()
 		except Exception as e:
 			logging.warning("Error in daytime_routine")
 			logging.exception(e)
@@ -115,8 +126,9 @@ class InstagramHuman(object):
 				self.random_pause()
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
-				self.scrapler.download_hndlr(self.scrapler.cl.reels)
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels)
 				self.operations_count += 1
+				self.watch_content(reels)
 				self.random_pause()
 			if random.random() > 0.6:
 				logging.info("Simulation profile view ...")
@@ -133,6 +145,12 @@ class InstagramHuman(object):
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				self.operations_count += 1
 				self.random_pause(short=True)
+			if random.random() > 0.8:
+				logging.info("Watching reels ...")
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels)
+				self.operations_count += 1
+				self.watch_content(reels)
+				self.random_pause()
 		except Exception as e:
 			logging.warning("Error in night_routine")
 			logging.exception(e)
