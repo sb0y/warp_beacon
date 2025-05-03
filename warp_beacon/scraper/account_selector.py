@@ -3,29 +3,35 @@ import time
 import random
 import json
 import re
+import uuid
 from typing import Optional, List
-
 from itertools import cycle
+
+import logging
+
 import multiprocessing
 import multiprocessing.managers
 
 from warp_beacon.jobs import Origin
 
-import logging
-
 class AccountSelector(object):
-	accounts = []
-	proxies = []
+	accounts = None
+	proxies = None
 	current = None
 	current_module_name = None
 	accounts_meta_data = None
 	session_dir = "/var/warp_beacon"
 	manager = None
-	account_index = {}
+	account_index = None
 	current_proxy = None
 	ig_request_count = None
+	ig_accounts_session_id = None
 
 	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str, proxy_file_path: str=None) -> None:
+		self.accounts = []
+		self.proxies = []
+		self.account_index = {}
+		self.ig_accounts_session_id = self.load_ig_sessions_id()
 		self.manager = manager
 		self.accounts_meta_data = self.manager.dict()
 		if os.path.exists(acc_file_path):
@@ -44,6 +50,31 @@ class AccountSelector(object):
 			self.load_ig_request_count()
 		else:
 			raise ValueError("Accounts file not found")
+
+	def save_state(self) -> None:
+		self.save_ig_request_count()
+		self.save_ig_sessions_id()
+
+	def save_ig_sessions_id(self) -> None:
+		try:
+			with open(f"{self.session_dir}/ig_session_client_id", "w+", encoding="utf-8") as f:
+				f.write(json.dumps(self.ig_accounts_session_id))
+		except Exception as e:
+			logging.warning("Failed to save session ig_session_client_id!")
+			logging.exception(e)
+
+	def load_ig_sessions_id(self) -> dict:
+		ig_sessions_client_id = {}
+		try:
+			sess_file = f"{self.session_dir}/ig_sessions_client_id.json"
+			if os.path.exists(sess_file):
+				with open(sess_file, 'r', encoding="utf-8") as f:
+					ig_sessions_client_id = json.loads(f.read())
+		except Exception as e:
+			logging.warning("Failed to read session ig_session_client_id!")
+			logging.exception(e)
+
+		return ig_sessions_client_id
 
 	def save_ig_request_count(self) -> None:
 		try:
@@ -209,7 +240,7 @@ class AccountSelector(object):
 		return (idx, self.accounts[module_name][idx])
 
 	def get_meta_data(self) -> dict:
-		idx = self.account_index[self.current_module_name].value - 1
+		idx = self.account_index[self.current_module_name].value# - 1
 		return self.accounts_meta_data[self.current_module_name][idx]
 
 	def count_service_accounts(self, mod_name: Origin) -> int:
@@ -226,3 +257,13 @@ class AccountSelector(object):
 
 	def get_ig_request_count(self) -> int:
 		return self.ig_request_count.value
+	
+	def get_ig_session_id(self) -> str:
+		idx = self.account_index[self.current_module_name].value
+		if idx not in self.ig_accounts_session_id:
+			self.ig_accounts_session_id[idx] = str(uuid.uuid4())
+		else:
+			if random.random() > 0.95:
+				self.ig_accounts_session_id[idx] = str(uuid.uuid4())
+				logging.info("Rotated client_session_id — simulating app restart")
+		return self.ig_accounts_session_id[idx]
