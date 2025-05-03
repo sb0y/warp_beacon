@@ -26,11 +26,13 @@ class AccountSelector(object):
 	current_proxy = None
 	ig_request_count = None
 	ig_accounts_session_id = None
+	lock = None
 
 	def __init__(self, manager: multiprocessing.managers.SyncManager, acc_file_path: str, proxy_file_path: str=None) -> None:
 		self.accounts = []
 		self.proxies = []
 		self.account_index = {}
+		self.lock = self.manager.Lock()
 		self.ig_accounts_session_id = self.manager.dict()
 		self.load_ig_sessions_id()
 		self.manager = manager
@@ -261,11 +263,12 @@ class AccountSelector(object):
 		return self.ig_request_count.value
 	
 	def get_ig_session_id(self) -> str:
-		idx = self.account_index[self.current_module_name].value
-		if idx not in self.ig_accounts_session_id:
-			self.ig_accounts_session_id[idx] = str(uuid.uuid4())
-		else:
-			if random.random() > 0.95:
+		with self.lock:
+			idx = self.account_index[self.current_module_name].value
+			if idx not in self.ig_accounts_session_id:
 				self.ig_accounts_session_id[idx] = str(uuid.uuid4())
-				logging.info("Rotated client_session_id — simulating app restart")
-		return self.ig_accounts_session_id[idx]
+			else:
+				if random.random() > 0.95:
+					self.ig_accounts_session_id[idx] = str(uuid.uuid4())
+					logging.info("Rotated client_session_id — simulating app restart")
+			return self.ig_accounts_session_id[idx]
