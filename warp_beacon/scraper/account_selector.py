@@ -32,10 +32,10 @@ class AccountSelector(object):
 		self.accounts = []
 		self.proxies = []
 		self.account_index = {}
+		self.manager = manager
 		self.lock = self.manager.Lock()
 		self.ig_accounts_session_id = self.manager.dict()
 		self.load_ig_sessions_id()
-		self.manager = manager
 		self.accounts_meta_data = self.manager.dict()
 		if os.path.exists(acc_file_path):
 			with open(acc_file_path, 'r', encoding="utf-8") as f:
