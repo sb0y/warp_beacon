@@ -57,7 +57,7 @@ class AccountSelector(object):
 
 	def save_ig_sessions_id(self) -> None:
 		try:
-			with open(f"{self.session_dir}/ig_session_client_id", "w+", encoding="utf-8") as f:
+			with open(f"{self.session_dir}/ig_sessions_client_id.json", "w+", encoding="utf-8") as f:
 				f.write(json.dumps(self.ig_accounts_session_id))
 		except Exception as e:
 			logging.warning("Failed to save session ig_session_client_id!")
