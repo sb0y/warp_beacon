@@ -142,12 +142,12 @@ class AsyncDownloader(object):
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
 								Utils.maybe_rotate_ig_client_session(context)
-								actor = InstagramScraper(client_session_id=context.ig_session_client_id, account=selector.get_current(), proxy=proxy)
-								selector.inc_ig_request_count()
 								if not job.scroll_content and selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
 									logging.info("The account request limit has been reached. Selecting the next account.")
 									selector.reset_ig_request_count()
 									selector.next()
+								actor = InstagramScraper(client_session_id=context.ig_session_client_id, account=selector.get_current(), proxy=proxy)
+								selector.inc_ig_request_count()
 							elif job.job_origin is Origin.YT_SHORTS:
 								from warp_beacon.scraper.youtube.shorts import YoutubeShortsScraper
 								actor = YoutubeShortsScraper(selector.get_current(), proxy)
