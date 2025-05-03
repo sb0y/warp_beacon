@@ -87,6 +87,7 @@ setup(
 		"warp_beacon/scraper/youtube/music",
 		"warp_beacon/scraper/fail_handler",
 		"warp_beacon/scraper/link_resolver",
+		"warp_beacon/scraper/utils",
 		"warp_beacon/storage/mongo"
 	],
 	#scripts=['scripts/wait_dc_update.py'],

@@ -36,8 +36,10 @@ class InstagramScraper(ScraperAbstract):
 	cl = None
 	inst_session_file = ""
 	timeline_cursor = {}
+	client_session_id = ""
 
-	def __init__(self, account: tuple, proxy: dict=None) -> None:
+	def __init__(self, client_session_id: str, account: tuple, proxy: dict=None) -> None:
+		self.client_session_id = client_session_id
 		super().__init__(account, proxy)
 		#
 		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
@@ -53,6 +55,8 @@ class InstagramScraper(ScraperAbstract):
 		self.cl.change_password_handler = self.change_password_handler
 
 	def setup_device(self) -> None:
+		if not self.client_session_id:
+			self.client_session_id = self.cl.generate_uuid()
 		details = self.account.get("auth_details", {})
 		self.cl.delay_range = details.get("delay_range", [1, 3])
 		self.cl.set_country_code(details.get("country_code", 1))
@@ -76,7 +80,7 @@ class InstagramScraper(ScraperAbstract):
 		self.cl.set_uuids({
 			"phone_id": uuids.get("phone_id", self.cl.generate_uuid()),
 			"uuid": uuids.get("uuid", self.cl.generate_uuid()),
-			"client_session_id": uuids.get("client_session_id", self.cl.generate_uuid()),
+			"client_session_id": self.client_session_id,
 			"advertising_id": uuids.get("advertising_id", self.cl.generate_uuid()),
 			"device_id": uuids.get("device_id", self.cl.generate_uuid())
 		})

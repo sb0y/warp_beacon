@@ -3,10 +3,12 @@ import os
 import time
 from typing import Optional
 import multiprocessing
+from multiprocessing.managers import Namespace
 from queue import Empty
 
 import logging
 
+from warp_beacon.scraper.utils import Utils
 from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YoutubeLiveError, \
 	YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed, BadProxy
 from warp_beacon.mediainfo.video import VideoInfo
@@ -39,12 +41,15 @@ class AsyncDownloader(object):
 	acc_selector = None
 	scheduler = None
 	scrolling_now = None
+	process_context = None
 
 	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
 		self.workers = []
 		self.job_queue = multiprocessing.Queue()
 		self.auth_event = multiprocessing.Event()
 		self.manager = multiprocessing.Manager()
+		self.process_context = self.manager.Namespace()
+		self.process_context.ig_session_client_id = Utils.get_ig_session_id()
 		self.allow_loop = self.manager.Value('i', 1)
 		self.scrolling_now = self.manager.Value('i', 0)
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE, PROXY_FILE)
@@ -58,7 +63,7 @@ class AsyncDownloader(object):
 
 	def start(self) -> None:
 		for _ in range(self.workers_count):
-			proc = multiprocessing.Process(target=self.do_work, args=(self.acc_selector,))
+			proc = multiprocessing.Process(target=self.do_work, args=(self.acc_selector, self.process_context))
 			self.workers.append(proc)
 			proc.start()
 
@@ -95,7 +100,7 @@ class AsyncDownloader(object):
 		job.account_switches += 1
 		selector.reset_ig_request_count()
 
-	def do_work(self, selector: AccountSelector) -> None:
+	def do_work(self, selector: AccountSelector, context: Namespace) -> None:
 		logging.info("download worker started")
 		# pymongo is not fork-safe so new connect to DB required
 		fail_handler = FailHandler(DBClient())
@@ -136,7 +141,8 @@ class AsyncDownloader(object):
 								proxy = selector.get_current_proxy()
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
-								actor = InstagramScraper(selector.get_current(), proxy)
+								Utils.maybe_rotate_ig_client_session(context)
+								actor = InstagramScraper(client_session_id=context.ig_session_client_id, account=selector.get_current(), proxy=proxy)
 								selector.inc_ig_request_count()
 								if not job.scroll_content and selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
 									logging.info("The account request limit has been reached. Selecting the next account.")
@@ -429,6 +435,7 @@ class AsyncDownloader(object):
 	def stop_all(self) -> None:
 		self.allow_loop.value = 0
 		self.acc_selector.save_ig_request_count()
+		Utils.save_ig_session_id(self.process_context.ig_session_client_id)
 		for proc in self.workers:
 			if proc.is_alive():
 				logging.info("stopping process #%d", proc.pid)
