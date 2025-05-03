@@ -31,7 +31,8 @@ class AccountSelector(object):
 		self.accounts = []
 		self.proxies = []
 		self.account_index = {}
-		self.ig_accounts_session_id = self.load_ig_sessions_id()
+		self.ig_accounts_session_id = self.manager.dict()
+		self.load_ig_sessions_id()
 		self.manager = manager
 		self.accounts_meta_data = self.manager.dict()
 		if os.path.exists(acc_file_path):
@@ -63,18 +64,19 @@ class AccountSelector(object):
 			logging.warning("Failed to save session ig_session_client_id!")
 			logging.exception(e)
 
-	def load_ig_sessions_id(self) -> dict:
-		ig_sessions_client_id = {}
+	def load_ig_sessions_id(self) -> None:
 		try:
 			sess_file = f"{self.session_dir}/ig_sessions_client_id.json"
 			if os.path.exists(sess_file):
+				data = None
 				with open(sess_file, 'r', encoding="utf-8") as f:
-					ig_sessions_client_id = json.loads(f.read())
+					data = json.loads(f.read())
+				if data and isinstance(data, dict):
+					for k, v in data.items():
+						self.ig_accounts_session_id[k] = v
 		except Exception as e:
 			logging.warning("Failed to read session ig_session_client_id!")
 			logging.exception(e)
-
-		return ig_sessions_client_id
 
 	def save_ig_request_count(self) -> None:
 		try:

@@ -56,9 +56,6 @@ class AsyncDownloader(object):
 		if os.environ.get("TG_PREMIUM", default="false") == "true":
 			self.TG_FILE_LIMIT = 4294967296 # 4 GiB
 
-	def __del__(self) -> None:
-		self.stop_all()
-
 	def start(self) -> None:
 		for _ in range(self.workers_count):
 			proc = multiprocessing.Process(target=self.do_work, args=(self.acc_selector, self.process_context))
