@@ -9,15 +9,15 @@ class ProgressFileReader(io.BufferedReader):
 		super().__init__(raw)
 		self._raw = raw
 		self.callback = callback
-		self.total = os.path.getsize(file_path)
-		self.read_bytes = 0
-		self.name = os.path.basename(file_path)
+		self._total = os.path.getsize(file_path)
+		self._read_bytes = 0
+		self._name = os.path.basename(file_path)
 
 	def read(self, size: int = -1) -> bytes:
 		chunk = super().read(size)
-		self.read_bytes += len(chunk)
+		self._read_bytes += len(chunk)
 		if self.callback:
-			self.callback(self.name, self.read_bytes, self.total)
+			self.callback(self.name, self._read_bytes, self._total)
 		return chunk
 
 	def close(self) -> None:
@@ -34,3 +34,7 @@ class ProgressFileReader(io.BufferedReader):
 		exc_tb: Optional[TracebackType]
 	) -> None:
 		self.close()
+
+	@property
+	def name(self) -> str:
+		return self._name
