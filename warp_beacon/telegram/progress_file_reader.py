@@ -4,12 +4,6 @@ from types import TracebackType
 from typing import Optional, Callable, Type
 
 class ProgressFileReader(io.BufferedReader):
-	callback = None
-	raw = None
-	total = 0
-	read_bytes = 0
-	name = ""
-
 	def __init__(self, file_path: str, callback: Optional[Callable[[str, int, int], None]]) -> None:
 		self.raw = open(file_path, "rb")
 		super().__init__(self.raw)
