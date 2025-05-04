@@ -5,8 +5,9 @@ from typing import Optional, Callable, Type
 
 class ProgressFileReader(io.BufferedReader):
 	def __init__(self, file_path: str, callback: Optional[Callable[[str, int, int], None]]) -> None:
-		self.raw = open(file_path, "rb")
-		super().__init__(self.raw)
+		raw = open(file_path, "rb")
+		super().__init__(raw)
+		self._raw = raw
 		self.callback = callback
 		self.total = os.path.getsize(file_path)
 		self.read_bytes = 0
@@ -22,7 +23,7 @@ class ProgressFileReader(io.BufferedReader):
 	def close(self) -> None:
 		if not self.closed:
 			super().close()
-			self.raw.close()
+			self._raw.close()
 
 	def __enter__(self) -> "ProgressFileReader":
 		return self
