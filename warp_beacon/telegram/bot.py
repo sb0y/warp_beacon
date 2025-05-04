@@ -417,14 +417,14 @@ class Bot(object):
 			for chunk in job.media_collection:
 				for col in chunk:
 					uploaded_file = await self.client.save_file(
-						file_path=col.local_media_path,
+						path=col.local_media_path,
 						progress=progress_callback
 					)
 					col_uploaded_files.append(uploaded_file)
 			return col_uploaded_files
 
 		return [await self.client.save_file(
-			file_path=job.local_media_path,
+			path=job.local_media_path,
 			progress=progress_callback
 		)]
 
