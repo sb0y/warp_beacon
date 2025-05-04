@@ -227,7 +227,7 @@ class Bot(object):
 
 		return caption
 
-	def build_tg_args(self, job: UploadJob, file_io: ProgressFileReader = None) -> dict:
+	def build_tg_args(self, job: UploadJob) -> dict:
 		args = {}
 		if job.media_type == JobType.VIDEO:
 			if job.tg_file_id:
@@ -243,7 +243,7 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaVideo(
-						media=file_io,
+						media=job.local_media_path,
 						supports_streaming=True,
 						width=job.media_info["width"],
 						height=job.media_info["height"],
@@ -252,7 +252,7 @@ class Bot(object):
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["video"] = file_io
+					args["video"] = job.local_media_path
 					args["supports_streaming"] = True
 					args["width"] = job.media_info["width"]
 					args["height"] = job.media_info["height"]
@@ -274,11 +274,11 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaPhoto(
-						media=file_io,
+						media=job.local_media_path,
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["photo"] = file_io
+					args["photo"] = job.local_media_path
 					args["caption"] = self.build_signature_caption(job)
 
 				args["file_name"] = os.path.basename(job.local_media_path)
@@ -294,7 +294,7 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAudio(
-						media=file_io,
+						media=job.local_media_path,
 						performer=job.media_info["performer"],
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
@@ -302,7 +302,7 @@ class Bot(object):
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["audio"] = file_io
+					args["audio"] = job.local_media_path
 					args["performer"] = job.media_info["performer"]
 					args["thumb"] = job.media_info["thumb"]
 					args["duration"] = round(job.media_info["duration"])
@@ -323,7 +323,7 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAnimation(
-						media=file_io,
+						media=job.local_media_path,
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
 						width=job.media_info["width"],
@@ -331,7 +331,7 @@ class Bot(object):
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["animation"] = file_io
+					args["animation"] = job.local_media_path
 					args["width"] = job.media_info["width"]
 					args["height"] = job.media_info["height"]
 					args["duration"] = round(job.media_info["duration"])
@@ -364,7 +364,7 @@ class Bot(object):
 					for j in chunk:
 						if j.media_type == JobType.VIDEO:
 							vid = InputMediaVideo(
-								media=ProgressFileReader(j.local_media_path, self.progress_callback),
+								media=j.local_media_path,
 								supports_streaming=True,
 								width=j.media_info["width"],
 								height=j.media_info["height"],
@@ -375,7 +375,7 @@ class Bot(object):
 							tg_chunk.append(vid)
 						elif j.media_type == JobType.IMAGE:
 							photo = InputMediaPhoto(
-								media=ProgressFileReader(j.local_media_path, self.progress_callback),
+								media=j.local_media_path,
 								caption=self.build_signature_caption(job)
 							)
 							tg_chunk.append(photo)
@@ -405,9 +405,6 @@ class Bot(object):
 
 		return args
 
-	def progress_callback(self, filename: str, current: int, total: int) -> None:
-		logging.info("[%s] Uploaded %.1f%%", filename, current * 100 / total)
-
 	async def upload_job(self, job: UploadJob) -> list[str]:
 		tg_file_ids = []
 		try:
@@ -421,8 +418,7 @@ class Bot(object):
 							await Utils.ensure_me_loaded(self.client)
 						if job.placeholder_message_id:
 							try:
-								with ProgressFileReader(job.local_media_path, self.progress_callback) as f:
-									reply_message = await self.client.edit_message_media(**self.build_tg_args(job, f))
+								reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
 							except MessageIdInvalid:
 								logging.warning("Placeholder message not found. Looks like placeholder message was deleted by administrator.")
 								job.placeholder_message_id = None
@@ -435,41 +431,29 @@ class Bot(object):
 								JobType.ANIMATION: self.client.send_animation
 							}
 							try:
-								with ProgressFileReader(job.local_media_path, self.progress_callback) as f:
-									reply_message = await send_funcs[job.media_type](**self.build_tg_args(job, f))
+								reply_message = await send_funcs[job.media_type](**self.build_tg_args(job))
 							except ValueError as e:
 								err_text = str(e)
 								if "Expected" in err_text:
 									logging.warning("Expectations exceeded reality.")
 									logging.warning(err_text)
 									expectation, reality = Utils.parse_expected_patronum_error(err_text)
-									with ProgressFileReader(job.local_media_path, self.progress_callback) as f:
-										job_args = self.build_tg_args(job, f)
-										job_args[reality.value.lower()] = job_args.pop(expectation.value.lower())
-										reply_message = await send_funcs[reality](**job_args)
+									job_args = self.build_tg_args(job)
+									job_args[reality.value.lower()] = job_args.pop(expectation.value.lower())
+									reply_message = await send_funcs[reality](**job_args)
 
 						tg_file_id = Utils.extract_file_id(reply_message)
 						tg_file_ids.append(tg_file_id)
 						job.tg_file_id = tg_file_id
 						logging.info("Uploaded media file with type '%s' tg_file_id is '%s'", job.media_type.value, job.tg_file_id)
 					elif job.media_type == JobType.COLLECTION:
-						#uploaded_files = await self.upload_with_progress(job)
 						col_job_args = self.build_tg_args(job)
 						sent_messages = []
 						snd_grp_options = {"chat_id": job.chat_id, "reply_to_message_id": job.message_id}
 						for i, media_chunk in enumerate(col_job_args["media"]):
 							snd_grp_options["media"] = media_chunk
-							messages = None
-							try:
-								messages = await self.client.send_media_group(**snd_grp_options)
-							finally:
-								try:
-									for med in snd_grp_options["media"]:
-										med.media.close()
-								except AttributeError:
-									pass
-							if messages:
-								sent_messages += messages
+							messages = await self.client.send_media_group(**snd_grp_options)
+							sent_messages += messages
 							if job.media_collection:
 								for j, _ in enumerate(media_chunk):
 									tg_file_id = Utils.extract_file_id(messages[j])
