@@ -226,7 +226,7 @@ class Bot(object):
 
 		return caption
 
-	def build_tg_args(self, job: UploadJob, uploaded_files: list[Union[InputFile, InputFileBig]]) -> dict:
+	def build_tg_args(self, job: UploadJob) -> dict:
 		args = {}
 		if job.media_type == JobType.VIDEO:
 			if job.tg_file_id:
@@ -242,7 +242,7 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaVideo(
-						media=next(iter(uploaded_files)),
+						media=job.local_media_path,
 						supports_streaming=True,
 						width=job.media_info["width"],
 						height=job.media_info["height"],
@@ -251,7 +251,7 @@ class Bot(object):
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["video"] = next(iter(uploaded_files))
+					args["video"] = job.local_media_path
 					args["supports_streaming"] = True
 					args["width"] = job.media_info["width"]
 					args["height"] = job.media_info["height"]
@@ -273,11 +273,11 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaPhoto(
-						media=next(iter(uploaded_files)),
+						media=job.local_media_path,
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["photo"] = next(iter(uploaded_files))
+					args["photo"] = job.local_media_path
 					args["caption"] = self.build_signature_caption(job)
 
 				args["file_name"] = os.path.basename(job.local_media_path)
@@ -293,7 +293,7 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAudio(
-						media=next(iter(uploaded_files)),
+						media=job.local_media_path,
 						performer=job.media_info["performer"],
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
@@ -301,7 +301,7 @@ class Bot(object):
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["audio"] = next(iter(uploaded_files))
+					args["audio"] = job.local_media_path
 					args["performer"] = job.media_info["performer"]
 					args["thumb"] = job.media_info["thumb"]
 					args["duration"] = round(job.media_info["duration"])
@@ -322,7 +322,7 @@ class Bot(object):
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAnimation(
-						media=next(iter(uploaded_files)),
+						media=job.local_media_path,
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
 						width=job.media_info["width"],
@@ -330,7 +330,7 @@ class Bot(object):
 						caption=self.build_signature_caption(job)
 					)
 				else:
-					args["animation"] = next(iter(uploaded_files))
+					args["animation"] = job.local_media_path
 					args["width"] = job.media_info["width"]
 					args["height"] = job.media_info["height"]
 					args["duration"] = round(job.media_info["duration"])
@@ -358,27 +358,23 @@ class Bot(object):
 					args["media"].append(tg_chunk)
 			else:
 				mediafs = []
-				file_index = 0
 				for chunk in job.media_collection:
 					tg_chunk = []
-					for el in chunk:
-						uploaded_file = uploaded_files[file_index]
-						file_index += 1
-
-						if el.media_type == JobType.VIDEO:
+					for j in chunk:
+						if j.media_type == JobType.VIDEO:
 							vid = InputMediaVideo(
-								media=uploaded_file,
+								media=j.local_media_path,
 								supports_streaming=True,
-								width=el.media_info["width"],
-								height=el.media_info["height"],
-								duration=round(el.media_info["duration"]),
-								thumb=el.media_info["thumb"],
+								width=j.media_info["width"],
+								height=j.media_info["height"],
+								duration=round(j.media_info["duration"]),
+								thumb=j.media_info["thumb"],
 								caption=self.build_signature_caption(job)
 							)
 							tg_chunk.append(vid)
-						elif el.media_type == JobType.IMAGE:
+						elif j.media_type == JobType.IMAGE:
 							photo = InputMediaPhoto(
-								media=uploaded_file,
+								media=j.local_media_path,
 								caption=self.build_signature_caption(job)
 							)
 							tg_chunk.append(photo)
@@ -441,8 +437,8 @@ class Bot(object):
 							await Utils.ensure_me_loaded(self.client)
 						if job.placeholder_message_id:
 							try:
-								uploaded_files = await self.upload_with_progress(job)
-								reply_message = await self.client.edit_message_media(**self.build_tg_args(job, uploaded_files))
+								#uploaded_files = await self.upload_with_progress(job)
+								reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
 							except MessageIdInvalid:
 								logging.warning("Placeholder message not found. Looks like placeholder message was deleted by administrator.")
 								job.placeholder_message_id = None
@@ -455,15 +451,15 @@ class Bot(object):
 								JobType.ANIMATION: self.client.send_animation
 							}
 							try:
-								uploaded_files = await self.upload_with_progress(job)
-								reply_message = await send_funcs[job.media_type](**self.build_tg_args(job, uploaded_files))
+								#uploaded_files = await self.upload_with_progress(job)
+								reply_message = await send_funcs[job.media_type](**self.build_tg_args(job))
 							except ValueError as e:
 								err_text = str(e)
 								if "Expected" in err_text:
 									logging.warning("Expectations exceeded reality.")
 									logging.warning(err_text)
 									expectation, reality = Utils.parse_expected_patronum_error(err_text)
-									job_args = self.build_tg_args(job, uploaded_files)
+									job_args = self.build_tg_args(job)
 									job_args[reality.value.lower()] = job_args.pop(expectation.value.lower())
 									reply_message = await send_funcs[reality](**job_args)
 
@@ -472,8 +468,8 @@ class Bot(object):
 						job.tg_file_id = tg_file_id
 						logging.info("Uploaded media file with type '%s' tg_file_id is '%s'", job.media_type.value, job.tg_file_id)
 					elif job.media_type == JobType.COLLECTION:
-						uploaded_files = await self.upload_with_progress(job)
-						col_job_args = self.build_tg_args(job, uploaded_files)
+						#uploaded_files = await self.upload_with_progress(job)
+						col_job_args = self.build_tg_args(job)
 						sent_messages = []
 						snd_grp_options = {"chat_id": job.chat_id, "reply_to_message_id": job.message_id}
 						for i, media_chunk in enumerate(col_job_args["media"]):
