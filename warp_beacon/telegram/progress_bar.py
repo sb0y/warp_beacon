@@ -1,5 +1,6 @@
 import logging
 
+import asyncio
 import hashlib
 
 from pyrogram.enums import ParseMode
@@ -47,6 +48,15 @@ class ProgressBar(object):
 		percent = frac * 100
 		return f"[{pbar}] {round(percent)}%"
 
+	def _on_edit_done(self, task: asyncio.Task) -> None:
+		exc = task.exception()
+		if not exc:
+			return
+		if isinstance(exc, MessageNotModified):
+			logging.warning("bad_request_400.MessageNotModified")
+		else:
+			logging.exception("Error in edit_message_caption", exc_info=exc)
+
 	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
 		percent = current * 100 / (total or 1)
 		if total == 0 or percent >= self._next_threshold:
@@ -59,14 +69,7 @@ class ProgressBar(object):
 				task = self.client.loop.create_task(
 					self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 				)
-				task.add_done_callback(
-					lambda t: (
-						(exc := t.exception()) and
-						(isinstance(exc, MessageNotModified)
-							and logging.warning("bad_request_400.MessageNotModified")
-							or logging.exception("Error in edit_message_caption", exc_info=exc))
-					)
-				)
+				task.add_done_callback(self._on_edit_done)
 			#except MessageNotModified:
 				#logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
