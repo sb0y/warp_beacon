@@ -39,4 +39,5 @@ class DownloadStatus(object):
 		else:
 			progress_bar = self.progress_bars[a_key]
 		task = self.client.loop.create_task(self.handle_message(msg, progress_bar))
-		task.add_done_callback(lambda _: progress_bar.is_complete() and self.progress_bars.pop(a_key, None))
+		if msg.get("completed", False):
+			task.add_done_callback(lambda _: self.progress_bars.pop(a_key, None))

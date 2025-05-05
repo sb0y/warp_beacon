@@ -243,8 +243,15 @@ class YoutubeAbstract(ScraperAbstract):
 		bytes_downloaded = total_size - bytes_remaining
 		percentage_of_completion = bytes_downloaded / (total_size or 1) * 100
 		if total_size == 0 or percentage_of_completion >= self._download_progress_threshold:
-			self.status_pipe.send({"action": "report_download_status", "current": bytes_downloaded, "total": total_size,
-									"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id})
+			msg = {
+				"action": "report_download_status",
+				"current": bytes_downloaded,
+				"total": total_size,
+				"message_id": self.job.placeholder_message_id,
+				"chat_id": self.job.chat_id,
+				"completed": percentage_of_completion >= 100
+			}
+			self.status_pipe.send(msg)
 			logging.debug("[Download worker] Downloaded %d%%", percentage_of_completion)
 			if total_size > 0:
 				self._download_progress_threshold += 20
