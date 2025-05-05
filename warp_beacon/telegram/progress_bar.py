@@ -52,7 +52,7 @@ class ProgressBar(object):
 		if total == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)
 			pbar = self.make_emoji_progress_bar(percent, 100, 14)
-			logging.info("[%s] Uploaded to Telegram %d%%", label or operation, percent)
+			logging.info("[%s] Operation: %s %d%%", label or operation, operation, percent)
 			try:
 				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 			except MessageNotModified:
