@@ -69,6 +69,7 @@ setup(
 		"warp_beacon/telegram/progress_bar",
 		"warp_beacon/telegram/progress_file_reader",
 		"warp_beacon/telegram/edit_message",
+		"warp_beacon/telegram/download_status",
 		"warp_beacon/jobs/abstract",
 		"warp_beacon/jobs/download_job",
 		"warp_beacon/jobs/upload_job",

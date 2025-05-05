@@ -1,28 +1,31 @@
-import os
-
-import time
-from typing import Optional
+import logging
 import multiprocessing
+import multiprocessing.connection
+import os
+import time
 from multiprocessing.managers import Namespace
 from queue import Empty
+from typing import Optional
 
-import logging
-
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, Unavailable, FileTooBig, YoutubeLiveError, \
-	YotubeAgeRestrictedError, IGRateLimitOccurred, CaptchaIssue, AllAccountsFailed, BadProxy
-from warp_beacon.mediainfo.video import VideoInfo
-from warp_beacon.mediainfo.audio import AudioInfo
-from warp_beacon.mediainfo.silencer import Silencer
 from warp_beacon.compress.video import VideoCompress
-from warp_beacon.uploader import AsyncUploader
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.download_job import DownloadJob
-from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs.types import JobType
+from warp_beacon.jobs.upload_job import UploadJob
+from warp_beacon.mediainfo.audio import AudioInfo
+from warp_beacon.mediainfo.silencer import Silencer
+from warp_beacon.mediainfo.video import VideoInfo
 from warp_beacon.scraper.account_selector import AccountSelector
-from warp_beacon.storage.mongo import DBClient
+from warp_beacon.scraper.exceptions import (AllAccountsFailed, BadProxy,
+											CaptchaIssue, FileTooBig,
+											IGRateLimitOccurred, NotFound,
+											TimeOut, Unavailable, UnknownError,
+											YotubeAgeRestrictedError,
+											YoutubeLiveError)
 from warp_beacon.scraper.fail_handler import FailHandler
 from warp_beacon.scraper.link_resolver import LinkResolver
+from warp_beacon.storage.mongo import DBClient
+from warp_beacon.uploader import AsyncUploader
 
 ACC_FILE = os.environ.get("SERVICE_ACCOUNTS_FILE", default="/var/warp_beacon/accounts.json")
 PROXY_FILE = os.environ.get("PROXY_FILE", default="/var/warp_beacon/proxies.json")
@@ -41,8 +44,9 @@ class AsyncDownloader(object):
 	scheduler = None
 	scrolling_now = None
 	process_context = None
+	status_pipe = None
 
-	def __init__(self, uploader: AsyncUploader, workers_count: int) -> None:
+	def __init__(self, uploader: AsyncUploader, pipe_connection: multiprocessing.connection.Connection, workers_count: int) -> None:
 		self.workers = []
 		self.job_queue = multiprocessing.Queue()
 		self.auth_event = multiprocessing.Event()
@@ -53,6 +57,7 @@ class AsyncDownloader(object):
 		self.acc_selector = AccountSelector(self.manager, ACC_FILE, PROXY_FILE)
 		self.uploader = uploader
 		self.workers_count = workers_count
+		self.status_pipe = pipe_connection
 		if os.environ.get("TG_PREMIUM", default="false") == "true":
 			self.TG_FILE_LIMIT = 4294967296 # 4 GiB
 
@@ -154,6 +159,7 @@ class AsyncDownloader(object):
 							actor.send_message_to_admin_func = self.send_message_to_admin
 							actor.request_yt_auth = self.request_yt_auth
 							actor.auth_event = self.auth_event
+							actor.status_pipe = self.status_pipe
 							# job retry loop
 							while self.allow_loop.value == 1:
 								try:

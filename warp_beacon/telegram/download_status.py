@@ -1,0 +1,42 @@
+import logging
+from multiprocessing import Pipe
+from pyrogram import Client
+from warp_beacon.telegram.progress_bar import ProgressBar
+
+class DownloadStatus(object):
+	status_pipe = None
+	child_conn = None
+	client = None
+	progress_bars = None
+
+	def __init__(self, client: Client) -> None:
+		self.progress_bars = {}
+		self.client = client
+		self.status_pipe, self.child_conn = Pipe()
+
+	async def handle_message(self, msg: dict, progress_bar: ProgressBar) -> None:
+		await progress_bar.progress_callback(
+			current=msg.get("current", 0),
+			total=msg.get("total", 0),
+			message_id=msg.get("message_id", 0),
+			chat_id=msg.get("chat_id", 0),
+			operation="Downloaded"
+		)
+
+	def on_status(self) -> None:
+		msg = self.status_pipe.recv()
+		if not msg:
+			logging.warning("Empty status message!")
+			return
+		logging.info("Received pipe message: %s", msg)
+		message_id = msg.get("message_id", 0)
+		chat_id = msg.get("chat_id", 0)
+		a_key = f"{message_id}:{chat_id}"
+		progress_bar = None
+		if a_key not in self.progress_bars:
+			progress_bar = ProgressBar(self.client)
+			self.progress_bars[a_key] = progress_bar
+		else:
+			progress_bar = self.progress_bars[a_key]
+		task = self.client.loop.create_task(self.handle_message(msg, progress_bar))
+		task.add_done_callback(lambda _: progress_bar.is_complete() and self.progress_bars.pop(a_key, None))

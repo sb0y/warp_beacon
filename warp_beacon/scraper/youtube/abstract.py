@@ -1,38 +1,45 @@
-import os
+import http.client
 import io
-import pathlib
-import time
+import json
+import logging
 import math
+import os
+import pathlib
 import socket
 import ssl
+import time
+import urllib
 #from abc import abstractmethod
-from typing import Callable, Union, Optional
-import logging
-import json
-import http.client
+from typing import Callable, Optional, Union
+from urllib.parse import parse_qs, urlparse
+
+import numpy as np
+import pytubefix
 import pytubefix.exceptions
 import requests
-from PIL import Image
-import numpy as np
-import urllib
 import urllib3
-from urllib.parse import urlparse, parse_qs
-
-import pytubefix
+#from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
+import yt_dlp
+from PIL import Image
 from pytubefix import YouTube
 from pytubefix.innertube import _default_clients
 from pytubefix.streams import Stream
-#from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
-import yt_dlp
 
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.scraper.abstract import ScraperAbstract
+from warp_beacon.scraper.exceptions import (BadProxy, TimeOut, Unavailable,
+											extract_exception_message)
 from warp_beacon.yt_auth import YtAuth
-from warp_beacon.scraper.exceptions import TimeOut, Unavailable, BadProxy, extract_exception_message
 
 class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
 	YT_SESSION_FILE = '/var/warp_beacon/yt_session_%d.json'
+
+	job = None
+
+	def __init__(self, account: tuple, proxy: dict=None) -> None:
+		super().__init__(account, proxy)
+		self._download_progress_threshold = 20
 
 	def validate_session(self) -> int:
 		try:
@@ -68,8 +75,8 @@ class YoutubeAbstract(ScraperAbstract):
 		ext = path_info.suffix
 		#old_filename = path_info.stem
 		time_name = str(time.time()).replace('.', '_')
-		new_filename = "%s%s" % (time_name, ext)
-		new_filepath = "%s/%s" % (os.path.dirname(filename), new_filename)
+		new_filename = f"{time_name}{ext}"
+		new_filepath = f"{os.path.dirname(filename)}/{new_filename}"
 
 		os.rename(filename, new_filepath)
 
@@ -83,7 +90,7 @@ class YoutubeAbstract(ScraperAbstract):
 	def remove_tmp_files(self) -> None:
 		for i in os.listdir(self.DOWNLOAD_DIR):
 			if "yt_download_" in i:
-				os.unlink("%s/%s" % (self.DOWNLOAD_DIR, i))
+				os.unlink(f"{self.DOWNLOAD_DIR}/{i}")
 
 	def calculate_size_with_padding(self,
 		image: Image,
@@ -234,8 +241,13 @@ class YoutubeAbstract(ScraperAbstract):
 	def yt_on_progress(self, stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
 		total_size = stream.filesize or stream.filesize_approx
 		bytes_downloaded = total_size - bytes_remaining
-		percentage_of_completion = bytes_downloaded / total_size * 100
-		logging.info("Downloaded %d%%", percentage_of_completion)
+		percentage_of_completion = bytes_downloaded / (total_size or 1) * 100
+		if total_size == 0 or percentage_of_completion >= self._download_progress_threshold:
+			self.status_pipe.send({"action": "report_download_status", "current": bytes_downloaded, "total": total_size,
+									"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id})
+			logging.debug("[Download worker] Downloaded %d%%", percentage_of_completion)
+			if total_size > 0:
+				self._download_progress_threshold += 20
 
 	def build_proxies(self, proxy_dsn: str) -> dict:
 		if not proxy_dsn:
@@ -309,6 +321,7 @@ class YoutubeAbstract(ScraperAbstract):
 		raise NotImplementedError("You should to implement _download_yt_dlp method")
 
 	def download(self, job: DownloadJob) -> list:
+		self.job = job
 		ret = []
 		thumbnail = None
 		try:
@@ -323,6 +336,8 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.exception(e)
 
 		try:
+			self.status_pipe.send({"action": "report_download_status", "current": 0, "total": 0,
+									"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id})
 			ret = self.download_hndlr(self._download, job.url, session=True, thumbnail=thumbnail)
 			return ret
 		except (Unavailable, TimeOut, KeyError) as e:

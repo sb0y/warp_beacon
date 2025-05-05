@@ -10,6 +10,10 @@ class ProgressBar(object):
 	def __init__(self, client: Client) -> None:
 		self._next_threshold = 20
 		self.client = client
+		self.complete = False
+
+	def is_complete(self) -> bool:
+		return self.complete
 
 	def make_progress_bar(self, current: int, total: int, length: int = 10) -> str:
 		"""
@@ -43,20 +47,23 @@ class ProgressBar(object):
 		percent = frac * 100
 		return f"[{pbar}] {round(percent)}%"
 
-	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, label: str) -> None:
-		percent = current * 100 / total
-		if percent >= self._next_threshold:
+	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
+		percent = current * 100 / (total or 1)
+		if total == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)
 			pbar = self.make_emoji_progress_bar(percent, 100, 14)
-			logging.info("[%s] Uploaded to Telegram %d%%", label, percent)
+			logging.info("[%s] Uploaded to Telegram %d%%", label or operation, percent)
 			try:
-				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>Uploading</b> {label}", ParseMode.HTML)
+				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 			except MessageNotModified:
 				logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
 				logging.warning("An error occurred while updating progress bar")
 				logging.exception(e)
-			self._next_threshold += 20
+			if total > 0:
+				self._next_threshold += 20
+		if percent >= 100:
+			self.complete = True
 
 	@staticmethod
 	def make_hash(chat_id: str | int, message_id: int, algorithm: str = 'sha256') -> str:

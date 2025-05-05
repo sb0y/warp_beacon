@@ -4,9 +4,7 @@ import asyncio
 from typing import Optional, Union
 
 import logging
-
 import html
-
 import uvloop
 
 from pyrogram import Client, filters
@@ -29,6 +27,7 @@ from warp_beacon.telegram.utils import Utils
 from warp_beacon.telegram.caption_shortener import CaptionShortner
 from warp_beacon.scheduler.scheduler import IGScheduler
 from warp_beacon.telegram.edit_message import EditMessage
+from warp_beacon.telegram.download_status import DownloadStatus
 
 class Bot(object):
 	should_exit = None
@@ -42,6 +41,7 @@ class Bot(object):
 	scheduler = None
 	me = None
 	edit_message = None
+	download_status = None
 
 	def __init__(self, tg_bot_name: str, tg_token: str, tg_api_id: str, tg_api_hash: str) -> None:
 		# Enable logging
@@ -76,9 +76,11 @@ class Bot(object):
 			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=workers_amount)),
 			loop=self.client.loop
 		)
+		self.download_status = DownloadStatus(self.client)
 		self.downloader = warp_beacon.scraper.AsyncDownloader(
 			workers_count=int(os.environ.get("WORKERS_POOL_SIZE", default=workers_amount)),
-			uploader=self.uploader
+			uploader=self.uploader,
+			pipe_connection=self.download_status.child_conn
 		)
 
 		self.scheduler = IGScheduler(self.downloader)
@@ -111,6 +113,7 @@ class Bot(object):
 				os.environ["TG_PREMIUM"] = "true"
 			self.downloader.start()
 			self.uploader.start()
+			loop.add_reader(self.download_status.status_pipe.fileno(), self.download_status.on_status)
 			self.scheduler.start()
 			logging.info("Warp Beacon version '%s' started", __version__)
 			await self.should_exit.wait()
@@ -401,13 +404,6 @@ class Bot(object):
 				args["reply_markup"] = InlineKeyboardMarkup(keyboard_buttons)
 
 		return args
-
-	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, label: str) -> None:
-		percents = int(current * 100 / total)
-		if (percents % 40) > 0 or percents == 100:
-			p = round(percents)
-			await self.client.edit_message_caption(chat_id, message_id, f"<b>{p}% <code>{label}</code> uploaded</b>", ParseMode.HTML)
-			logging.info("[%s] Uploaded to Telegram %d%%", label, p)
 
 	async def upload_job(self, job: UploadJob) -> list[str]:
 		tg_file_ids = []

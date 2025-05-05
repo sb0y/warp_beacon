@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Union
 import logging
 import multiprocessing
+import multiprocessing.connection
 import socket
 import requests.packages.urllib3.util.connection as urllib3_cn
 
@@ -14,6 +15,7 @@ class ScraperAbstract(ABC):
 	original_gai_family = None
 	send_message_to_admin_func: Callable = lambda: None
 	request_yt_auth: Callable = lambda: None
+	status_pipe: multiprocessing.connection.Connection = None
 	auth_event = None
 	account = None
 	account_index = 0
