@@ -8,7 +8,6 @@ import logging
 import html
 
 import uvloop
-#from contextlib import ExitStack
 
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode, ChatType
@@ -29,7 +28,7 @@ from warp_beacon.jobs import Origin
 from warp_beacon.telegram.utils import Utils
 from warp_beacon.telegram.caption_shortener import CaptionShortner
 from warp_beacon.scheduler.scheduler import IGScheduler
-from warp_beacon.telegram.progress_file_reader import ProgressFileReader
+from warp_beacon.telegram.edit_message import EditMessage
 
 class Bot(object):
 	should_exit = None
@@ -42,22 +41,19 @@ class Bot(object):
 	placeholder = None
 	scheduler = None
 	me = None
+	edit_message = None
 
 	def __init__(self, tg_bot_name: str, tg_token: str, tg_api_id: str, tg_api_hash: str) -> None:
 		# Enable logging
 		logging.basicConfig(
-			format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+			format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+			level=logging.INFO
 		)
 
 		logging.getLogger("pyrogram").setLevel(logging.ERROR)
-
 		logging.info("Starting Warp Beacon version '%s' ...", __version__)
-
-		db_connect = DBClient()
-		self.storage = Storage(db_connect)
-
+		self.storage = Storage(DBClient())
 		self.should_exit = asyncio.Event()
-
 		workers_amount = min(32, os.cpu_count() + 4)
 
 		uvloop.install()
@@ -70,6 +66,8 @@ class Bot(object):
 			workdir='/var/warp_beacon',
 			workers=int(os.environ.get("TG_WORKERS_POOL_SIZE", default=workers_amount))
 		)
+
+		self.editor = EditMessage(self.client)
 
 		self.uploader = AsyncUploader(
 			storage=self.storage,
@@ -84,7 +82,6 @@ class Bot(object):
 		)
 
 		self.scheduler = IGScheduler(self.downloader)
-
 		self.handlers = Handlers(self)
 
 		self.client.add_handler(MessageHandler(self.handlers.start, filters.command("start")))
@@ -405,6 +402,13 @@ class Bot(object):
 
 		return args
 
+	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, label: str) -> None:
+		percents = int(current * 100 / total)
+		if (percents % 40) > 0 or percents == 100:
+			p = round(percents)
+			await self.client.edit_message_caption(chat_id, message_id, f"<b>{p}% <code>{label}</code> uploaded</b>", ParseMode.HTML)
+			logging.info("[%s] Uploaded to Telegram %d%%", label, p)
+
 	async def upload_job(self, job: UploadJob) -> list[str]:
 		tg_file_ids = []
 		try:
@@ -418,7 +422,7 @@ class Bot(object):
 							await Utils.ensure_me_loaded(self.client)
 						if job.placeholder_message_id:
 							try:
-								reply_message = await self.client.edit_message_media(**self.build_tg_args(job))
+								reply_message = await self.editor.edit(**self.build_tg_args(job))
 							except MessageIdInvalid:
 								logging.warning("Placeholder message not found. Looks like placeholder message was deleted by administrator.")
 								job.placeholder_message_id = None

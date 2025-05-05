@@ -3,27 +3,27 @@ import os
 from types import TracebackType
 from typing import Optional, Callable, Type
 
-class ProgressFileReader(io.BufferedReader):
+class ProgressFileReader(io.FileIO):
 	def __init__(self, file_path: str, callback: Optional[Callable[[str, int, int], None]]) -> None:
-		raw = open(file_path, "rb")
-		super().__init__(raw)
-		self._raw = raw
+		super().__init__(file_path, "rb")
 		self.callback = callback
 		self._total = os.path.getsize(file_path)
 		self._read_bytes = 0
-		self._name = os.path.basename(file_path)
+		self._display_name = os.path.basename(file_path)
+
+	def __fspath__(self) -> str:
+		return self._display_name 
 
 	def read(self, size: int = -1) -> bytes:
 		chunk = super().read(size)
 		self._read_bytes += len(chunk)
 		if self.callback:
-			self.callback(self.name, self._read_bytes, self._total)
+			self.callback(self._display_name, self._read_bytes, self._total)
 		return chunk
 
 	def close(self) -> None:
 		if not self.closed:
 			super().close()
-			self._raw.close()
 
 	def __enter__(self) -> "ProgressFileReader":
 		return self
@@ -34,7 +34,3 @@ class ProgressFileReader(io.BufferedReader):
 		exc_tb: Optional[TracebackType]
 	) -> None:
 		self.close()
-
-	@property
-	def name(self) -> str:
-		return self._name
