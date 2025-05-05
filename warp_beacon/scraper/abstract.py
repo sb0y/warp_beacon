@@ -1,17 +1,14 @@
 import os
 import pathlib
-
-import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
-import multiprocessing
-
 from abc import ABC, abstractmethod
 from typing import Callable, Union
+import logging
+import multiprocessing
+import socket
+import requests.packages.urllib3.util.connection as urllib3_cn
 
 from PIL import Image
 from pillow_heif import register_heif_opener
-
-import logging
 
 class ScraperAbstract(ABC):
 	original_gai_family = None
@@ -48,8 +45,8 @@ class ScraperAbstract(ABC):
 			if os.path.exists(src_file):
 				path_info = pathlib.Path(src_file)
 				old_filename = path_info.stem
-				new_filename = "%s_converted.%s" % (old_filename, "png")
-				new_filepath = "%s/%s" % (os.path.dirname(src_file), new_filename)
+				new_filename = f"{old_filename}_converted.png"
+				new_filepath = f"{os.path.dirname(src_file)}/{new_filename}"
 				with Image.open(src_file).convert('RGB') as img:
 					img.save(new_filepath, 'png')
 				os.unlink(src_file)
@@ -67,8 +64,8 @@ class ScraperAbstract(ABC):
 				register_heif_opener()
 				path_info = pathlib.Path(src_file)
 				old_filename = path_info.stem
-				new_filename = "%s_converted.%s" % (old_filename, "png")
-				new_filepath = "%s/%s" % (os.path.dirname(src_file), new_filename)
+				new_filename = f"{old_filename}_converted.png"
+				new_filepath = f"{os.path.dirname(src_file)}/{new_filename}"
 				with Image.open(src_file).convert('RGB') as img:
 					img.save(new_filepath, 'png')
 				os.unlink(src_file)

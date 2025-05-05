@@ -232,8 +232,10 @@ class YoutubeAbstract(ScraperAbstract):
 		return ret_val
 
 	def yt_on_progress(self, stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
-		pass
-		#logging.info("bytes: %d, bytes remaining: %d", chunk, bytes_remaining)
+		total_size = stream.filesize or stream.filesize_approx
+		bytes_downloaded = total_size - bytes_remaining
+		percentage_of_completion = bytes_downloaded / total_size * 100
+		logging.info("Downloaded %d%%", percentage_of_completion)
 
 	def build_proxies(self, proxy_dsn: str) -> dict:
 		if not proxy_dsn:
