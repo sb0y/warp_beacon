@@ -54,11 +54,23 @@ class ProgressBar(object):
 			pbar = self.make_emoji_progress_bar(percent, 100, 14)
 			logging.info("[%s] Operation: %s %d%%", label or operation, operation, percent)
 			try:
-				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
-			except MessageNotModified:
-				logging.warning("bad_request_400.MessageNotModified")
+				#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
+				# we don't need to wait completion, waste of time and resources
+				task = self.client.loop.create_task(
+					self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
+				)
+				task.add_done_callback(
+					lambda t: (
+						(exc := t.exception()) and
+						(isinstance(exc, MessageNotModified)
+							and logging.warning("bad_request_400.MessageNotModified")
+							or logging.exception("Error in edit_message_caption", exc_info=exc))
+					)
+				)
+			#except MessageNotModified:
+				#logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
-				logging.warning("An error occurred while updating progress bar")
+				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
 			if total > 0:
 				self._next_threshold += 20
