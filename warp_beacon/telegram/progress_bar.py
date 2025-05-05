@@ -28,7 +28,7 @@ class ProgressBar(object):
 		# building bar
 		pbar = '█' * filled + half_block + '─' * (length - filled - len(half_block))
 		percent = frac * 100
-		return f"<b>[{pbar}] {round(percent)}</b>%"
+		return f"<b>[{pbar}] {round(percent)}%</b>"
 	
 	def make_emoji_progress_bar(self, current: int, total: int, length: int = 10) -> str:
 		"""
@@ -50,7 +50,7 @@ class ProgressBar(object):
 			pbar = self.make_emoji_progress_bar(percent, 100, 14)
 			logging.info("[%s] Uploaded to Telegram %d%%", label, percent)
 			try:
-				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>Uploading <code>{label}</code></b>", ParseMode.HTML)
+				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>Uploading</b> {label}", ParseMode.HTML)
 			except MessageNotModified:
 				logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
