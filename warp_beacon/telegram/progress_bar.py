@@ -34,7 +34,15 @@ class ProgressBar(object):
 		pbar = '█' * filled + half_block + '─' * (length - filled - len(half_block))
 		percent = frac * 100
 		return f"<b>[{pbar}] {round(percent)}%</b>"
-	
+
+	def format_size_si(self, bytes_num: int) -> str:
+		units = [("TB", 1024**4), ("GB", 1024**3), ("MB", 1024**2), ("KB", 1024), ("B", 1)]
+		for unit_name, unit_value in units:
+			if bytes_num >= unit_value:
+				value = bytes_num / unit_value
+				return f"{value:.2f} {unit_name}"
+		return "0 B"
+
 	def make_emoji_progress_bar(self, percent: int, length: int = 10) -> str:
 		"""
 		Builds an emoji progress bar.
@@ -73,8 +81,13 @@ class ProgressBar(object):
 			try:
 				#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 				# we don't need to wait completion, waste of time and resources
+				text = f"{pbar}\n<b>{operation}</b>"
+				if label:
+					text += f"\n{label}"
+				if total:
+					text += f" {self.format_size_si(total)}"
 				task = self.client.loop.create_task(
-					self.client.edit_message_caption(chat_id, message_id, f"{pbar}\n<b>{operation}</b> {label}", ParseMode.HTML)
+					self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
 				)
 				task.add_done_callback(self._on_edit_done)
 			except MessageNotModified:
