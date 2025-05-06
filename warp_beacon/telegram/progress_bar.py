@@ -68,7 +68,7 @@ class ProgressBar(object):
 			return
 		if total == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)
-			pbar = self.make_emoji_progress_bar(percent, 11)
+			pbar = self.make_emoji_progress_bar(percent, 10)
 			logging.info("[Progress bar]: Operation: %s %d%%", operation, percent)
 			try:
 				#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
