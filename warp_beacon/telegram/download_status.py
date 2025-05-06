@@ -20,7 +20,7 @@ class DownloadStatus(object):
 			total=msg.get("total", 0),
 			message_id=msg.get("message_id", 0),
 			chat_id=msg.get("chat_id", 0),
-			operation="Downloaded"
+			operation="Downloading"
 		)
 
 	def on_status(self) -> None:
