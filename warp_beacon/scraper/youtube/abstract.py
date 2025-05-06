@@ -35,8 +35,6 @@ class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
 	YT_SESSION_FILE = '/var/warp_beacon/yt_session_%d.json'
 
-	job = None
-
 	def __init__(self, account: tuple, proxy: dict=None) -> None:
 		super().__init__(account, proxy)
 		self._download_progress_threshold = 20
@@ -321,10 +319,10 @@ class YoutubeAbstract(ScraperAbstract):
 
 		return yt_dlp.YoutubeDL(ydl_opts)
 	
-	def _download(self, _: str, timeout: int = 60) -> list:
+	def _download(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download method")
 	
-	def _download_yt_dlp(self, _: str, timeout: int = 60) -> list:
+	def _download_yt_dlp(self, url: str, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download_yt_dlp method")
 
 	def download(self, job: DownloadJob) -> list:

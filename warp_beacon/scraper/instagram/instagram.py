@@ -304,10 +304,13 @@ class InstagramScraper(ScraperAbstract):
 
 	def download(self, job: DownloadJob) -> Optional[list[dict]]:
 		res = []
+		self.job = job
 		while True:
 			try:
 				scrap_type, media_id = self.scrap(job.url)
 				if scrap_type == "media":
+					#self.status_pipe.send({"action": "report_download_status", "current": 0, "total": 0,
+					#				"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id, "label": "Collection meta information ..."})
 					media_info = self.download_hndlr(self.cl.media_info, media_id, use_cache=False)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels

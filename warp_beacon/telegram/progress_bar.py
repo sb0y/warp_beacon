@@ -58,6 +58,8 @@ class ProgressBar(object):
 			logging.exception("Error in edit_message_caption", exc_info=exc)
 
 	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
+		if self.complete:
+			return
 		percent = current * 100 / (total or 1)
 		if total == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)

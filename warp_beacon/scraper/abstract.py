@@ -12,16 +12,16 @@ from PIL import Image
 from pillow_heif import register_heif_opener
 
 class ScraperAbstract(ABC):
-	original_gai_family = None
-	send_message_to_admin_func: Callable = lambda: None
-	request_yt_auth: Callable = lambda: None
-	status_pipe: multiprocessing.connection.Connection = None
-	auth_event = None
-	account = None
-	account_index = 0
-	proxy = None
-
-	def __init__(self, account: tuple, proxy: dict=None) -> None:
+	def __init__(self, account: tuple, proxy: dict = None) -> None:
+		self.original_gai_family = None
+		self.send_message_to_admin_func: Callable = lambda: None
+		self.request_yt_auth: Callable = lambda: None
+		self.status_pipe: multiprocessing.connection.Connection = None
+		self.auth_event = None
+		self.account = None
+		self.account_index = 0
+		self.proxy = None
+		self.job = None
 		self._gai_lock = multiprocessing.Lock()
 		self.account_index = account[0]
 		self.account = account[1]
