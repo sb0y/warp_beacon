@@ -77,8 +77,8 @@ class ProgressBar(object):
 				#	self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 				#)
 				#task.add_done_callback(self._on_edit_done)
-			#except MessageNotModified:
-				#logging.warning("bad_request_400.MessageNotModified")
+			except MessageNotModified:
+				logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
 				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
