@@ -227,7 +227,7 @@ class InstagramScraper(ScraperAbstract):
 	def download_video(self, url: str, media_info: Media) -> dict:
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
 		path = self.download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
-		return {"local_media_path": str(path), "canonical_name": self.extract_canonical_name(media_info), \
+		return {"local_media_path": self.rename_local_file(str(path)), "canonical_name": self.extract_canonical_name(media_info), \
 			"media_type": JobType.VIDEO, "last_pk": media_info.pk, \
 			"media_info": {"duration": round(media_info.video_duration)}}
 
@@ -238,7 +238,7 @@ class InstagramScraper(ScraperAbstract):
 			path = InstagramScraper.convert_webp_to_png(path)
 		if ".heic" in path_lowered:
 			path = InstagramScraper.convert_heic_to_png(path)
-		return {"local_media_path": path, "canonical_name": self.extract_canonical_name(media_info), "media_type": JobType.IMAGE, "last_pk": media_info.pk}
+		return {"local_media_path": self.rename_local_file(path), "canonical_name": self.extract_canonical_name(media_info), "media_type": JobType.IMAGE, "last_pk": media_info.pk}
 	
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", JobType.UNKNOWN, {}
@@ -263,7 +263,7 @@ class InstagramScraper(ScraperAbstract):
 			media_type = JobType.VIDEO
 			media_info["duration"] = story_info.video_duration
 
-		return {"local_media_path": path, "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
+		return {"local_media_path": self.rename_local_file(path), "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
 
 	def download_stories(self, stories: list[Story]) -> dict:
 		chunks = []

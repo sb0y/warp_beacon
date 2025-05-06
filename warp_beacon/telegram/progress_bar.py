@@ -81,11 +81,11 @@ class ProgressBar(object):
 			try:
 				#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 				# we don't need to wait completion, waste of time and resources
-				text = f"{pbar}\n<b>{operation}</b>"
+				text = f"{pbar}\n{operation}"
 				if label:
-					text += f"\n{label}"
+					text += f"\n<code>{label}</code>"
 				if total:
-					text += f" {self.format_size_si(total)}"
+					text += f" <b>{self.format_size_si(total)}</b>"
 				task = self.client.loop.create_task(
 					self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
 				)

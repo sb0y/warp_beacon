@@ -4,7 +4,6 @@ import json
 import logging
 import math
 import os
-import pathlib
 import socket
 import ssl
 import time
@@ -65,20 +64,6 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.exception(e)
 
 		return 0
-
-	def rename_local_file(self, filename: str) -> str:
-		if not os.path.exists(filename):
-			raise NameError("No file provided")
-		path_info = pathlib.Path(filename)
-		ext = path_info.suffix
-		#old_filename = path_info.stem
-		time_name = str(time.time()).replace('.', '_')
-		new_filename = f"{time_name}{ext}"
-		new_filepath = f"{os.path.dirname(filename)}/{new_filename}"
-
-		os.rename(filename, new_filepath)
-
-		return new_filepath
 	
 	def get_video_id(self, url: str) -> Optional[str]:
 		parsed_url = urlparse(url)

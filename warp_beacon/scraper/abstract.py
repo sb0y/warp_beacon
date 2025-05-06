@@ -1,4 +1,5 @@
 import os
+import time
 import pathlib
 from abc import ABC, abstractmethod
 from typing import Callable, Union
@@ -77,6 +78,20 @@ class ScraperAbstract(ABC):
 			logging.exception(e)
 
 		return ''
+	
+	def rename_local_file(self, filename: str) -> str:
+		if not os.path.exists(filename):
+			raise NameError("No file provided")
+		path_info = pathlib.Path(filename)
+		ext = path_info.suffix
+		#old_filename = path_info.stem
+		time_name = str(time.time()).replace('.', '_')
+		new_filename = f"{time_name}{ext}"
+		new_filepath = f"{os.path.dirname(filename)}/{new_filename}"
+
+		os.rename(filename, new_filepath)
+
+		return new_filepath
 
 	def force_ipv6(self) -> None:
 		def allowed_gai_family():
