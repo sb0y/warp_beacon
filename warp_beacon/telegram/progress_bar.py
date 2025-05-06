@@ -61,22 +61,22 @@ class ProgressBar(object):
 			logging.exception("Error in edit_message_caption", exc_info=exc)
 
 	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
-		if self.complete:
-			return
 		percent = 0
 		if total:
 			percent = round(current * 100 / (total or 1))
+		if percent >= 100:
+			return
 		if total == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)
 			pbar = self.make_emoji_progress_bar(percent, 14)
-			logging.info("[%s] Operation: %s %d%%", label or operation, operation, round(percent))
+			logging.info("[Progress bar]: Operation: %s %d%%", operation, percent)
 			try:
-				await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
+				#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 				# we don't need to wait completion, waste of time and resources
-				#task = self.client.loop.create_task(
-				#	self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
-				#)
-				#task.add_done_callback(self._on_edit_done)
+				task = self.client.loop.create_task(
+					self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
+				)
+				task.add_done_callback(self._on_edit_done)
 			except MessageNotModified:
 				logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:

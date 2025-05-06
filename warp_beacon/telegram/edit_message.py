@@ -106,18 +106,18 @@ class EditMessage(object):
 
 		raw_media = None
 		if isinstance(media, types.InputMediaVideo):
-			progress_bar_thumb = ProgressBar(self.client)
-			raw_file_thumb = await self.client.save_file(path=media.thumb, progress=progress_bar_thumb.progress_callback, progress_args=(chat_id, message_id, "Uploaded", "thumbnail",))
+			#progress_bar_thumb = ProgressBar(self.client)
+			raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_video(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 		elif isinstance(media, types.InputMediaPhoto):
 			raw_media = self.get_wrapped_photo(raw_file=raw_file, media=media)
 		elif isinstance(media, types.InputMediaAudio):
-			progress_bar_thumb = ProgressBar(self.client)
-			raw_file_thumb = await self.client.save_file(path=media.thumb, progress=progress_bar_thumb.progress_callback, progress_args=(chat_id, message_id, "Uploaded", "thumbnail",))
+			#progress_bar_thumb = ProgressBar(self.client)
+			raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_audio(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 		elif isinstance(media, types.InputMediaAnimation):
-			progress_bar_thumb = ProgressBar(self.client)
-			raw_file_thumb = await self.client.save_file(path=media.thumb, progress=progress_bar_thumb.progress_callback, progress_args=(chat_id, message_id, "Uploaded", "thumbnail",))
+			#progress_bar_thumb = ProgressBar(self.client)
+			raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_animation(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 
 		peer = await self.client.resolve_peer(chat_id)
