@@ -9,6 +9,8 @@ from pyrogram import Client
 from warp_beacon.telegram.types import ReportType
 
 class ProgressBar(object):
+	MAX_PROGRESS_RENDER_SIZE = 30_000_000
+
 	def __init__(self, client: Client) -> None:
 		self._next_threshold = 20
 		self.client = client
@@ -90,6 +92,8 @@ class ProgressBar(object):
 			logging.exception(e)
 
 	def render_progress_bar(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
+		if total <= self.MAX_PROGRESS_RENDER_SIZE:
+			return
 		percent = 0
 		if total:
 			percent = round(current * 100 / (total or 1))
@@ -111,8 +115,8 @@ class ProgressBar(object):
 					self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
 				)
 				task.add_done_callback(self._on_edit_done)
-			except MessageNotModified:
-				logging.warning("bad_request_400.MessageNotModified")
+			#except MessageNotModified:
+			#	logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
 				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
