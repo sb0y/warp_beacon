@@ -20,7 +20,7 @@ class InstagramHuman(object):
 		for m in media[:random.randint(1, 3)]:
 			try:
 				logging.info("Wathing content with pk '%s'", str(m.pk))
-				content = self.scrapler.cl.media_info(m.pk)
+				content = self.scrapler.cl.media_info_v1(m.pk)
 				logging.info("Watched content with id '%s'", str(content.pk))
 				self.operations_count += 1
 				time.sleep(random.uniform(8, 30))

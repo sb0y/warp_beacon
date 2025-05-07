@@ -303,7 +303,7 @@ class InstagramScraper(ScraperAbstract):
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
-				_media_info = self.download_hndlr(self.cl.media_info, media.pk, use_cache=False)
+				_media_info = self.download_hndlr(self.cl.media_info_v1, media.pk)
 				if media.media_type == 1: # photo
 					chunk.append(self.download_photo(url=_media_info.thumbnail_url, media_info=_media_info))
 				elif media.media_type == 2: # video
@@ -339,7 +339,7 @@ class InstagramScraper(ScraperAbstract):
 						"chat_id": self.job.chat_id,
 						"message_id": self.job.placeholder_message_id
 					})
-					media_info = self.download_hndlr(self.cl.media_info, media_id, use_cache=False)
+					media_info = self.download_hndlr(self.cl.media_info_v1, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
@@ -433,7 +433,7 @@ class InstagramScraper(ScraperAbstract):
 	def download_progress(self, total: int | None, bytes_transferred: int, path: Path) -> None:
 		percentage_of_completion = round(bytes_transferred / (total or 1) * 100)
 		if total == 0 or percentage_of_completion >= self._download_progress_threshold:
-			logging.debug("[Download] IG file %s, %d", str(path), percentage_of_completion)
+			logging.debug("[Download] IG file '%s', %d", str(path), percentage_of_completion)
 			msg = {
 				"action": "report_download_status",
 				"current": bytes_transferred,
