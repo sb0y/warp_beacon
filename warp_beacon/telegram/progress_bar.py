@@ -9,7 +9,7 @@ from pyrogram import Client
 from warp_beacon.telegram.types import ReportType
 
 class ProgressBar(object):
-	MAX_PROGRESS_RENDER_SIZE = 1_000_000 # 1 MB
+	MAX_PROGRESS_RENDER_SIZE = 1_500_000 # 1 MB
 
 	def __init__(self, client: Client) -> None:
 		self._next_threshold = 20
@@ -73,7 +73,7 @@ class ProgressBar(object):
 
 	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, report_type: ReportType, label: str = "") -> None:
 		if report_type == ReportType.PROGRESS:
-			return self.render_progress_bar(current=current, total=total, chat_id=chat_id, message_id=message_id, operation=operation, label=label)
+			return await self.render_progress_bar(current=current, total=total, chat_id=chat_id, message_id=message_id, operation=operation, label=label)
 		elif report_type == ReportType.ANNOUNCE:
 			return self.render_progress_announce(chat_id=chat_id, message_id=message_id, label=label)
 
@@ -91,7 +91,7 @@ class ProgressBar(object):
 			logging.warning("An error occurred while setup task to update progress bar")
 			logging.exception(e)
 
-	def render_progress_bar(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
+	async def render_progress_bar(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
 		if total <= self.MAX_PROGRESS_RENDER_SIZE:
 			return
 		percent = 0
@@ -104,19 +104,19 @@ class ProgressBar(object):
 			pbar = self.make_emoji_progress_bar(percent, 10)
 			logging.info("[Progress bar]: Operation: %s %d%%", operation, percent)
 			try:
-				#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
 				# we don't need to wait completion, waste of time and resources
 				text = f"{pbar}\n{operation}"
 				if label:
 					text += f"\n<code>{label}</code>"
 				if total:
 					text += f" <b>{self.format_size_si(total)}</b>"
-				task = self.client.loop.create_task(
-					self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
-				)
-				task.add_done_callback(self._on_edit_done)
-			#except MessageNotModified:
-			#	logging.warning("bad_request_400.MessageNotModified")
+				await self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
+				#task = self.client.loop.create_task(
+				#	self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
+				#)
+				#task.add_done_callback(self._on_edit_done)
+			except MessageNotModified:
+				logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
 				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
