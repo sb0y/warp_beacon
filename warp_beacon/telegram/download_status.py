@@ -16,7 +16,7 @@ class DownloadStatus(object):
 		self.status_pipe, self.child_conn = Pipe()
 
 	async def handle_message(self, msg: dict, progress_bar: ProgressBar) -> None:
-		await progress_bar.progress_callback(
+		progress_bar.progress_callback(
 			current=msg.get("current", 0),
 			total=msg.get("total", 0),
 			message_id=msg.get("message_id", 0),

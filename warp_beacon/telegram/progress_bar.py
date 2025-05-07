@@ -69,7 +69,7 @@ class ProgressBar(object):
 		else:
 			logging.exception("Error in edit_message_caption", exc_info=exc)
 
-	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, report_type: ReportType, label: str = "") -> None:
+	def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, report_type: ReportType, label: str = "") -> None:
 		if report_type == ReportType.PROGRESS:
 			return self.render_progress_bar(current=current, total=total, chat_id=chat_id, message_id=message_id, operation=operation, label=label)
 		elif report_type == ReportType.ANNOUNCE:
