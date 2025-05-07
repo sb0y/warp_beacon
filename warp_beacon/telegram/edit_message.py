@@ -3,8 +3,8 @@ from pyrogram.types import InputMedia, InputMediaAudio, InputMediaPhoto, InputMe
 from pyrogram import raw
 from pyrogram import types
 
-#from warp_beacon.telegram.bot import Bot
 from warp_beacon.telegram.progress_bar import ProgressBar
+from warp_beacon.telegram.types import ReportType
 
 class EditMessage(object):
 	def __init__(self, client: Client) -> None:
@@ -93,8 +93,8 @@ class EditMessage(object):
 		file_name: str = None
 	) -> None:
 		progress_bar = ProgressBar(self.client)
-		progress_bar.progress_callback(current=0, total=0, chat_id=chat_id, message_id=message_id, operation="Uploading", label=file_name, report_type="progress")
-		raw_file = await self.client.save_file(path=media.media, progress=progress_bar.progress_callback, progress_args=(chat_id, message_id, "Uploading", file_name, "progress"))
+		progress_bar.progress_callback(current=0, total=0, chat_id=chat_id, message_id=message_id, operation="Uploading", label=file_name, report_type=ReportType.PROGRESS)
+		raw_file = await self.client.save_file(path=media.media, progress=progress_bar.progress_callback, progress_args=(chat_id, message_id, "Uploading", file_name, ReportType.PROGRESS))
 
 		caption = media.caption
 		parse_mode = media.parse_mode
