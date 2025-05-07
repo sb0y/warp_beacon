@@ -35,7 +35,6 @@ class WBClient(Client):
 			content_length = int(response.headers.get("Content-Length", 0))
 		except (TypeError, ValueError):
 			logging.warning("Content-Length header is missing or invalid.")
-			content_length = 0
 
 		downloaded = 0
 		with open(path, "wb") as f:
@@ -59,4 +58,37 @@ class WBClient(Client):
 				f'Broken file "{path}" (expected {content_length}, got {downloaded})'
 			)
 
+		return path.resolve()
+
+	def photo_download_by_url(
+		self, url: str, filename: str = "", folder: Path = ""
+	) -> Path:
+		fname = urlparse(url).path.rsplit("/", 1)[1]
+		filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
+		path = Path(folder) / filename
+		response = requests.get(url, stream=True, timeout=self.request_timeout)
+		response.raise_for_status()
+
+		content_length = 0
+		try:
+			content_length = int(response.headers.get("Content-Length", 0))
+		except (TypeError, ValueError):
+			logging.warning("Content-Length header is missing or invalid.")
+
+		downloaded = 0
+		with open(path, "wb") as f:
+			response.raw.decode_content = True
+			for chunk in response.iter_content(chunk_size=4096):
+				if chunk:
+					f.write(chunk)
+					downloaded += len(chunk)
+					if self.progress_callback:
+						try:
+							self.progress_callback(
+								total=content_length or None,
+								bytes_transferred=downloaded,
+								path=path
+							)
+						except Exception as e:
+							logging.warning("Progress callback raised an exception!", exc_info=e)
 		return path.resolve()
