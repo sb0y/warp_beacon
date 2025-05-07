@@ -93,7 +93,7 @@ class EditMessage(object):
 		file_name: str = None
 	) -> None:
 		progress_bar = ProgressBar(self.client)
-		progress_bar.progress_callback(current=0, total=0, chat_id=chat_id, message_id=message_id, operation="Uploading", label=file_name, report_type=ReportType.PROGRESS)
+		await progress_bar.progress_callback(current=0, total=0, chat_id=chat_id, message_id=message_id, operation="Uploading", label=file_name, report_type=ReportType.PROGRESS)
 		raw_file = await self.client.save_file(path=media.media, progress=progress_bar.progress_callback, progress_args=(chat_id, message_id, "Uploading", ReportType.PROGRESS, file_name))
 
 		caption = media.caption
