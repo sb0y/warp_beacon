@@ -334,7 +334,9 @@ class InstagramScraper(ScraperAbstract):
 					self.status_pipe.send({
 						"action": "report_download_status",
 						"report_type": ReportType.ANNOUNCE,
-						"label": "Collecting meta information ..."
+						"label": "Collecting meta information ...",
+						"chat_id": self.job.chat_id,
+						"message_id": self.job.placeholder_message_id
 					})
 					media_info = self.download_hndlr(self.cl.media_info, media_id, use_cache=False)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
