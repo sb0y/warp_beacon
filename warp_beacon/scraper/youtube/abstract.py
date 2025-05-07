@@ -326,8 +326,8 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.exception(e)
 
 		try:
-			self.status_pipe.send({"action": "report_download_status", "current": 0, "total": 0,
-									"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id})
+			#self.status_pipe.send({"action": "report_download_status", "current": 0, "total": 0,
+			#						"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id})
 			ret = self.download_hndlr(self._download, job.url, session=True, thumbnail=thumbnail)
 			return ret
 		except (Unavailable, TimeOut, KeyError) as e:

@@ -9,7 +9,7 @@ from pyrogram import Client
 from warp_beacon.telegram.types import ReportType
 
 class ProgressBar(object):
-	MAX_PROGRESS_RENDER_SIZE = 30_000_000
+	MAX_PROGRESS_RENDER_SIZE = 1_000_000 # 1 MB
 
 	def __init__(self, client: Client) -> None:
 		self._next_threshold = 20
@@ -59,8 +59,8 @@ class ProgressBar(object):
 		"""
 		filled = int(percent * length / 100 + 0.5)
 		empty  = length - filled
-		bar = "🟩" * filled + "⬜️" * empty
-		return f"[{bar}] {percent}%"
+		pbar = "🟩" * filled + "⬜️" * empty
+		return f"[{pbar}] {percent}%"
 
 	def _on_edit_done(self, task: asyncio.Task) -> None:
 		exc = task.exception()
