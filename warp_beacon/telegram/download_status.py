@@ -2,6 +2,7 @@ import logging
 from multiprocessing import Pipe
 from pyrogram import Client
 from warp_beacon.telegram.progress_bar import ProgressBar
+from warp_beacon.telegram.types import ReportType
 
 class DownloadStatus(object):
 	status_pipe = None
@@ -15,12 +16,13 @@ class DownloadStatus(object):
 		self.status_pipe, self.child_conn = Pipe()
 
 	async def handle_message(self, msg: dict, progress_bar: ProgressBar) -> None:
-		await progress_bar.progress_callback(
+		progress_bar.progress_callback(
 			current=msg.get("current", 0),
 			total=msg.get("total", 0),
 			message_id=msg.get("message_id", 0),
 			chat_id=msg.get("chat_id", 0),
-			operation="Downloading"
+			operation="Downloading",
+			report_type=msg.get("report_type", ReportType.PROGRESS)
 		)
 
 	def on_status(self) -> None:

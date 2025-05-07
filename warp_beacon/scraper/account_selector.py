@@ -267,8 +267,8 @@ class AccountSelector(object):
 			idx = self.account_index[self.current_module_name].value
 			if idx not in self.ig_accounts_session_id:
 				self.ig_accounts_session_id[idx] = str(uuid.uuid4())
-			else:
-				if random.random() > 0.95:
-					self.ig_accounts_session_id[idx] = str(uuid.uuid4())
-					logging.info("Rotated client_session_id — simulating app restart")
+			#else:
+				#if random.random() > 0.95:
+				#	self.ig_accounts_session_id[idx] = str(uuid.uuid4())
+				#	logging.info("Rotated client_session_id — simulating app restart")
 			return self.ig_accounts_session_id[idx]

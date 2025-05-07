@@ -3,11 +3,12 @@ import time
 import socket
 import ssl
 import re
+from pathlib import Path
+import random
 from typing import Callable, Optional, Union
 
 import logging
 
-import random
 import email
 import imaplib
 import json
@@ -19,7 +20,6 @@ from instagrapi import exceptions
 from instagrapi.exceptions import UnknownError as IGUnknownError
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
-from instagrapi import Client
 from instagrapi.mixins.challenge import ChallengeChoice
 #from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
 #	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
@@ -29,6 +29,8 @@ from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.telegram.utils import Utils
+from warp_beacon.scraper.instagram.wb_instagrapi import WBClient
+from warp_beacon.telegram.types import ReportType
 
 INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 
@@ -43,7 +45,7 @@ class InstagramScraper(ScraperAbstract):
 		super().__init__(account, proxy)
 		#
 		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
-		self.cl = Client()
+		self.cl = WBClient()
 		if self.proxy:
 			proxy_dsn = self.proxy.get("dsn", "")
 			if proxy_dsn:
@@ -53,6 +55,17 @@ class InstagramScraper(ScraperAbstract):
 		self.setup_device()
 		self.cl.challenge_code_handler = self.challenge_code_handler
 		self.cl.change_password_handler = self.change_password_handler
+		self.cl.public.headers.update({
+			"Connection": "keep-alive",
+			"Accept": "*/*",
+			"Accept-Encoding": "gzip, deflate, br",
+			"Accept-Language": "en-US,en;q=0.9",
+			"User-Agent": (
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+				"(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+			)
+		})
+		self.cl.set_progress_callback(self.download_progress)
 
 	def setup_device(self) -> None:
 		if not self.client_session_id:
@@ -227,9 +240,13 @@ class InstagramScraper(ScraperAbstract):
 	def download_video(self, url: str, media_info: Media) -> dict:
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
 		path = self.download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
-		return {"local_media_path": self.rename_local_file(str(path)), "canonical_name": self.extract_canonical_name(media_info), \
-			"media_type": JobType.VIDEO, "last_pk": media_info.pk, \
-			"media_info": {"duration": round(media_info.video_duration)}}
+		return {
+			"local_media_path": self.rename_local_file(str(path)),
+			"canonical_name": self.extract_canonical_name(media_info),
+			"media_type": JobType.VIDEO,
+			"last_pk": media_info.pk,
+			"media_info": {"duration": round(media_info.video_duration)}
+		}
 
 	def download_photo(self, url: str, media_info: Media) -> dict:
 		path = str(self.download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
@@ -238,8 +255,13 @@ class InstagramScraper(ScraperAbstract):
 			path = InstagramScraper.convert_webp_to_png(path)
 		if ".heic" in path_lowered:
 			path = InstagramScraper.convert_heic_to_png(path)
-		return {"local_media_path": self.rename_local_file(path), "canonical_name": self.extract_canonical_name(media_info), "media_type": JobType.IMAGE, "last_pk": media_info.pk}
-	
+		return {
+			"local_media_path": self.rename_local_file(path),
+			"canonical_name": self.extract_canonical_name(media_info),
+			"media_type": JobType.IMAGE,
+			"last_pk": media_info.pk
+		}
+
 	def download_story(self, story_info: Story) -> dict:
 		path, media_type, media_info = "", JobType.UNKNOWN, {}
 		logging.info("Story id is '%s'", story_info.id)
@@ -309,8 +331,11 @@ class InstagramScraper(ScraperAbstract):
 			try:
 				scrap_type, media_id = self.scrap(job.url)
 				if scrap_type == "media":
-					#self.status_pipe.send({"action": "report_download_status", "current": 0, "total": 0,
-					#				"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id, "label": "Collection meta information ..."})
+					self.status_pipe.send({
+						"action": "report_download_status",
+						"report_type": ReportType.ANNOUNCE,
+						"label": "Collecting meta information ..."
+					})
 					media_info = self.download_hndlr(self.cl.media_info, media_id, use_cache=False)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
@@ -401,3 +426,17 @@ class InstagramScraper(ScraperAbstract):
 		password = "".join(random.sample(chars, 10))
 		logging.info("Generated new IG password: '%s'", password)
 		return password
+	
+	def download_progress(self, total: int | None, bytes_transferred: int, path: Path) -> None:
+		percentage_of_completion = round(bytes_transferred / (total or 1) * 100)
+		logging.debug("[Download] IG file %s, %d", str(path), percentage_of_completion)
+		msg = {
+			"action": "report_download_status",
+			"current": bytes_transferred,
+			"total": total or 0,
+			"message_id": self.job.placeholder_message_id,
+			"chat_id": self.job.chat_id,
+			"completed": bool(total and bytes_transferred >= total),
+			"report_type": ReportType.PROGRESS
+		}
+		self.status_pipe.send(msg)

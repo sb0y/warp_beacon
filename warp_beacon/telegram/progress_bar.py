@@ -6,6 +6,7 @@ import hashlib
 from pyrogram.enums import ParseMode
 from pyrogram.errors.exceptions.bad_request_400 import MessageNotModified
 from pyrogram import Client
+from warp_beacon.telegram.types import ReportType
 
 class ProgressBar(object):
 	def __init__(self, client: Client) -> None:
@@ -68,7 +69,27 @@ class ProgressBar(object):
 		else:
 			logging.exception("Error in edit_message_caption", exc_info=exc)
 
-	async def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
+	def progress_callback(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, report_type: ReportType, label: str = "") -> None:
+		if report_type == ReportType.PROGRESS:
+			return self.render_progress_bar(current=current, total=total, chat_id=chat_id, message_id=message_id, operation=operation, label=label)
+		elif report_type == ReportType.ANNOUNCE:
+			return self.render_progress_announce(chat_id=chat_id, message_id=message_id, label=label)
+
+	def render_progress_announce(self, chat_id: int | str, message_id: int, label: str) -> None:
+		try:
+			#await self.client.edit_message_caption(chat_id, message_id, f"{pbar} <b>{operation}</b> {label}", ParseMode.HTML)
+			# we don't need to wait completion, waste of time and resources
+			task = self.client.loop.create_task(
+				self.client.edit_message_caption(chat_id, message_id, f"<b>{label}</b>", ParseMode.HTML)
+			)
+			task.add_done_callback(self._on_edit_done)
+		except MessageNotModified:
+			logging.warning("bad_request_400.MessageNotModified")
+		except Exception as e:
+			logging.warning("An error occurred while setup task to update progress bar")
+			logging.exception(e)
+
+	def render_progress_bar(self, current: int, total: int, chat_id: int | str, message_id: int, operation: str, label: str = "") -> None:
 		percent = 0
 		if total:
 			percent = round(current * 100 / (total or 1))
@@ -97,8 +118,6 @@ class ProgressBar(object):
 				logging.exception(e)
 			if total > 0:
 				self._next_threshold += 20
-		if percent >= 100:
-			self.complete = True
 
 	@staticmethod
 	def make_hash(chat_id: str | int, message_id: int, algorithm: str = 'sha256') -> str:
