@@ -41,6 +41,7 @@ class InstagramScraper(ScraperAbstract):
 	client_session_id = ""
 
 	def __init__(self, client_session_id: str, account: tuple, proxy: dict=None) -> None:
+		self._download_progress_threshold = 20
 		self.client_session_id = client_session_id
 		super().__init__(account, proxy)
 		#
@@ -431,14 +432,16 @@ class InstagramScraper(ScraperAbstract):
 	
 	def download_progress(self, total: int | None, bytes_transferred: int, path: Path) -> None:
 		percentage_of_completion = round(bytes_transferred / (total or 1) * 100)
-		logging.debug("[Download] IG file %s, %d", str(path), percentage_of_completion)
-		msg = {
-			"action": "report_download_status",
-			"current": bytes_transferred,
-			"total": total or 0,
-			"message_id": self.job.placeholder_message_id,
-			"chat_id": self.job.chat_id,
-			"completed": bool(total and bytes_transferred >= total),
-			"report_type": ReportType.PROGRESS
-		}
-		self.status_pipe.send(msg)
+		if total == 0 or percentage_of_completion >= self._download_progress_threshold:
+			logging.debug("[Download] IG file %s, %d", str(path), percentage_of_completion)
+			msg = {
+				"action": "report_download_status",
+				"current": bytes_transferred,
+				"total": total or 0,
+				"message_id": self.job.placeholder_message_id,
+				"chat_id": self.job.chat_id,
+				"completed": bool(total and bytes_transferred >= total),
+				"report_type": ReportType.PROGRESS
+			}
+			self.status_pipe.send(msg)
+			self._download_progress_threshold += 20
