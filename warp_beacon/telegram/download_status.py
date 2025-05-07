@@ -22,7 +22,8 @@ class DownloadStatus(object):
 			message_id=msg.get("message_id", 0),
 			chat_id=msg.get("chat_id", 0),
 			operation="Downloading",
-			report_type=msg.get("report_type", ReportType.PROGRESS)
+			report_type=msg.get("report_type", ReportType.PROGRESS),
+			label=msg.get("label", "")
 		)
 
 	def on_status(self) -> None:

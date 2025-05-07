@@ -440,7 +440,7 @@ class InstagramScraper(ScraperAbstract):
 				"total": total or 0,
 				"message_id": self.job.placeholder_message_id,
 				"chat_id": self.job.chat_id,
-				"completed": bool(total and bytes_transferred >= total),
+				"completed": percentage_of_completion >= 100,
 				"report_type": ReportType.PROGRESS
 			}
 			self.status_pipe.send(msg)
