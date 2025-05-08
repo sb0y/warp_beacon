@@ -76,7 +76,7 @@ class EditMessage(object):
 		)
 
 	def looks_like_token(self, s: str) -> bool:
-		return bool(self.base64_str_tpl, s)
+		return bool(re.fullmatch(self.base64_str_tpl, s))
 
 	async def edit(self,
 		chat_id: int | str,
