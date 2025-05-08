@@ -14,6 +14,28 @@ class WBClient(Client):
 	def __init__(self) -> None:
 		super().__init__()
 		self.progress_callback = None
+		self.session = requests.Session()
+		# may be I should remove '"Sec-Fetch-*", "Upgrade-Insecure-Requests", "DNT"' ?
+		self.session.headers.update({
+			"User-Agent": (
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+				"(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+			),
+			"Accept": (
+				"text/html,application/xhtml+xml,application/xml;"
+				"q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+			),
+			"Accept-Language": "en-US,en;q=0.9",
+			"Accept-Encoding": "gzip, deflate, br",
+			"Referer": "https://www.instagram.com/",
+			"Connection": "keep-alive",
+			"Sec-Fetch-Site": "same-origin",
+			"Sec-Fetch-Mode": "navigate",
+			"Sec-Fetch-User": "?1",
+			"Sec-Fetch-Dest": "document",
+			"Upgrade-Insecure-Requests": "1",
+			"DNT": "1",
+		})
 
 	def set_progress_callback(self, callback: Callable[[int | None, int, Path], None]) -> None:
 		if not callback or not callable(callback):
@@ -27,7 +49,15 @@ class WBClient(Client):
 
 		logging.info("Downloading video from '%s' to '%s'", url, path)
 
-		response = requests.get(url, stream=True, timeout=self.request_timeout)
+		prepared = self.session.prepare_request(requests.Request("GET", url))
+		logging.info("Prepared headers: %s", prepared.headers)
+		response = self.session.send(
+			prepared,
+			stream=True,
+			verify=False,
+			proxies=self.public.proxies,
+			timeout=self.request_timeout
+		)
 		response.raise_for_status()
 		logging.info("Response headers: %s", response.headers)
 
@@ -69,8 +99,17 @@ class WBClient(Client):
 		path = Path(folder) / filename
 
 		logging.info("Downloading photo from '%s' to '%s'", url, path)
+		logging.info("[Downloader] Using proxies: %s", self.public.proxies)
 
-		response = requests.get(url, stream=True, timeout=self.request_timeout)
+		prepared = self.session.prepare_request(requests.Request("GET", url))
+		logging.info("Prepared headers: %s", prepared.headers)
+		response = self.session.send(
+			prepared,
+			stream=True,
+			verify=False,
+			proxies=self.public.proxies,
+			timeout=self.request_timeout
+		)
 		response.raise_for_status()
 		logging.info("Response headers: %s", response.headers)
 
