@@ -1,6 +1,6 @@
 import logging
 from typing import Callable
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from pathlib import Path
 import requests
 
@@ -36,13 +36,22 @@ class WBClient(Client):
 			"Upgrade-Insecure-Requests": "1",
 			"DNT": "1",
 		})
+		self.essential_params = {"oe", "oh", "_nc_ht", "_nc_cat", "_nc_oc", "_nc_ohc", "_nc_gid"}
 
 	def set_progress_callback(self, callback: Callable[[int | None, int, Path], None]) -> None:
 		if not callback or not callable(callback):
 			raise TypeError("Progress callback must be callable")
 		self.progress_callback = callback
 
+	def sanitize_instagram_url(self, url: str) -> str:
+		parsed = urlparse(url)
+		query = parse_qs(parsed.query)
+		filtered_query = {k: v for k, v in query.items() if k in self.essential_params}
+		new_query = urlencode(filtered_query, doseq=True)
+		return urlunparse(parsed._replace(query=new_query))
+
 	def video_download_by_url(self, url: str, filename: str = "", folder: Path = "") -> Path:
+		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder or Path.cwd()) / filename
@@ -94,6 +103,7 @@ class WBClient(Client):
 	def photo_download_by_url(
 		self, url: str, filename: str = "", folder: Path = ""
 	) -> Path:
+		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
 		path = Path(folder) / filename
