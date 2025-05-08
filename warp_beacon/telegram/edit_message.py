@@ -1,3 +1,5 @@
+import re
+
 from pyrogram.client import Client
 from pyrogram.types import InputMedia, InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InlineKeyboardMarkup
 from pyrogram import raw
@@ -9,6 +11,7 @@ from warp_beacon.telegram.types import ReportType
 class EditMessage(object):
 	def __init__(self, client: Client) -> None:
 		self.client = client
+		self.base64_str_tpl = re.compile(r"[A-Za-z0-9\-_]{30,}")
 
 	def get_wrapped_video(self, raw_file: raw.base.InputFile, raw_thumb: raw.base.InputFile, media: InputMediaVideo, file_name: str = None) -> raw.types.InputMediaUploadedDocument:
 		return raw.types.InputMediaUploadedDocument(
@@ -72,18 +75,8 @@ class EditMessage(object):
 			]
 		)
 
-	#async def upload_with_progress(self,
-	#	media: InputMedia | InputMediaAudio | InputMediaPhoto | InputMediaVideo | InputMediaAnimation,
-	#	chat_id: int | str,
-	#	message_id: int,
-	#	file_name: str
-	#) -> raw.base.InputFile:
-	#	progress_bar = ProgressBar(self.client)
-	#	progress_id = f"{chat_id}:{message_id}:{file_name}"
-	#	self.progress_bars[progress_id] = progress_bar
-	#	raw_file = await self.client.save_file(path=media.media, progress=progress_bar.progress_callback, progress_args=(chat_id, message_id, file_name,))
-	#	del self.progress_bars[progress_id]
-	#	return raw_file
+	def looks_like_token(self, s: str) -> bool:
+		return bool(self.base64_str_tpl, s)
 
 	async def edit(self,
 		chat_id: int | str,
@@ -92,9 +85,14 @@ class EditMessage(object):
 		reply_markup: InlineKeyboardMarkup = None,
 		file_name: str = None
 	) -> None:
-		progress_bar = ProgressBar(self.client)
-		#await progress_bar.progress_callback(current=0, total=0, chat_id=chat_id, message_id=message_id, operation="Uploading", label=file_name, report_type=ReportType.PROGRESS)
-		raw_file = await self.client.save_file(path=media.media, progress=progress_bar.progress_callback, progress_args=(chat_id, message_id, "Uploading", ReportType.PROGRESS, file_name))
+		is_looks_like_token = self.looks_like_token(media.media)
+		raw_file = None
+		if not is_looks_like_token:
+			progress_bar = ProgressBar(self.client)
+			#await progress_bar.progress_callback(current=0, total=0, chat_id=chat_id, message_id=message_id, operation="Uploading", label=file_name, report_type=ReportType.PROGRESS)
+			raw_file = await self.client.save_file(path=media.media, progress=progress_bar.progress_callback, progress_args=(chat_id, message_id, "Uploading", ReportType.PROGRESS, file_name))
+		else:
+			raw_file = media.media
 
 		caption = media.caption
 		parse_mode = media.parse_mode
@@ -107,17 +105,23 @@ class EditMessage(object):
 		raw_media = None
 		if isinstance(media, types.InputMediaVideo):
 			#progress_bar_thumb = ProgressBar(self.client)
-			raw_file_thumb = await self.client.save_file(path=media.thumb)
+			raw_file_thumb = None
+			if not is_looks_like_token:
+				raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_video(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 		elif isinstance(media, types.InputMediaPhoto):
 			raw_media = self.get_wrapped_photo(raw_file=raw_file, media=media)
 		elif isinstance(media, types.InputMediaAudio):
 			#progress_bar_thumb = ProgressBar(self.client)
-			raw_file_thumb = await self.client.save_file(path=media.thumb)
+			raw_file_thumb = None
+			if not is_looks_like_token:
+				raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_audio(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 		elif isinstance(media, types.InputMediaAnimation):
 			#progress_bar_thumb = ProgressBar(self.client)
-			raw_file_thumb = await self.client.save_file(path=media.thumb)
+			raw_file_thumb = None
+			if not is_looks_like_token:
+				raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_animation(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 
 		peer = await self.client.resolve_peer(chat_id)
