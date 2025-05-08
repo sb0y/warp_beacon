@@ -431,6 +431,8 @@ class InstagramScraper(ScraperAbstract):
 		return password
 	
 	def download_progress(self, total: int | None, bytes_transferred: int, path: Path) -> None:
+		if not total:
+			return
 		percentage_of_completion = round(bytes_transferred / (total or 1) * 100)
 		if percentage_of_completion >= self._download_progress_threshold:
 			logging.debug("[Download] IG file '%s', %d", str(path), percentage_of_completion)

@@ -25,10 +25,11 @@ class WBClient(Client):
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder or Path.cwd()) / filename
 
-		logging.info("Downloading video from %s to %s", url, path)
+		logging.info("Downloading video from '%s' to '%s'", url, path)
 
 		response = requests.get(url, stream=True, timeout=self.request_timeout)
 		response.raise_for_status()
+		logging.info("Response headers: %s", response.headers)
 
 		content_length = 0
 		try:
@@ -66,8 +67,12 @@ class WBClient(Client):
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
 		path = Path(folder) / filename
+
+		logging.info("Downloading photo from '%s' to '%s'", url, path)
+
 		response = requests.get(url, stream=True, timeout=self.request_timeout)
 		response.raise_for_status()
+		logging.info("Response headers: %s", response.headers)
 
 		content_length = 0
 		try:
