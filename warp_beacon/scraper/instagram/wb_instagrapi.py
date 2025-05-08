@@ -76,7 +76,11 @@ class WBClient(Client):
 
 		content_length = 0
 		try:
-			content_length = int(response.headers.get("Content-Length", 0))
+			content_length = int(
+				response.headers.get("x-full-image-content-length")
+				or response.headers.get("Content-Length")
+				or 0
+			)
 		except (TypeError, ValueError):
 			logging.warning("Content-Length header is missing or invalid.")
 
