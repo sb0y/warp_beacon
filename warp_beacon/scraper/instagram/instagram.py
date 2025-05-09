@@ -341,7 +341,7 @@ class InstagramScraper(ScraperAbstract):
 					#})
 					media_info = self.download_hndlr(self.cl.media_info_v1, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
-					if media_info.media_type == 2 and media_info.product_type == "clips": # Reels
+					if media_info.media_type == 2 and media_info.product_type in ("clips", "ad"): # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
 					elif media_info.media_type == 1: # Photo
 						res.append(self.download_photo(url=media_info.thumbnail_url, media_info=media_info))
