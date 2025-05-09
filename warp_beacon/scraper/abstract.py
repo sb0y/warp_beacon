@@ -1,16 +1,20 @@
-import os
-import time
-import pathlib
-from abc import ABC, abstractmethod
-from typing import Callable, Union
 import logging
 import multiprocessing
 import multiprocessing.connection
+import os
 import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
+import pathlib
+import time
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Callable, Union
 
 from PIL import Image
 from pillow_heif import register_heif_opener
+
+import requests.packages.urllib3.util.connection as urllib3_cn
+
+if TYPE_CHECKING:
+	from multiprocessing.synchronize import Event as EventType
 
 class ScraperAbstract(ABC):
 	def __init__(self, account: tuple, proxy: dict = None) -> None:
@@ -18,6 +22,7 @@ class ScraperAbstract(ABC):
 		self.send_message_to_admin_func: Callable = lambda: None
 		self.request_yt_auth: Callable = lambda: None
 		self.status_pipe: multiprocessing.connection.Connection = None
+		self.yt_validate_event: EventType = None
 		self.auth_event = None
 		self.account = None
 		self.account_index = 0

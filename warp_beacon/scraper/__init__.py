@@ -33,18 +33,6 @@ PROXY_FILE = os.environ.get("PROXY_FILE", default="/var/warp_beacon/proxies.json
 class AsyncDownloader(object):
 	TG_FILE_LIMIT = 2147483648 # 2 GiB
 	__JOE_BIDEN_WAKEUP = None
-	workers = None
-	allow_loop = None
-	job_queue = None
-	uploader = None
-	workers_count = 0
-	auth_event = None
-	manager = None
-	acc_selector = None
-	scheduler = None
-	scrolling_now = None
-	process_context = None
-	status_pipe = None
 
 	def __init__(self, uploader: AsyncUploader, pipe_connection: multiprocessing.connection.Connection, workers_count: int) -> None:
 		self.workers = []
@@ -58,6 +46,7 @@ class AsyncDownloader(object):
 		self.uploader = uploader
 		self.workers_count = workers_count
 		self.status_pipe = pipe_connection
+		self.yt_validate_event = multiprocessing.Event()
 		if os.environ.get("TG_PREMIUM", default="false") == "true":
 			self.TG_FILE_LIMIT = 4294967296 # 4 GiB
 
@@ -160,6 +149,7 @@ class AsyncDownloader(object):
 							actor.request_yt_auth = self.request_yt_auth
 							actor.auth_event = self.auth_event
 							actor.status_pipe = self.status_pipe
+							actor.yt_validate_event = self.yt_validate_event
 							# job retry loop
 							while self.allow_loop.value == 1:
 								try:

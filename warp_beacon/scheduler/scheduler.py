@@ -15,10 +15,8 @@ class IGScheduler(object):
 	yt_sessions_dir = "/var/warp_beacon"
 
 	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
-		self.downloader = None
 		self.running = True
 		self.thread = None
-		self.event = None
 		self.state = {"remaining": randrange(8400, 26200), "yt_sess_exp": []}
 		self.downloader = downloader
 		self.event = threading.Event()
@@ -108,6 +106,9 @@ class IGScheduler(object):
 	
 	def validate_yt_session(self) -> bool:
 		try:
+			if self.downloader.yt_validate_event.is_set():
+				return True
+			self.downloader.yt_validate_event.set()
 			logging.info("Setting YT validate task ...")
 			self.downloader.queue_task(warp_beacon.jobs.download_job.DownloadJob.build(
 				session_validation=True,
@@ -147,7 +148,7 @@ class IGScheduler(object):
 					self.handle_time_planning()
 
 				start_time = time.time()
-				logging.info("Next scheduler activity in '%s' seconds", int(min_val))
+				logging.info("Next scheduler activity in '%d' seconds", int(min_val))
 				logging.info("IG timeout '%d' secs", int(self.state["remaining"]))
 				self.event.wait(timeout=min_val)
 				self.event.clear()

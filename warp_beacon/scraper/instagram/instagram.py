@@ -12,9 +12,9 @@ import logging
 import email
 import imaplib
 import json
+from urllib.parse import urljoin, urlparse
 import requests
 import urllib3
-from urllib.parse import urljoin, urlparse
 
 from instagrapi import exceptions
 from instagrapi.exceptions import UnknownError as IGUnknownError

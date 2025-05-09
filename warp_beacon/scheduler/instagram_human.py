@@ -17,7 +17,7 @@ class InstagramHuman(object):
 		self.operations_count = 0
 
 	def watch_content(self, media: list) -> None:
-		for m in media[:random.randint(1, 3)]:
+		for m in media[:random.randint(1, 15)]:
 			try:
 				logging.info("Wathing content with pk '%s'", str(m.pk))
 				content = self.scrapler.cl.media_info_v1(m.pk)
@@ -34,7 +34,7 @@ class InstagramHuman(object):
 			timeline_initialized = True
 			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
-			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10), last_media_pk=last_pk)
+			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15), last_media_pk=last_pk)
 			self.operations_count += 1
 			self.watch_content(media)
 		
@@ -43,7 +43,7 @@ class InstagramHuman(object):
 			if not timeline_initialized:
 				self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
-			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
+			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 15), last_media_pk=last_pk)
 			self.operations_count += 1
 			self.watch_content(media)
 

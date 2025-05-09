@@ -64,7 +64,8 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.exception(e)
 
 		# avoid task acquiring in parallel worker
-		time.sleep(35)
+		self.yt_validate_event.clear()
+		#time.sleep(35)
 
 		return 0
 	
