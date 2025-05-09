@@ -63,6 +63,9 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.error("Failed to refresh Youtube session!")
 			logging.exception(e)
 
+		# avoid task acquiring in parallel worker
+		time.sleep(35)
+
 		return 0
 	
 	def get_video_id(self, url: str) -> Optional[str]:
