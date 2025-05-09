@@ -13,13 +13,13 @@ import warp_beacon
 class IGScheduler(object):
 	state_file = "/var/warp_beacon/scheduler_state.json"
 	yt_sessions_dir = "/var/warp_beacon"
-	downloader = None
-	running = True
-	thread = None
-	event = None
-	state = {"remaining": randrange(8400, 26200), "yt_sess_exp": []}
 
 	def __init__(self, downloader: warp_beacon.scraper.AsyncDownloader) -> None:
+		self.downloader = None
+		self.running = True
+		self.thread = None
+		self.event = None
+		self.state = {"remaining": randrange(8400, 26200), "yt_sess_exp": []}
 		self.downloader = downloader
 		self.event = threading.Event()
 		self.handle_time_planning()
@@ -37,9 +37,7 @@ class IGScheduler(object):
 
 	def load_yt_sessions(self) -> None:
 		try:
-			# old versions migration
-			if not "yt_sess_exp" in self.state:
-				self.state["yt_sess_exp"] = []
+			self.state["yt_sess_exp"] = []
 			
 			for f in os.listdir(self.yt_sessions_dir):
 				if f.startswith("yt_session") and f.endswith(".json"):
@@ -134,6 +132,7 @@ class IGScheduler(object):
 		self.load_state()
 		while self.running:
 			try:
+				self.load_yt_sessions()
 				yt_expires = self.yt_nearest_expire()
 				ig_sched = self.state["remaining"]
 				min_val = min(yt_expires, ig_sched)

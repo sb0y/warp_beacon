@@ -43,7 +43,19 @@ class WBClient(Client):
 			raise TypeError("Progress callback must be callable")
 		self.progress_callback = callback
 
+	def adaptive_chunk_size(self, content_length: int) -> int:
+		if content_length < 100_000:
+			return 2048
+		elif content_length < 5_000_000:
+			return 8192
+		elif content_length < 100_000_000:
+			return 32768
+		else:
+			return 65536
+
 	def sanitize_instagram_url(self, url: str) -> str:
+		if "oh=" in url: # signed url, do not touch
+				return url
 		parsed = urlparse(url)
 		query = parse_qs(parsed.query)
 		filtered_query = {k: v for k, v in query.items() if k in self.essential_params}
@@ -51,7 +63,7 @@ class WBClient(Client):
 		return urlunparse(parsed._replace(query=new_query))
 
 	def video_download_by_url(self, url: str, filename: str = "", folder: Path = "") -> Path:
-		#url = self.sanitize_instagram_url(url)
+		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder or Path.cwd()) / filename
@@ -78,7 +90,7 @@ class WBClient(Client):
 
 		downloaded = 0
 		with open(path, "wb") as f:
-			for chunk in response.iter_content(chunk_size=8192):
+			for chunk in response.iter_content(chunk_size=self.adaptive_chunk_size(content_length)):
 				if chunk:
 					f.write(chunk)
 					downloaded += len(chunk)
@@ -103,7 +115,7 @@ class WBClient(Client):
 	def photo_download_by_url(
 		self, url: str, filename: str = "", folder: Path = ""
 	) -> Path:
-		#url = self.sanitize_instagram_url(url)
+		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
 		path = Path(folder) / filename
@@ -136,7 +148,7 @@ class WBClient(Client):
 		downloaded = 0
 		with open(path, "wb") as f:
 			response.raw.decode_content = True
-			for chunk in response.iter_content(chunk_size=4096):
+			for chunk in response.iter_content(chunk_size=self.adaptive_chunk_size(content_length)):
 				if chunk:
 					f.write(chunk)
 					downloaded += len(chunk)
