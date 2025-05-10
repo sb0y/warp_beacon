@@ -7,6 +7,8 @@ import requests
 from instagrapi import Client
 from instagrapi.exceptions import VideoNotDownload
 
+from warp_beacon.scraper.utils import ScraperUtils
+
 class WBClient(Client):
 	"""
 	patched instagrapi
@@ -17,10 +19,7 @@ class WBClient(Client):
 		self.session = requests.Session()
 		# may be I should remove '"Sec-Fetch-*", "Upgrade-Insecure-Requests", "DNT"' ?
 		self.session.headers.update({
-			"User-Agent": (
-				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-				"(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-			),
+			"User-Agent": ScraperUtils.get_ua(),
 			"Accept": (
 				"text/html,application/xhtml+xml,application/xml;"
 				"q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
@@ -29,12 +28,12 @@ class WBClient(Client):
 			"Accept-Encoding": "gzip, deflate, br",
 			"Referer": "https://www.instagram.com/",
 			"Connection": "keep-alive",
-			"Sec-Fetch-Site": "same-origin",
-			"Sec-Fetch-Mode": "navigate",
-			"Sec-Fetch-User": "?1",
-			"Sec-Fetch-Dest": "document",
-			"Upgrade-Insecure-Requests": "1",
-			"DNT": "1",
+			#"Sec-Fetch-Site": "same-origin",
+			#"Sec-Fetch-Mode": "navigate",
+			#"Sec-Fetch-User": "?1",
+			#"Sec-Fetch-Dest": "document",
+			#"Upgrade-Insecure-Requests": "1",
+			#"DNT": "1",
 		})
 		self.essential_params = {"oe", "oh", "_nc_ht", "_nc_cat", "_nc_oc", "_nc_ohc", "_nc_gid"}
 

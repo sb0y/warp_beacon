@@ -29,7 +29,8 @@ dependencies = [
 	"yt_dlp",
 	"pydub",
 	"SpeechRecognition",
-	"playwright"
+	"playwright",
+	"fake-useragent"
 ]
 keywords = ["bot", "telegram", "instagram", "export"]
 classifiers = [

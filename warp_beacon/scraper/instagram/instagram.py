@@ -31,6 +31,7 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.telegram.utils import Utils
 from warp_beacon.scraper.instagram.wb_instagrapi import WBClient
 from warp_beacon.telegram.types import ReportType
+from warp_beacon.scraper.utils import ScraperUtils
 
 INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 
@@ -61,10 +62,7 @@ class InstagramScraper(ScraperAbstract):
 			"Accept": "*/*",
 			"Accept-Encoding": "gzip, deflate, br",
 			"Accept-Language": "en-US,en;q=0.9",
-			"User-Agent": (
-				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-				"(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-			)
+			"User-Agent": ScraperUtils.get_ua()
 		})
 		self.cl.set_progress_callback(self.download_progress)
 
