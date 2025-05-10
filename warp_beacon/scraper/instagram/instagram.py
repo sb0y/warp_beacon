@@ -96,7 +96,7 @@ class InstagramScraper(ScraperAbstract):
 			"uuid": uuids.get("uuid", self.cl.generate_uuid()),
 			"client_session_id": self.client_session_id,
 			"advertising_id": uuids.get("advertising_id", self.cl.generate_uuid()),
-			"device_id": uuids.get("device_id", self.cl.generate_uuid())
+			"device_id": uuids.get("device_id", self.cl.generate_android_device_id())
 		})
 
 	def safe_write_session(self) -> None:
