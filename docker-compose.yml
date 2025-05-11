@@ -30,3 +30,8 @@ services:
       - /var/warp_beacon:/var/warp_beacon
       - ./warp_beacon/:/var/warp_beacon/src/
       - /tmp/warp_beacon:/tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
