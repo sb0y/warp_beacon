@@ -126,7 +126,7 @@ class IGScheduler(object):
 
 	def handle_time_planning(self) -> None:
 		if int(self.state.get("remaining", 0)) <= 0:
-			self.state["remaining"] = randrange(9292, 26200)
+			self.state["remaining"] = randrange(5292, 12253)
 
 	def do_work(self) -> None:
 		logging.info("Scheduler thread started ...")

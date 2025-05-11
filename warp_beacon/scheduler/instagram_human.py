@@ -17,7 +17,9 @@ class InstagramHuman(object):
 		self.operations_count = 0
 
 	def watch_content(self, media: list) -> None:
-		for m in media[:random.randint(1, 15)]:
+		if not media:
+			return
+		for m in media[:random.randint(1, len(media))]:
 			try:
 				logging.info("Wathing content with pk '%s'", str(m.pk))
 				content = self.scrapler.cl.media_info_v1(m.pk)
@@ -30,7 +32,7 @@ class InstagramHuman(object):
 
 	def scroll_content(self, last_pk: int) -> None:
 		timeline_initialized = False
-		if random.random() > 0.7:
+		if random.random() > 0.5:
 			timeline_initialized = True
 			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
@@ -38,7 +40,7 @@ class InstagramHuman(object):
 			self.operations_count += 1
 			self.watch_content(media)
 		
-		if random.random() > 0.9:
+		if random.random() > 0.7:
 			time.sleep(random.uniform(2, 20))
 			if not timeline_initialized:
 				self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
@@ -75,7 +77,7 @@ class InstagramHuman(object):
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 				self.operations_count += 1
 				self.random_pause()
-			if random.random() > 0.5:
+			if random.random() > 0.2:
 				logging.info("Simulation updating reels tray feed ...")
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
 				self.operations_count += 1
@@ -98,7 +100,7 @@ class InstagramHuman(object):
 				self.random_pause()
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
-				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels)
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15))
 				self.operations_count += 1
 				self.watch_content(reels)
 				self.random_pause()
@@ -126,11 +128,11 @@ class InstagramHuman(object):
 				self.random_pause()
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
-				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels)
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15))
 				self.operations_count += 1
 				self.watch_content(reels)
 				self.random_pause()
-			if random.random() > 0.6:
+			if random.random() > 0.4:
 				logging.info("Simulation profile view ...")
 				self.profile_view()
 				self.random_pause()
@@ -145,9 +147,9 @@ class InstagramHuman(object):
 				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
 				self.operations_count += 1
 				self.random_pause(short=True)
-			if random.random() > 0.8:
+			if random.random() > 0.5:
 				logging.info("Watching reels ...")
-				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels)
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15))
 				self.operations_count += 1
 				self.watch_content(reels)
 				self.random_pause()
@@ -179,14 +181,14 @@ class InstagramHuman(object):
 				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
 				self.operations_count += 1
-				time.sleep(random.uniform(2, 5))
+				self.random_pause()
 			elif isinstance(random_friend, str):
 				target_user_id = self.scrapler.download_hndlr(self.scrapler.cl.user_id_from_username, random_friend)
 				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
 				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
 				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
 				self.operations_count += 1
-				time.sleep(random.uniform(2, 5))
+				self.random_pause()
 			
 			if random.random() > 0.5:
 				logging.info("Checking direct ...")
@@ -202,7 +204,7 @@ class InstagramHuman(object):
 			
 			if random.random() > 0.5:
 				logging.info("user_medias with target_user_id = '%s' ...", target_user_id)
-				self.scrapler.download_hndlr(self.scrapler.cl.user_medias_v1, target_user_id, amount=random.randint(1, 5))
+				self.scrapler.download_hndlr(self.scrapler.cl.user_medias_v1, target_user_id, amount=random.randint(1, 10))
 				self.operations_count += 1
 				self.random_pause()
 		except Exception as e:

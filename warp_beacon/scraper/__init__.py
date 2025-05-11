@@ -130,7 +130,7 @@ class AsyncDownloader(object):
 								proxy = selector.get_current_proxy()
 							if job.job_origin is Origin.INSTAGRAM:
 								from warp_beacon.scraper.instagram.instagram import InstagramScraper
-								if not job.scroll_content and selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
+								if not job.scroll_content and selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="20")):
 									logging.info("The account request limit has been reached. Selecting the next account.")
 									selector.reset_ig_request_count()
 									selector.next()
@@ -164,7 +164,7 @@ class AsyncDownloader(object):
 										break
 									if job.session_validation and job.job_origin in (Origin.INSTAGRAM, Origin.YOUTUBE):
 										if job.job_origin is Origin.INSTAGRAM:
-											if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="10")):
+											if selector.get_ig_request_count() >= int(os.environ.get("IG_REQUESTS_PER_ACCOUNT", default="20")):
 												logging.info("The account request limit has been reached. Selecting the next account.")
 												selector.reset_ig_request_count()
 												selector.next()
