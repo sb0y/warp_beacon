@@ -29,6 +29,7 @@ from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.scraper.exceptions import (BadProxy, TimeOut, Unavailable,
 											extract_exception_message)
 from warp_beacon.yt_auth import YtAuth
+from warp_beacon.scraper.utils import ScraperUtils
 
 class YoutubeAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
@@ -226,7 +227,10 @@ class YoutubeAbstract(ScraperAbstract):
 		return ret_val
 
 	def yt_on_progress(self, stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
-		total_size = stream.filesize or stream.filesize_approx
+		total_size = int(stream.filesize or stream.filesize_approx or 0)
+		if not total_size:
+			logging.warning("[Download worker]: total_size is '%d'", total_size)
+			return
 		bytes_downloaded = total_size - bytes_remaining
 		percentage_of_completion = bytes_downloaded / (total_size or 1) * 100
 		if total_size == 0 or percentage_of_completion >= self._download_progress_threshold:
@@ -286,6 +290,28 @@ class YoutubeAbstract(ScraperAbstract):
 				yt_opts["proxies"] = self.build_proxies(proxy_dsn)
 		return YouTube(**yt_opts)
 	
+	def yt_dlp_on_progress(self, params: dict) -> None:
+		if params.get("status", "") == "downloading":
+			total_size = int(params.get("total_bytes") or params.get("total_bytes_estimate") or 0)
+			if not total_size or total_size < 0:
+				logging.warning("[Download worker][yt_dlp]: total_size is '%d'", total_size)
+				return
+			bytes_downloaded = int(params.get("downloaded_bytes", 0))
+			percentage_of_completion = bytes_downloaded / (total_size or 1) * 100
+			if total_size == 0 or percentage_of_completion >= self._download_progress_threshold:
+				msg = {
+					"action": "report_download_status",
+					"current": bytes_downloaded,
+					"total": total_size,
+					"message_id": self.job.placeholder_message_id,
+					"chat_id": self.job.chat_id,
+					"completed": percentage_of_completion >= 100
+				}
+				self.status_pipe.send(msg)
+				logging.debug("[Download worker][yt_dlp] Downloaded %d%%", percentage_of_completion)
+				if total_size > 0:
+					self._download_progress_threshold += 20
+
 	def build_yt_dlp(self, timeout: int = 60) -> yt_dlp.YoutubeDL:
 		auth_data = {}
 		with open(self.YT_SESSION_FILE % self.account_index, 'r', encoding="utf-8") as f:
@@ -297,8 +323,23 @@ class YoutubeAbstract(ScraperAbstract):
 			'format': 'bestvideo+bestaudio/best',
 			'merge_output_format': 'mp4',
 			'noplaylist': True,
-			'tv_auth': auth_data
+			'progress_hooks': [self.yt_dlp_on_progress],
+			'http_headers': {
+				"Accept-Language": "en-US,en;q=0.9",
+				'User-Agent': ScraperUtils.get_ua(
+					browsers=["Google", "Chrome", "Firefox"],
+					os=["Windows", "Linux", "Ubuntu", "Chrome OS", "Mac OS X"],
+					platforms=["desktop"]
+				)
+			}
 		}
+
+		if auth_data and auth_data.get("access_token", None):
+			ydl_opts["http_headers"]["Authorization"] = f'Bearer {auth_data["access_token"]}'
+
+		yt_dlp_cookies_file = os.environ.get("YT_DLP_COOKIES_FILE", default="/var/warp_beacon/yt_dlp_cookies.txt")
+		if yt_dlp_cookies_file and os.path.exists(yt_dlp_cookies_file):
+			ydl_opts['cookiefile'] = yt_dlp_cookies_file
 
 		if self.proxy:
 			proxy_dsn = self.proxy.get("dsn", "")

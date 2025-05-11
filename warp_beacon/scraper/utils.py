@@ -4,10 +4,10 @@ from fake_useragent import UserAgent
 
 class ScraperUtils(object):
 	@staticmethod
-	def get_ua_dict() -> dict:
+	def get_ua_dict(browsers: list = ['Facebook', 'Android'], platforms: list = ['mobile', 'tablet'], os: list =['Android', 'iOS']) -> dict:
 		random_client = None
 		try:
-			ua = UserAgent(browsers=['Facebook', 'Android'], platforms=['mobile', 'tablet'], os=['Android', 'iOS'])
+			ua = UserAgent(browsers=browsers, platforms=platforms, os=os)
 			random_client = ua.getRandom
 			logging.info("Select random UA: %s", random_client)
 		except Exception as e:
@@ -16,5 +16,5 @@ class ScraperUtils(object):
 		return random_client
 
 	@staticmethod
-	def get_ua() -> str:
-		return ScraperUtils.get_ua_dict()["useragent"]
+	def get_ua(browsers: list = ['Facebook', 'Android'], platforms: list = ['mobile', 'tablet'], os: list =['Android', 'iOS']) -> str:
+		return ScraperUtils.get_ua_dict(browsers=browsers, platforms=platforms, os=os)["useragent"]
