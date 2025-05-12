@@ -61,8 +61,10 @@ class AccountSelector(object):
 	def save_ig_sessions_id(self) -> None:
 		try:
 			with self.lock:
+				sessions = dict(self.ig_accounts_session_id)
+				logging.info("Saving sessions: %s", sessions)
 				with open(f"{self.session_dir}/ig_sessions_client_id.json", "w+", encoding="utf-8") as f:
-					f.write(json.dumps(dict(self.ig_accounts_session_id)))
+					json.dump(sessions, f, indent=2)
 		except Exception as e:
 			logging.warning("Failed to save session ig_session_client_id!")
 			logging.exception(e)
@@ -76,7 +78,7 @@ class AccountSelector(object):
 					data = json.loads(f.read())
 				if data and isinstance(data, dict):
 					for k, v in data.items():
-						self.ig_accounts_session_id[k] = v
+						self.ig_accounts_session_id[int(k)] = v
 		except Exception as e:
 			logging.warning("Failed to read session ig_session_client_id!")
 			logging.exception(e)
@@ -265,7 +267,7 @@ class AccountSelector(object):
 	
 	def get_ig_session_id(self) -> str:
 		with self.lock:
-			idx = self.account_index[self.current_module_name].value
+			idx = int(self.account_index[self.current_module_name].value)
 			if idx not in self.ig_accounts_session_id:
 				self.ig_accounts_session_id[idx] = str(uuid.uuid4())
 			#else:
