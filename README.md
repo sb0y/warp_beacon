@@ -185,4 +185,8 @@ dpkg-buildpackage -us -uc -b
 
 # Support Warp Beacon project
 
-[<img src="https://cdn.cryptocloud.plus/brand/cc-group-black.png" alt="CryptoCloud Accepted" width="250px">](https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E)
+[<img src="https://opencollective.com/webpack/donate/button@2x.png?color=blue" alt="Donate" width="300px">](https://opencollective.com/warp_beacon) [<img src="https://raw.githubusercontent.com/sb0y/warp_beacon/refs/heads/main/assets/cc-group-black.png?raw=true" alt="CryptoCloud Accepted" width="250px">](https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E)
+
+<!-- [![Backers on Open Collective](https://opencollective.com/warp_beacon/backers/badge.svg)](https://opencollective.com/warp_beacon) -->
+<!-- #[![Sponsors on Open Collective](https://opencollective.com/warp_beacon/sponsors/badge.svg)](https://opencollective.com/warp_beacon) -->
+
