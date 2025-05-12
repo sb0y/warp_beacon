@@ -208,17 +208,24 @@ class InstagramScraper(ScraperAbstract):
 			except exceptions.LoginRequired as e:
 				logging.error("LoginRequired occurred in download handler!")
 				logging.exception(e)
-				old_session = self.cl.get_settings()
-				# change session id after relogin
-				self.client_session_id = self.acc_selector.generate_new_session_id()
-				old_session["uuids"]["client_session_id"] = self.client_session_id
-				self.cl.set_settings({})
-				self.setup_device()
-				self.cl.set_uuids(old_session["uuids"])
-				if os.path.exists(self.inst_session_file):
-					os.unlink(self.inst_session_file)
-				time.sleep(5)
-				self.load_session()
+				relogin_success = False
+				if self.cl.relogin_attempt > 1:
+					try:
+						relogin_success = self.cl.relogin()
+					except Exception as exc:
+						logging.warning("Relogin failed!", exc_info=exc)
+				if not relogin_success:
+					old_session = self.cl.get_settings()
+					# change session id after relogin
+					self.client_session_id = self.acc_selector.generate_new_session_id()
+					old_session["uuids"]["client_session_id"] = self.client_session_id
+					self.cl.set_settings({})
+					self.setup_device()
+					self.cl.set_uuids(old_session["uuids"])
+					if os.path.exists(self.inst_session_file):
+						os.unlink(self.inst_session_file)
+					time.sleep(random.uniform(5, 10))
+					self.load_session()
 			except AssertionError as e:
 				raise IGRateLimitOccurred("IG rate limit occurred")
 			except (socket.timeout,
