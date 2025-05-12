@@ -16,6 +16,8 @@ import requests.packages.urllib3.util.connection as urllib3_cn
 if TYPE_CHECKING:
 	from multiprocessing.synchronize import Event as EventType
 
+from warp_beacon.scraper.account_selector import AccountSelector
+
 class ScraperAbstract(ABC):
 	def __init__(self, account: tuple, proxy: dict = None) -> None:
 		self.original_gai_family = None
@@ -24,6 +26,7 @@ class ScraperAbstract(ABC):
 		self.status_pipe: multiprocessing.connection.Connection = None
 		self.yt_validate_event: EventType = None
 		self.auth_event = None
+		self.acc_selector: AccountSelector = None
 		self.account = None
 		self.account_index = 0
 		self.proxy = None

@@ -272,3 +272,10 @@ class AccountSelector(object):
 				#	self.ig_accounts_session_id[idx] = str(uuid.uuid4())
 				#	logging.info("Rotated client_session_id — simulating app restart")
 			return self.ig_accounts_session_id[idx]
+		
+	def generate_new_session_id(self) -> str:
+		with self.lock:
+			idx = self.account_index[self.current_module_name].value
+			session_id = str(uuid.uuid4())
+			self.ig_accounts_session_id[idx] = session_id
+			return session_id

@@ -209,6 +209,9 @@ class InstagramScraper(ScraperAbstract):
 				logging.error("LoginRequired occurred in download handler!")
 				logging.exception(e)
 				old_session = self.cl.get_settings()
+				# change session id after relogin
+				self.client_session_id = self.acc_selector.generate_new_session_id()
+				old_session["uuids"]["client_session_id"] = self.client_session_id
 				self.cl.set_settings({})
 				self.setup_device()
 				self.cl.set_uuids(old_session["uuids"])

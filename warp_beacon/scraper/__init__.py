@@ -150,6 +150,7 @@ class AsyncDownloader(object):
 							actor.auth_event = self.auth_event
 							actor.status_pipe = self.status_pipe
 							actor.yt_validate_event = self.yt_validate_event
+							actor.acc_selector = selector
 							# job retry loop
 							while self.allow_loop.value == 1:
 								try:
