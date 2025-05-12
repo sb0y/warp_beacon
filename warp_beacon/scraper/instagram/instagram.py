@@ -209,7 +209,7 @@ class InstagramScraper(ScraperAbstract):
 				logging.error("LoginRequired occurred in download handler!")
 				logging.exception(e)
 				relogin_success = False
-				if self.cl.relogin_attempt > 1:
+				if self.cl.relogin_attempt == 0:
 					try:
 						relogin_success = self.cl.relogin()
 					except Exception as exc:
