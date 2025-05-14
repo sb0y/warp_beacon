@@ -211,7 +211,7 @@ class InstagramScraper(ScraperAbstract):
 				relogin_success = False
 				if self.cl.relogin_attempt == 0:
 					try:
-						relogin_success = self.cl.relogin()
+						relogin_success = self.cl.login(self.account["login"], self.account["password"], relogin=True)
 						if relogin_success:
 							self.safe_write_session()
 					except Exception as exc:

@@ -25,7 +25,7 @@ class InstagramHuman(object):
 				content = self.scrapler.cl.media_info_v1(m.pk)
 				logging.info("Watched content with id '%s'", str(content.pk))
 				self.operations_count += 1
-				time.sleep(random.uniform(8, 30))
+				self.random_pause()
 			except Exception as e:
 				logging.warning("Exception while watching content")
 				logging.exception(e)
@@ -36,7 +36,7 @@ class InstagramHuman(object):
 			timeline_initialized = True
 			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
-			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15), last_media_pk=last_pk)
+			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
 			self.watch_content(media)
 		
@@ -45,7 +45,7 @@ class InstagramHuman(object):
 			if not timeline_initialized:
 				self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
 			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
-			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 15), last_media_pk=last_pk)
+			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
 			self.watch_content(media)
 
@@ -128,7 +128,7 @@ class InstagramHuman(object):
 				self.random_pause()
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
-				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15))
+				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10))
 				self.operations_count += 1
 				self.watch_content(reels)
 				self.random_pause()
@@ -167,7 +167,7 @@ class InstagramHuman(object):
 			logging.info("profile_view ...")
 			my_user_id = self.scrapler.cl.user_id
 			logging.info("user_following ...")
-			friends = list(self.scrapler.download_hndlr(self.scrapler.cl.user_following, my_user_id, amount=random.randint(5, 50)).values())
+			friends = list(self.scrapler.download_hndlr(self.scrapler.cl.user_following, my_user_id, amount=random.randint(5, 15)).values())
 			self.operations_count += 1
 			time.sleep(random.uniform(2, 5))
 			if not friends:
