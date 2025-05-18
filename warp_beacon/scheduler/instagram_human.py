@@ -44,7 +44,7 @@ class InstagramHuman(object):
 							#self.scrapler.cl.media_like(media_id)
 							self.scrapler.cl.media_comments(media_id)
 							self.operations_count += 1
-							self.random_pause()
+							self.random_pause(short=True)
 						except Exception as e:
 							logging.warning("Failed to see comments to media '%s'", media_id, exc_info=e)
 					self.random_pause()
