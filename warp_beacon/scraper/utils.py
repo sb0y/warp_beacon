@@ -4,7 +4,7 @@ from fake_useragent import UserAgent
 
 class ScraperUtils(object):
 	@staticmethod
-	def get_ua_dict(browsers: list = ['Facebook', 'Android'], platforms: list = ['mobile', 'tablet'], os: list =['Android', 'iOS']) -> dict:
+	def get_ua_dict(browsers: list = ['Facebook', 'Android'], platforms: list = ['mobile', 'tablet'], os: list =['Android']) -> dict:
 		random_client = None
 		try:
 			ua = UserAgent(browsers=browsers, platforms=platforms, os=os)
