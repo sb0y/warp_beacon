@@ -1,11 +1,17 @@
 import logging
 from typing import Callable
+from copy import deepcopy
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from pathlib import Path
 import requests
 
 from instagrapi import Client
-from instagrapi.exceptions import VideoNotDownload
+from instagrapi.types import Media
+from instagrapi.exceptions import (
+	ClientError,
+	ClientLoginRequired,
+	VideoNotDownload
+)
 
 from warp_beacon.scraper.utils import ScraperUtils
 
@@ -161,3 +167,27 @@ class WBClient(Client):
 						except Exception as e:
 							logging.warning("Progress callback raised an exception!", exc_info=e)
 		return path.resolve()
+	
+	def media_info(self, media_pk: str, use_cache: bool = True) -> Media:
+		"""
+		Get Media Information from PK
+
+		Parameters
+		----------
+		media_pk: str
+			Unique identifier of the media
+		use_cache: bool, optional
+			Whether or not to use information from cache, default value is True
+
+		Returns
+		-------
+		Media
+			An object of Media type
+		"""
+		media_pk = self.media_pk(media_pk)
+		if not use_cache or media_pk not in self._medias_cache:
+			media = self.media_info_v1(media_pk)
+			self._medias_cache[media_pk] = media
+		return deepcopy(
+			self._medias_cache[media_pk]
+		)  # return copy of cache (dict changes protection)

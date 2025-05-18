@@ -282,7 +282,7 @@ class InstagramScraper(ScraperAbstract):
 			if len(st_parts) > 1:
 				effective_story_id = st_parts[0]
 		logging.info("Effective story id is '%s'", effective_story_id)
-		effective_url = "https://www.instagram.com/stories/%s/%s/" % (story_info.user.username, effective_story_id)
+		effective_url = f"https://www.instagram.com/stories/{story_info.user.username}/{effective_story_id}/"
 		if story_info.media_type == 1: # photo
 			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
 			path_lowered = path.lower()
@@ -357,6 +357,10 @@ class InstagramScraper(ScraperAbstract):
 						res.append(self.download_photo(url=media_info.thumbnail_url, media_info=media_info))
 					elif media_info.media_type == 8: # Album
 						res.append(self.download_album(media_info=media_info))
+					try:
+						self.cl.media_seen([media_info.id])
+					except Exception as e:
+						logging.warning("Failed to mark seen with id = '%s'", media_info.id, exc_info=e)
 				elif scrap_type == "story":
 					story_info = self.cl.story_info(media_id)
 					logging.info("media_type for story is '%d'", story_info.media_type)

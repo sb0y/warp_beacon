@@ -1,5 +1,6 @@
 import time
 import random
+from typing import Optional
 from datetime import datetime
 
 import logging
@@ -8,33 +9,109 @@ from instagrapi.types import UserShort
 from warp_beacon.scraper.instagram.instagram import InstagramScraper
 
 class InstagramHuman(object):
-	scrapler = None
 	default_profiles = ["nasa", "natgeo", "9gag", "spotify", "nba"]
-	operations_count = 0
 
 	def __init__(self, scrapler: InstagramScraper) -> None:
 		self.scrapler = scrapler
 		self.operations_count = 0
 
+	def browse_timeline(self) -> Optional[dict]:
+		feed = None
+		items = []
+		try:
+			reason = random.choice(["cold_start_fetch", "pull_to_refresh"])
+			feed = self.scrapler.cl.get_timeline_feed(reason=reason)
+			self.operations_count += 1
+			items = feed.get("feed_items", [])
+		except Exception as e:
+			logging.warning("Failed to get timeline feed!", exc_info=e)
+			return
+
+		seen = []
+		if items:
+			for item in items:
+				media = item.get("media_or_ad")
+				logging.info("Item content: %s", media)
+				if not media:
+					continue
+				media_id = media.get("id")
+				#user_id = media.get("user", {}).get("pk")
+
+				if media_id:
+					seen.append(str(media_id))
+					if random.random() < 0.5:
+						try:
+							#self.scrapler.cl.media_like(media_id)
+							self.scrapler.cl.media_comments(media_id)
+							self.operations_count += 1
+						except Exception as e:
+							logging.warning("Failed to see comments to media '%s'", media_id, exc_info=e)
+					self.random_pause()
+
+		if seen:
+			try:
+				self.scrapler.cl.media_seen(seen)
+				self.operations_count += 1
+			except Exception as e:
+				logging.warning("Failed to mark timeline feed as seen", exc_info=e)
+
+		return feed
+
+	def watch_stories(self) -> None:
+		logging.info("Simulating stories watch ...")
+		stories = None
+		try:
+			stories = self.scrapler.cl.user_stories_v1(self.scrapler.cl.user_id)
+			self.operations_count += 1
+		except Exception as e:
+			logging.warning("Failed to get user stories!", exc_info=e)
+
+		if not stories:
+			return
+
+		seen = []
+		for m in stories[:random.randint(1, len(stories))]:
+			try:
+				logging.info("Wathing story with pk '%s'", str(m.pk))
+				seen.append(str(m.id))
+				self.random_pause()
+			except Exception as e:
+				logging.warning("Exception while watching content", exc_info=e)
+
+		if seen:
+			try:
+				self.scrapler.cl.media_seen(seen)
+				self.operations_count += 1
+				logging.info("Marked %d stories as seen", len(seen))
+			except Exception as e:
+				logging.warning("Failed to mark seen watched watch stories!", exc_info=e)
+
 	def watch_content(self, media: list) -> None:
 		if not media:
 			return
+		seen = []
 		for m in media[:random.randint(1, len(media))]:
 			try:
 				logging.info("Wathing content with pk '%s'", str(m.pk))
 				content = self.scrapler.cl.media_info_v1(m.pk)
+				seen.append(str(content.id))
 				logging.info("Watched content with id '%s'", str(content.pk))
 				self.operations_count += 1
 				self.random_pause()
 			except Exception as e:
 				logging.warning("Exception while watching content")
 				logging.exception(e)
+		try:
+			self.scrapler.cl.media_seen(seen)
+		except Exception as e:
+			logging.warning("Failed to mark seen watched videos!", exc_info=e)
 
 	def scroll_content(self, last_pk: int) -> None:
 		timeline_initialized = False
 		if random.random() > 0.5:
 			timeline_initialized = True
-			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
+			#self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
+			self.scrapler.timeline_cursor = self.browse_timeline()
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
@@ -43,7 +120,8 @@ class InstagramHuman(object):
 		if random.random() > 0.7:
 			time.sleep(random.uniform(2, 20))
 			if not timeline_initialized:
-				self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
+				#self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, reason="cold_start_fetch")
+				self.scrapler.timeline_cursor = self.browse_timeline()
 			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
@@ -65,15 +143,13 @@ class InstagramHuman(object):
 	def morning_routine(self) -> None:
 		try:
 			logging.info("Starting morning activity simulation")
-			self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh", self.scrapler.timeline_cursor.get("next_max_id"))
-			self.operations_count += 1
+			#self.scrapler.timeline_cursor = self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh", self.scrapler.timeline_cursor.get("next_max_id"))
+			#self.operations_count += 1
+			self.scrapler.timeline_cursor = self.browse_timeline()
 			time.sleep(random.uniform(3, 7))
 			if random.random() > 0.5:
-				logging.info("Checking direct ...")
-				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
-				self.operations_count += 1
-				time.sleep(random.uniform(2, 5))
-			if random.random() > 0.3:
+				self.check_direct()
+			if random.random() > 0.6:
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 				self.operations_count += 1
 				self.random_pause()
@@ -82,6 +158,8 @@ class InstagramHuman(object):
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
 				self.operations_count += 1
 				self.random_pause()
+			if random.random() > 0.4:
+				self.watch_stories()
 			if random.random() > 0.8:
 				self.profile_view()
 		except Exception as e:
@@ -91,13 +169,19 @@ class InstagramHuman(object):
 	def daytime_routine(self) -> None:
 		try:
 			logging.info("Starting day fast check activity simulation")
-			self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh")
-			self.operations_count += 1
+			#self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh")
+			#self.operations_count += 1
+			self.browse_timeline()
 			time.sleep(random.uniform(2, 5))
 			if random.random() > 0.5:
 				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
 				self.operations_count += 1
 				self.random_pause()
+
+			if random.random() > 0.4:
+				self.watch_stories()
+				self.random_pause()
+
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
 				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15))
@@ -111,20 +195,17 @@ class InstagramHuman(object):
 	def evening_routine(self) -> None:
 		try:
 			logging.info("Starting evening active user simulation")
-			self.scrapler.download_hndlr(self.scrapler.cl.get_timeline_feed, "pull_to_refresh")
-			self.operations_count += 1
-			time.sleep(random.uniform(2, 5))
-			self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
-			self.operations_count += 1
+			self.browse_timeline()
 			time.sleep(random.uniform(2, 5))
 			if random.random() > 0.5:
-				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
-				self.operations_count += 1
-				time.sleep(random.uniform(2, 5))
-			if random.random() > 0.5:
+				self.check_direct()
+			if random.random() > 0.6:
 				logging.info("Checking notifications, tags ...")
 				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
 				self.operations_count += 1
+				self.random_pause()
+			if random.random() > 0.4:
+				self.watch_stories()
 				self.random_pause()
 			if random.random() > 0.4:
 				logging.info("Watching reels ...")
@@ -144,9 +225,10 @@ class InstagramHuman(object):
 		try:
 			logging.info("Starting night activity simulation")
 			if random.random() > 0.7:
-				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
-				self.operations_count += 1
-				self.random_pause(short=True)
+				self.check_direct()
+			if random.random() > 0.7:
+				self.watch_stories()
+				self.random_pause()
 			if random.random() > 0.5:
 				logging.info("Watching reels ...")
 				reels = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 15))
@@ -161,6 +243,30 @@ class InstagramHuman(object):
 		pause = random.uniform(3, 10) if short else random.uniform(10, 30)
 		logging.info("Pause for '%.2f' sec ...", round(pause, 2))
 		time.sleep(pause)
+
+	def check_direct(self) -> None:
+		logging.info("Checking direct ...")
+		self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
+		self.operations_count += 1
+		self.random_pause()
+		threads = self.scrapler.download_hndlr(self.scrapler.cl.direct_threads, amount=random.randint(3, 7))
+		self.operations_count += 1
+		for thread in threads:
+			try:
+				messages = self.scrapler.cl.direct_messages(thread.id, amount=random.randint(5, 15))
+				self.operations_count += 1
+				if not messages:
+					continue
+				msg_sample = random.sample(messages, k=random.randint(1, min(len(messages), 5)))
+				for msg in msg_sample:
+					if random.random() < 0.85:
+						self.scrapler.cl.direct_message_seen(msg.thread_id, msg.id)
+						self.operations_count += 1
+					self.random_pause()
+				self.random_pause()
+			except Exception as e:
+				logging.warning("Failed to read thread %s", thread.id)
+				logging.exception(e)
 
 	def profile_view(self) -> None:
 		try:
@@ -190,11 +296,10 @@ class InstagramHuman(object):
 				self.operations_count += 1
 				self.random_pause()
 			
+			#self.scrapler.cl.explore_page_media_info
+
 			if random.random() > 0.5:
-				logging.info("Checking direct ...")
-				self.scrapler.download_hndlr(self.scrapler.cl.direct_active_presence)
-				self.operations_count += 1
-				self.random_pause()
+				self.check_direct()
 
 			if random.random() > 0.3:
 				logging.info("Checking notifications, tags ...")
