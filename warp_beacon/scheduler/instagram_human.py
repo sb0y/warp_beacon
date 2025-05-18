@@ -31,7 +31,7 @@ class InstagramHuman(object):
 		if items:
 			for item in items:
 				media = item.get("media_or_ad")
-				logging.info("Item content: %s", media)
+				logging.debug("Item content: %s", media)
 				if not media:
 					continue
 				media_id = media.get("id")
@@ -72,7 +72,7 @@ class InstagramHuman(object):
 		seen = []
 		for m in stories[:random.randint(1, len(stories))]:
 			try:
-				logging.info("Wathing story with pk '%s'", str(m.pk))
+				logging.info("Wathing story with pk '%s'", str(m.id))
 				seen.append(str(m.id))
 				self.random_pause()
 			except Exception as e:
@@ -82,7 +82,7 @@ class InstagramHuman(object):
 			try:
 				self.scrapler.cl.media_seen(seen)
 				self.operations_count += 1
-				logging.info("Marked %d stories as seen", len(seen))
+				logging.info("Marked '%d' stories as seen", len(seen))
 			except Exception as e:
 				logging.warning("Failed to mark seen watched watch stories!", exc_info=e)
 
@@ -92,10 +92,10 @@ class InstagramHuman(object):
 		seen = []
 		for m in media[:random.randint(1, len(media))]:
 			try:
-				logging.info("Wathing content with pk '%s'", str(m.pk))
+				logging.info("Wathing content with pk '%s'", str(m.id))
 				content = self.scrapler.cl.media_info_v1(m.pk)
 				seen.append(str(content.id))
-				logging.info("Watched content with id '%s'", str(content.pk))
+				logging.info("Watched content with id '%s'", str(content.id))
 				self.operations_count += 1
 				self.random_pause()
 			except Exception as e:
