@@ -92,17 +92,18 @@ class InstagramHuman(object):
 		seen = []
 		for m in media[:random.randint(1, len(media))]:
 			try:
-				logging.info("Wathing content with pk '%s'", str(m.id))
-				content = self.scrapler.cl.media_info_v1(m.pk)
-				seen.append(str(content.id))
-				logging.info("Watched content with id '%s'", str(content.id))
-				self.operations_count += 1
+				logging.info("Watching content with pk '%s'", str(m.id))
+				#content = self.scrapler.cl.media_info_v1(m.pk)
+				seen.append(str(m.id))
+				logging.info("Watched content with id '%s'", str(m.id))
+				#self.operations_count += 1
 				self.random_pause()
 			except Exception as e:
 				logging.warning("Exception while watching content")
 				logging.exception(e)
 		try:
-			self.scrapler.cl.media_seen(seen)
+			self.scrapler.download_hndlr(self.scrapler.cl.media_seen, seen)
+			self.operations_count += 1
 		except Exception as e:
 			logging.warning("Failed to mark seen watched videos!", exc_info=e)
 
