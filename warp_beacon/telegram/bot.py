@@ -64,7 +64,8 @@ class Bot(object):
 			api_id=tg_api_id,
 			api_hash=tg_api_hash,
 			workdir='/var/warp_beacon',
-			workers=int(os.environ.get("TG_WORKERS_POOL_SIZE", default=workers_amount))
+			workers=int(os.environ.get("TG_WORKERS_POOL_SIZE", default=workers_amount)),
+			ipv6=os.environ.get("TG_IPV6", default="false").lower() in ("1", "true", "yes")
 		)
 
 		self.editor = EditMessage(self.client)
