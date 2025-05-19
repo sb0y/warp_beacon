@@ -16,5 +16,5 @@ class ScraperUtils(object):
 		return random_client
 
 	@staticmethod
-	def get_ua(browsers: list = ['Facebook', 'Android'], platforms: list = ['mobile', 'tablet'], os: list =['Android', 'iOS']) -> str:
+	def get_ua(browsers: list = ['Facebook', 'Android'], platforms: list = ['mobile', 'tablet'], os: list =['Android']) -> str:
 		return ScraperUtils.get_ua_dict(browsers=browsers, platforms=platforms, os=os)["useragent"]
