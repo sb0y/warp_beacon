@@ -1,4 +1,5 @@
 #from typing import TypedDict
+import copy
 from typing_extensions import Unpack
 
 from warp_beacon.jobs.upload_job import UploadJob
@@ -16,7 +17,7 @@ class DownloadJob(AbstractJob):
 	
 	def to_upload_job(self, **kwargs: Unpack[JobSettings]) -> AbstractJob:
 		d = self.to_dict()
-		d.update(kwargs)
+		d.update(copy.deepcopy(kwargs))
 		if "media_collection" in d:
 			for index, _ in enumerate(d["media_collection"]):
 				for k, _ in enumerate(d["media_collection"][index]):
