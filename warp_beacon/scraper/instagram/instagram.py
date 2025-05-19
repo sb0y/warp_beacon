@@ -256,6 +256,7 @@ class InstagramScraper(ScraperAbstract):
 			"canonical_name": self.extract_canonical_name(media_info),
 			"media_type": JobType.VIDEO,
 			"last_pk": media_info.pk,
+			"last_id": media_info.id,
 			"media_info": {"duration": round(media_info.video_duration)}
 		}
 
@@ -270,7 +271,8 @@ class InstagramScraper(ScraperAbstract):
 			"local_media_path": self.rename_local_file(path),
 			"canonical_name": self.extract_canonical_name(media_info),
 			"media_type": JobType.IMAGE,
-			"last_pk": media_info.pk
+			"last_pk": media_info.pk,
+			"last_id": media_info.id
 		}
 
 	def download_story(self, story_info: Story) -> dict:
@@ -296,7 +298,14 @@ class InstagramScraper(ScraperAbstract):
 			media_type = JobType.VIDEO
 			media_info["duration"] = story_info.video_duration
 
-		return {"local_media_path": self.rename_local_file(path), "media_type": media_type, "media_info": media_info, "effective_url": effective_url}
+		return {
+			"local_media_path": self.rename_local_file(path),
+			"media_type": media_type,
+			"media_info": media_info,
+			"effective_url": effective_url,
+			"last_pk": story_info.pk,
+			"last_id": story_info.id
+		}
 
 	def download_stories(self, stories: list[Story]) -> dict:
 		chunks = []
@@ -306,21 +315,30 @@ class InstagramScraper(ScraperAbstract):
 				chunk.append(self.download_story(story_info=story))
 			chunks.append(chunk)
 
-		return {"media_type": JobType.COLLECTION, "save_items": True, "items": chunks}
+		return {
+			"media_type": JobType.COLLECTION,
+			"save_items": True,
+			"items": chunks
+		}
 
 	def download_album(self, media_info: Media) -> dict:
 		chunks = []
 		for media_chunk in Utils.chunker(media_info.resources, 10):
 			chunk = []
 			for media in media_chunk:
-				_media_info = self.download_hndlr(self.cl.media_info_v1, media.pk)
+				_media_info = self.download_hndlr(self.cl.media_info, media.pk)
 				if media.media_type == 1: # photo
 					chunk.append(self.download_photo(url=_media_info.thumbnail_url, media_info=_media_info))
 				elif media.media_type == 2: # video
 					chunk.append(self.download_video(url=_media_info.video_url, media_info=_media_info))
 			chunks.append(chunk)
 
-		return {"media_type": JobType.COLLECTION, "items": chunks}
+		return {
+			"media_type": JobType.COLLECTION,
+			"items": chunks,
+			"last_pk": media_info.pk,
+			"last_id": media_info.id
+		}
 
 	def extract_canonical_name(self, media: Media) -> str:
 		ret = ""
@@ -349,7 +367,7 @@ class InstagramScraper(ScraperAbstract):
 					#	"chat_id": self.job.chat_id,
 					#	"message_id": self.job.placeholder_message_id
 					#})
-					media_info = self.download_hndlr(self.cl.media_info_v1, media_id)
+					media_info = self.download_hndlr(self.cl.media_info, media_id)
 					logging.info("media_type is '%d', product_type is '%s'", media_info.media_type, media_info.product_type)
 					if media_info.media_type == 2 and media_info.product_type in ("clips", "ad"): # Reels
 						res.append(self.download_video(url=media_info.video_url, media_info=media_info))
@@ -357,10 +375,6 @@ class InstagramScraper(ScraperAbstract):
 						res.append(self.download_photo(url=media_info.thumbnail_url, media_info=media_info))
 					elif media_info.media_type == 8: # Album
 						res.append(self.download_album(media_info=media_info))
-					try:
-						self.cl.media_seen([media_info.id])
-					except Exception as e:
-						logging.warning("Failed to mark seen with id = '%s'", media_info.id, exc_info=e)
 				elif scrap_type == "story":
 					story_info = self.cl.story_info(media_id)
 					logging.info("media_type for story is '%d'", story_info.media_type)
@@ -461,3 +475,25 @@ class InstagramScraper(ScraperAbstract):
 			}
 			self.status_pipe.send(msg)
 			self._download_progress_threshold += 5
+
+	def report_seen(self, items: dict) -> None:
+		try:
+			seen = []
+			for item in items:
+				if item["media_type"] == JobType.COLLECTION:
+					if item.get("last_id", None):
+						seen.append(item["last_id"])
+					if item.get("items", None):
+						for col_item in item["items"]:
+							last_id = col_item.get("last_id", None)
+							if last_id:
+								seen.append(last_id)
+				else:
+					last_id = item.get("last_id", None)
+					if last_id:
+						seen.append(last_id)
+
+			if seen:
+				self.download_hndlr(self.cl.media_seen, seen)
+		except Exception as e:
+			logging.error("Failed to report seen media!", exc_info=e)

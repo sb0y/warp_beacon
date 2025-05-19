@@ -4,6 +4,7 @@ from typing import Callable
 import asyncio
 import threading
 import multiprocessing
+from queue import Empty
 
 from warp_beacon.jobs.types import JobType
 from warp_beacon.jobs.upload_job import UploadJob
@@ -179,7 +180,7 @@ class AsyncUploader(object):
 							logging.info("No callback no call!!")
 					except Exception as e:
 						logging.exception(e)
-				except multiprocessing.Queue.empty:
+				except Empty:
 					pass
 			except Exception as e:
 				logging.error("Exception occurred inside upload worker!")
