@@ -484,10 +484,11 @@ class InstagramScraper(ScraperAbstract):
 					if item.get("last_id", None):
 						seen.append(item["last_id"])
 					if item.get("items", None):
-						for col_item in item["items"]:
-							last_id = col_item.get("last_id", None)
-							if last_id:
-								seen.append(last_id)
+						for chunk in item["items"]:
+							for col_item in chunk:
+								last_id = col_item.get("last_id", None)
+								if last_id:
+									seen.append(last_id)
 				else:
 					last_id = item.get("last_id", None)
 					if last_id:

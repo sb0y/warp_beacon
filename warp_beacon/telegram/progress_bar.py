@@ -9,7 +9,7 @@ from pyrogram import Client
 from warp_beacon.telegram.types import ReportType
 
 class ProgressBar(object):
-	MAX_PROGRESS_RENDER_SIZE = 1_500_000 # 1 MB
+	MAX_PROGRESS_RENDER_SIZE = 500_000  # 500 kB
 
 	def __init__(self, client: Client) -> None:
 		self._next_threshold = 5
