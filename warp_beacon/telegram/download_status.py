@@ -16,12 +16,15 @@ class DownloadStatus(object):
 		self.status_pipe, self.child_conn = Pipe()
 
 	async def handle_message(self, msg: dict, progress_bar: ProgressBar) -> None:
+		op = "Downloading"
+		if msg.get("media_type", None):
+			op += f" {msg['media_type']}"
 		await progress_bar.progress_callback(
 			current=msg.get("current", 0),
 			total=msg.get("total", 0),
 			message_id=msg.get("message_id", 0),
 			chat_id=msg.get("chat_id", 0),
-			operation="Downloading",
+			operation=op,
 			report_type=msg.get("report_type", ReportType.PROGRESS),
 			label=msg.get("label", "")
 		)

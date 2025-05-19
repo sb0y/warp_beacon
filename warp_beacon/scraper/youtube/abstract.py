@@ -66,7 +66,6 @@ class YoutubeAbstract(ScraperAbstract):
 
 		# avoid task acquiring in parallel worker
 		self.yt_validate_event.clear()
-		#time.sleep(35)
 
 		return 0
 	
@@ -233,14 +232,15 @@ class YoutubeAbstract(ScraperAbstract):
 			return
 		bytes_downloaded = total_size - bytes_remaining
 		percentage_of_completion = bytes_downloaded / (total_size or 1) * 100
-		if total_size == 0 or percentage_of_completion >= self._download_progress_threshold:
+		if total_size == 0 or percentage_of_completion == 0 or percentage_of_completion >= self._download_progress_threshold:
 			msg = {
 				"action": "report_download_status",
 				"current": bytes_downloaded,
 				"total": total_size,
 				"message_id": self.job.placeholder_message_id,
 				"chat_id": self.job.chat_id,
-				"completed": percentage_of_completion >= 100
+				"completed": percentage_of_completion >= 100,
+				"media_type": stream.type
 			}
 			self.status_pipe.send(msg)
 			logging.debug("[Download worker] Downloaded %d%%", percentage_of_completion)
