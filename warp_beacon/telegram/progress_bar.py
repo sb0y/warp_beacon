@@ -15,6 +15,7 @@ class ProgressBar(object):
 		self._next_threshold = 5
 		self.client = client
 		self.complete = False
+		self.rendered_text = ""
 
 	def is_complete(self) -> bool:
 		return self.complete
@@ -104,13 +105,18 @@ class ProgressBar(object):
 			pbar = self.make_emoji_progress_bar(percent, 10)
 			logging.info("[Progress bar]: Operation: %s %d%%", operation, percent)
 			try:
-				# we don't need to wait completion, waste of time and resources
 				text = f"{pbar}\n{operation}"
 				if label:
 					text += f"\n<code>{label}</code>"
 				if total:
 					text += f" <b>{self.format_size_si(total)}</b>"
+
+				# avoid duplicate render
+				if text == f"{chat_id}:{message_id}:{text}":
+					return
+
 				await self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
+				self.rendered_text = f"{chat_id}:{message_id}:{text}"
 				#task = self.client.loop.create_task(
 				#	self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
 				#)
@@ -120,7 +126,7 @@ class ProgressBar(object):
 			except Exception as e:
 				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
-			if total > 0:
+			if total > 0 and percent != 0:
 				self._next_threshold += 5
 
 	@staticmethod
