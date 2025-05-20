@@ -100,6 +100,8 @@ class ProgressBar(object):
 			percent = round(current * 100 / (total or 1))
 		if percent > 100:
 			return
+		if percent >= 100 and operation == "Uploading":
+			return
 		if total == 0 or percent == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)
 			pbar = self.make_emoji_progress_bar(percent, 10)
