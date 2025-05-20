@@ -107,18 +107,19 @@ class ProgressBar(object):
 			pbar = self.make_emoji_progress_bar(percent, 10)
 			logging.info("[Progress bar]: Operation: %s %d%%", operation, percent)
 			try:
+				fomatted_size = self.format_size_si(total)
 				text = f"{pbar}\n{operation}"
 				if label:
 					text += f"\n<code>{label}</code>"
 				if total:
-					text += f" <b>{self.format_size_si(total)}</b>"
+					text += f" <b>{fomatted_size}</b>"
 
 				# avoid duplicate render
-				if text == f"{chat_id}:{message_id}:{text}":
+				if text == f"{chat_id}:{message_id}:{operation}:{label}:{fomatted_size}:{percent}":
 					return
 
 				await self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
-				self.rendered_text = f"{chat_id}:{message_id}:{text}"
+				self.rendered_text = f"{chat_id}:{message_id}:{operation}:{label}:{fomatted_size}:{percent}"
 				#task = self.client.loop.create_task(
 				#	self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
 				#)
