@@ -127,7 +127,7 @@ class ProgressBar(object):
 				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
 			if total > 0 and percent != 0:
-				self._next_threshold += 10
+				self._next_threshold += 15
 
 	@staticmethod
 	def make_hash(chat_id: str | int, message_id: int, algorithm: str = 'sha256') -> str:
