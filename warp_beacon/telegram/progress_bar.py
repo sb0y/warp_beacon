@@ -98,32 +98,27 @@ class ProgressBar(object):
 		percent = 0
 		if total:
 			percent = round(current * 100 / (total or 1))
-		if percent > 100:
-			return
-		if percent >= 100 and operation == "Uploading":
+		if percent >= 100:
 			return
 		if total == 0 or percent == 0 or percent >= self._next_threshold:
 			#pbar = self.make_progress_bar(percent, 100, 25)
 			pbar = self.make_emoji_progress_bar(percent, 10)
 			logging.info("[Progress bar]: Operation: %s %d%%", operation, percent)
 			try:
-				fomatted_size = self.format_size_si(total)
+				formatted_size = self.format_size_si(total)
 				text = f"{pbar}\n{operation}"
 				if label:
 					text += f"\n<code>{label}</code>"
 				if total:
-					text += f" <b>{fomatted_size}</b>"
+					text += f" <b>{formatted_size}</b>"
 
 				# avoid duplicate render
-				if text == f"{chat_id}:{message_id}:{operation}:{label}:{fomatted_size}:{percent}":
+				if text == f"{chat_id}:{message_id}:{operation}:{label}:{formatted_size}:{percent}":
 					return
 
-				await self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
-				self.rendered_text = f"{chat_id}:{message_id}:{operation}:{label}:{fomatted_size}:{percent}"
-				#task = self.client.loop.create_task(
-				#	self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
-				#)
-				#task.add_done_callback(self._on_edit_done)
+				message = await self.client.edit_message_caption(chat_id, message_id, text, ParseMode.HTML)
+				logging.debug("Updated caption for message id '%d'", message.id)
+				self.rendered_text = f"{chat_id}:{message_id}:{operation}:{label}:{formatted_size}:{percent}"
 			except MessageNotModified:
 				logging.warning("bad_request_400.MessageNotModified")
 			except Exception as e:
