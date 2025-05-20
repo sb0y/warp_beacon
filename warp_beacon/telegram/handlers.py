@@ -148,10 +148,12 @@ class Handlers(object):
 			msg_leftover = await Utils.handle_mentions(chat.id, client, msg_leftover)
 			# remove duplicates
 			urls = list(set(urls_raw))
+			# remove links without paths
+			urls = Utils.remove_links_wo_paths(urls)
 
 		reply_text = "Wut?"
 		if not urls:
-			reply_text = "Your message should contains URLs"
+			reply_text = "Your message should contain URLs"
 		else:
 			for url in urls:
 				origin = Utils.extract_origin(url)

@@ -145,17 +145,18 @@ class InstagramScraper(ScraperAbstract):
 	def scrap(self, url: str) -> tuple[str]:
 		self.load_session()
 		def _scrap() -> tuple[str]:
-			if "stories" in url:
+			path = urlparse(url).path
+			slash_count = path.count('/')
+			if "stories" in url or slash_count == 1:
 				# remove URL options
-				_url = urljoin(url, urlparse(url).path)
+				_url = urljoin(url, path)
 				url_last_part = list(filter(None, _url.split('/')))[-1]
 				logging.debug("url last part: '%s'", url_last_part)
 				if url_last_part.isnumeric():
 					return "story", self.scrap_story(url)
-				else:
+				elif slash_count in (1, 2):
 					return "stories", url_last_part
-			else:
-				return "media", self.scrap_media(url)
+			return "media", self.scrap_media(url)
 		try:
 			return _scrap()
 		except exceptions.LoginRequired as e:

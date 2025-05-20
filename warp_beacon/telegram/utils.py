@@ -1,6 +1,6 @@
-from typing import Union, Optional
-
+from typing import Optional
 import re
+from urllib.parse import urlparse
 
 from pyrogram import Client
 from pyrogram.types import Message, ChatMember
@@ -154,3 +154,18 @@ class Utils(object):
 			return
 		if not client.me or not client.me.is_premium:
 			client.me = await client.get_me()
+
+	@staticmethod
+	def remove_links_wo_paths(urls: list[str]) -> list[str]:
+		try:
+			new_urls = []
+			for url in urls:
+				url = url.rstrip('/')
+				path = urlparse(url).path
+				sc = path.count('/')
+				if sc > 0:
+					new_urls.append(url)
+			return new_urls
+		except Exception as e:
+			logging.warning("Failed to remove links without path!", exc_info=e)
+		return urls
