@@ -12,7 +12,7 @@ class ProgressBar(object):
 	MAX_PROGRESS_RENDER_SIZE = 1_500_000 # 1 MB
 
 	def __init__(self, client: Client) -> None:
-		self._next_threshold = 5
+		self._next_threshold = 0
 		self.client = client
 		self.complete = False
 		self.rendered_text = ""
@@ -127,7 +127,7 @@ class ProgressBar(object):
 				logging.warning("An error occurred while setup task to update progress bar")
 				logging.exception(e)
 			if total > 0 and percent != 0:
-				self._next_threshold += 5
+				self._next_threshold += 10
 
 	@staticmethod
 	def make_hash(chat_id: str | int, message_id: int, algorithm: str = 'sha256') -> str:
