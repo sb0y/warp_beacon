@@ -475,7 +475,7 @@ class InstagramScraper(ScraperAbstract):
 				"report_type": ReportType.PROGRESS
 			}
 			self.status_pipe.send(msg)
-			self._download_progress_threshold += 10
+			self._download_progress_threshold += 20
 
 	def report_seen(self, items: dict) -> None:
 		try:

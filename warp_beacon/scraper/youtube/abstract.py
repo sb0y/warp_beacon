@@ -245,7 +245,7 @@ class YoutubeAbstract(ScraperAbstract):
 			self.status_pipe.send(msg)
 			logging.debug("[Download worker] Downloaded %d%%", percentage_of_completion)
 			if total_size > 0:
-				self._download_progress_threshold += 10
+				self._download_progress_threshold += 20
 
 	def build_proxies(self, proxy_dsn: str) -> dict:
 		if not proxy_dsn:
@@ -310,7 +310,7 @@ class YoutubeAbstract(ScraperAbstract):
 				self.status_pipe.send(msg)
 				logging.debug("[Download worker][yt_dlp] Downloaded %d%%", percentage_of_completion)
 				if total_size > 0:
-					self._download_progress_threshold += 10
+					self._download_progress_threshold += 20
 
 	def build_yt_dlp(self, timeout: int = 60) -> yt_dlp.YoutubeDL:
 		auth_data = {}
