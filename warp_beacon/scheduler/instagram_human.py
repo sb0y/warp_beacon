@@ -39,7 +39,7 @@ class InstagramHuman(object):
 
 				if media_id:
 					seen.append(str(media_id))
-					if random.random() < 0.8:
+					if random.random() > 0.8:
 						try:
 							#self.scrapler.cl.media_like(media_id)
 							self.scrapler.cl.media_comments(media_id)
