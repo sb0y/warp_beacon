@@ -296,6 +296,7 @@ class InstagramHuman(object):
 				logging.info("Watching '%s' followers ...", user.username)
 				followers_amount = random.choices([3, 5, 8, 12], weights=[0.4, 0.3, 0.2, 0.1])[0]
 				self.scrapler.download_hndlr(self.scrapler.cl.user_followers, user.pk, amount=followers_amount)
+				self.operations_count += 1
 				self.random_pause(short=True)
 		except Exception as e:
 			logging.warning("Failed to explore user profile with username '%s'", user.username, exc_info=e)
