@@ -13,6 +13,7 @@ from typing import Callable, Optional, Union
 from urllib.parse import parse_qs, urlparse
 
 import numpy as np
+import av
 import pytubefix
 import pytubefix.exceptions
 import requests
@@ -387,3 +388,30 @@ class YoutubeAbstract(ScraperAbstract):
 			raise Unavailable("Сontent unvailable")
 
 		return ret
+
+	def mux_raw_copy(self, video_path: str, audio_path: str, output_path: str) -> str:
+		try:
+			with av.open(video_path) as input_video, av.open(audio_path) as input_audio, av.open(output_path, mode='w') as output:
+				in_video_stream = input_video.streams.video[0]
+				in_audio_stream = input_audio.streams.audio[0]
+
+				video_stream_map = output.add_stream(template=in_video_stream)
+				audio_stream_map = output.add_stream(template=in_audio_stream)
+
+				for packet in input_video.demux(in_video_stream):
+					if packet.dts is None:
+						continue
+					packet.stream = video_stream_map
+					output.mux(packet)
+
+				for packet in input_audio.demux(in_audio_stream):
+					if packet.dts is None:
+						continue
+					packet.stream = audio_stream_map
+					output.mux(packet)
+		except Exception as e:
+			logging.error("Failed to mux audio and video!")
+			logging.exception(e)
+			return ''
+
+		return output_path

@@ -4,7 +4,6 @@ import io
 from typing import Optional
 import logging
 
-import av
 from pytubefix.exceptions import AgeRestrictedError
 
 from warp_beacon.jobs.types import JobType
@@ -39,33 +38,6 @@ class YoutubeScraper(YoutubeAbstract):
 			res = self._download_pytube_dash(url=url, session=session, thumbnail=thumbnail, timeout=timeout)
 
 		return res
-	
-	def mux_raw_copy(self, video_path: str, audio_path: str, output_path: str) -> str:
-		try:
-			with av.open(video_path) as input_video, av.open(audio_path) as input_audio, av.open(output_path, mode='w') as output:
-				in_video_stream = input_video.streams.video[0]
-				in_audio_stream = input_audio.streams.audio[0]
-
-				video_stream_map = output.add_stream(template=in_video_stream)
-				audio_stream_map = output.add_stream(template=in_audio_stream)
-
-				for packet in input_video.demux(in_video_stream):
-					if packet.dts is None:
-						continue
-					packet.stream = video_stream_map
-					output.mux(packet)
-
-				for packet in input_audio.demux(in_audio_stream):
-					if packet.dts is None:
-						continue
-					packet.stream = audio_stream_map
-					output.mux(packet)
-		except Exception as e:
-			logging.error("Failed to mux audio and video!")
-			logging.exception(e)
-			return ''
-
-		return output_path
 
 	def _download_pytubefix_max_res(self, url: str, session: bool = True, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
