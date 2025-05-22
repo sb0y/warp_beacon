@@ -182,7 +182,7 @@ class YoutubeAbstract(ScraperAbstract):
 				# do noting, not interested
 				pass
 			#except http.client.IncompleteRead as e:
-			except (KeyError, pytubefix.exceptions.RegexMatchError):
+			except (KeyError, pytubefix.exceptions.RegexMatchError, pytubefix.exceptions.InterpretationError):
 				raise Unavailable("Library failed")
 			except urllib3.exceptions.ProxyError as e:
 				logging.warning("Proxy error!")
