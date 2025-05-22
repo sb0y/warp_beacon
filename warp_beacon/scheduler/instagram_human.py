@@ -291,6 +291,11 @@ class InstagramHuman(object):
 				if user_medias:
 					self.random_pause(short=True)
 					self.watch_content(user_medias)
+			if random.random() > 0.7:
+				self.random_pause()
+				logging.info("Watching '%s' followers ...", user.username)
+				self.scrapler.download_hndlr(self.scrapler.cl.user_followers, user.pk, amount=random.randint(3, 12))
+				self.random_pause(short=True)
 		except Exception as e:
 			logging.warning("Failed to explore user profile with username '%s'", user.username, exc_info=e)
 
