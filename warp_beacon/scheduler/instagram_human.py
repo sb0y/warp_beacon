@@ -99,6 +99,7 @@ class InstagramHuman(object):
 			return
 		explore_user = None
 		seen = []
+		random.seed(time.time())
 		for m in media[:random.randint(1, len(media))]:
 			try:
 				logging.info("Watching content with pk '%s'", str(m.id))
