@@ -340,7 +340,7 @@ class YoutubeAbstract(ScraperAbstract):
 
 		yt_dlp_cookies_file = os.environ.get("YT_DLP_COOKIES_FILE", default="/var/warp_beacon/yt_dlp_cookies.txt")
 		if yt_dlp_cookies_file and os.path.exists(yt_dlp_cookies_file):
-			ydl_opts['cookiesfrombrowser'] = tuple(s.strip() for s in os.environ.get("YT_DLP_COOKIES_FROM_BROWSER", default='chrome').split(','))
+			#ydl_opts['cookiesfrombrowser'] = tuple(s.strip() for s in os.environ.get("YT_DLP_COOKIES_FROM_BROWSER", default='chrome').split(','))
 			ydl_opts['cookiefile'] = yt_dlp_cookies_file
 
 		if self.proxy:
