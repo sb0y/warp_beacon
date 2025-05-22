@@ -196,7 +196,7 @@ class InstagramScraper(ScraperAbstract):
 				if "ProxyError" in msg:
 					raise BadProxy(msg)
 				logging.warning("Instagram read timeout! Retrying in 2 seconds ...")
-				logging.info("Your `IG_MAX_RETRIES` values is %d", max_retries)
+				logging.info("Your `IG_MAX_RETRIES` values is '%d'", max_retries)
 				logging.exception(e)
 				if max_retries <= retries:
 					raise TimeOut(extract_exception_message(e))
@@ -215,9 +215,11 @@ class InstagramScraper(ScraperAbstract):
 						relogin_success = self.cl.login(self.account["login"], self.account["password"], relogin=True)
 						if relogin_success:
 							self.safe_write_session()
+							logging.info("Successful relogin")
 					except Exception as exc:
 						logging.warning("Relogin failed!", exc_info=exc)
 				if not relogin_success:
+					logging.info("Fully logging into account from beginning ...")
 					old_session = self.cl.get_settings()
 					# change session id after relogin
 					self.client_session_id = self.acc_selector.generate_new_session_id()

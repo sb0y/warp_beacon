@@ -76,7 +76,7 @@ class InstagramHuman(object):
 			try:
 				logging.info("Wathing story with pk '%s'", str(m.id))
 				seen.append(str(m.id))
-				if random.random() > 0.5:
+				if random.random() > 0.9:
 					explore_user = m.user
 					break
 				self.random_pause()
@@ -104,7 +104,7 @@ class InstagramHuman(object):
 				logging.info("Watching content with pk '%s'", str(m.id))
 				seen.append(str(m.id))
 				logging.info("Watched content with id '%s'", str(m.id))
-				if random.random() > 0.4:
+				if random.random() > 0.9:
 					explore_user = m.user
 					break
 				self.random_pause()
