@@ -14,6 +14,7 @@ class InstagramHuman(object):
 	def __init__(self, scrapler: InstagramScraper) -> None:
 		self.scrapler = scrapler
 		self.operations_count = 0
+		self.was_profile_explore = False
 
 	def browse_timeline(self) -> Optional[dict]:
 		feed = None
@@ -283,7 +284,10 @@ class InstagramHuman(object):
 
 	def explore_profile(self, user: UserShort) -> None:
 		try:
+			if self.was_profile_explore:
+				return
 			logging.info("Exploring user profile '%s'", user.username)
+			self.was_profile_explore = True
 			user_id = self.scrapler.download_hndlr(self.scrapler.cl.user_id_from_username, user.username)
 			self.operations_count += 1
 			if user_id:
