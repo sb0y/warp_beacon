@@ -15,6 +15,14 @@ class InstagramHuman(object):
 		self.scrapler = scrapler
 		self.operations_count = 0
 		self.was_profile_explore = False
+		self.tray_feed = None
+
+	def reel_tray_feed_if_needed(self, reason: str = "pull_to_refresh") -> dict:
+		if self.tray_feed is not None:
+			self.tray_feed = self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, reason)
+			self.operations_count += 1
+
+		return self.tray_feed
 
 	def browse_timeline(self) -> Optional[dict]:
 		feed = None
@@ -61,10 +69,25 @@ class InstagramHuman(object):
 
 	def watch_stories(self) -> None:
 		logging.info("Simulating stories watch ...")
-		stories = None
+		stories = []
 		try:
-			stories = self.scrapler.cl.user_stories_v1(self.scrapler.cl.user_id)
-			self.operations_count += 1
+			tray = self.reel_tray_feed_if_needed()
+			if not tray:
+				logging.info("No stories tray available.")
+				return
+			for user_story in tray:
+				try:
+					user = user_story["user"]
+					#username = user["username"]
+					user_id = user["pk"]
+					_stories = self.scrapler.cl.user_stories(user_id)
+					self.operations_count += 1
+					if _stories:
+						stories.extend(_stories)
+					self.random_pause()
+				except Exception as exc:
+					logging.warning("Failed to fetch stories for user '%s'", user_story.get("user", {}).get("username", ""), exc_info=exc)
+					self.random_pause()
 		except Exception as e:
 			logging.warning("Failed to get user stories!", exc_info=e)
 
@@ -73,16 +96,18 @@ class InstagramHuman(object):
 
 		seen = []
 		explore_user = None
-		for m in stories[:random.randint(1, len(stories))]:
-			try:
-				logging.info("Wathing story with pk '%s'", str(m.id))
-				seen.append(str(m.id))
-				if random.random() > 0.9:
-					explore_user = m.user
-					break
-				self.random_pause()
-			except Exception as e:
-				logging.warning("Exception while watching content", exc_info=e)
+		if stories:
+			for m in stories[:random.randint(1, len(stories))]:
+				try:
+					logging.info("Wathing story with pk '%s'", str(m.id))
+					seen.append(str(m.id))
+					if random.random() > 0.9:
+						explore_user = m.user
+						self.operations_count += 1
+						break
+					self.random_pause()
+				except Exception as e:
+					logging.warning("Exception while watching content", exc_info=e)
 
 		if seen:
 			try:
@@ -163,14 +188,13 @@ class InstagramHuman(object):
 			time.sleep(random.uniform(3, 7))
 			if random.random() > 0.5:
 				self.check_direct()
-			#if random.random() > 0.6:
-			#	self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
-			#	self.operations_count += 1
-			#	self.random_pause()
+			if random.random() > 0.6:
+				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
+				self.operations_count += 1
+				self.random_pause()
 			if random.random() > 0.2:
 				logging.info("Simulation updating reels tray feed ...")
-				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
-				self.operations_count += 1
+				self.reel_tray_feed_if_needed()
 				self.random_pause()
 			if random.random() > 0.4:
 				self.watch_stories()
@@ -188,8 +212,7 @@ class InstagramHuman(object):
 			self.browse_timeline()
 			time.sleep(random.uniform(2, 5))
 			if random.random() > 0.5:
-				self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, "pull_to_refresh")
-				self.operations_count += 1
+				self.reel_tray_feed_if_needed()
 				self.random_pause()
 
 			if random.random() > 0.4:
@@ -213,11 +236,11 @@ class InstagramHuman(object):
 			time.sleep(random.uniform(2, 5))
 			if random.random() > 0.5:
 				self.check_direct()
-			#if random.random() > 0.6:
-			#	logging.info("Checking notifications, tags ...")
-			#	self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
-			#	self.operations_count += 1
-			#	self.random_pause()
+			if random.random() > 0.6:
+				logging.info("Checking notifications, tags ...")
+				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
+				self.operations_count += 1
+				self.random_pause()
 			if random.random() > 0.4:
 				self.watch_stories()
 				self.random_pause()
@@ -274,8 +297,9 @@ class InstagramHuman(object):
 				msg_sample = random.sample(messages, k=random.randint(1, min(len(messages), 5)))
 				for msg in msg_sample:
 					if random.random() < 0.85:
-						self.scrapler.cl.direct_message_seen(msg.thread_id, msg.id)
-						self.operations_count += 1
+						#self.scrapler.cl.direct_message_seen(msg.thread_id, msg.id)
+						#self.operations_count += 1
+						logging.info("visual_media: '%s'", msg.visual_media)
 					self.random_pause()
 				self.random_pause()
 			except Exception as e:
@@ -322,15 +346,15 @@ class InstagramHuman(object):
 			if isinstance(random_friend, UserShort):
 				target_user_id = random_friend.pk
 				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
-				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
-				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
+				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
+				#self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
 				self.operations_count += 1
 				self.random_pause()
 			elif isinstance(random_friend, str):
 				target_user_id = self.scrapler.download_hndlr(self.scrapler.cl.user_id_from_username, random_friend)
 				logging.info("user_info with target_user_id = '%s' ...", target_user_id)
-				#self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
-				self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
+				self.scrapler.download_hndlr(self.scrapler.cl.user_info, target_user_id)
+				#self.scrapler.download_hndlr(self.scrapler.cl.user_info_v1, target_user_id)
 				self.operations_count += 1
 				self.random_pause()
 			
@@ -339,11 +363,11 @@ class InstagramHuman(object):
 			if random.random() > 0.5:
 				self.check_direct()
 
-			#if random.random() > 0.3:
-			#	logging.info("Checking notifications, tags ...")
-			#	self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
-			#	self.operations_count += 1
-			#	self.random_pause()
+			if random.random() > 0.3:
+				logging.info("Checking notifications, tags ...")
+				self.scrapler.download_hndlr(self.scrapler.cl.notification_like_and_comment_on_photo_user_tagged, "everyone")
+				self.operations_count += 1
+				self.random_pause()
 			
 			if random.random() > 0.5:
 				logging.info("user_medias with target_user_id = '%s' ...", target_user_id)

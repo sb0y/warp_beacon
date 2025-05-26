@@ -7,7 +7,7 @@ import time
 import requests
 
 from instagrapi import Client
-from instagrapi.types import Media, User
+from instagrapi.types import Media, User, Story
 from instagrapi.exceptions import (
 	#ClientError,
 	#ClientLoginRequired,
@@ -307,3 +307,20 @@ class WBClient(Client):
 		if amount:
 			medias = medias[:amount]
 		return medias
+
+	def user_stories(self, user_id: str, amount: int = None) -> List[Story]:
+		"""
+		Get a user's stories
+
+		Parameters
+		----------
+		user_id: str
+		amount: int, optional
+			Maximum number of story to return, default is all
+
+		Returns
+		-------
+		List[Story]
+			A list of objects of STory
+		"""
+		return self.user_stories_v1(user_id, amount)
