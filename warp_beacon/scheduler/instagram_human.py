@@ -18,7 +18,7 @@ class InstagramHuman(object):
 		self.tray_feed = None
 
 	def reel_tray_feed_if_needed(self, reason: str = "pull_to_refresh") -> dict:
-		if self.tray_feed is not None:
+		if self.tray_feed is None:
 			self.tray_feed = self.scrapler.download_hndlr(self.scrapler.cl.get_reels_tray_feed, reason)
 			self.operations_count += 1
 
