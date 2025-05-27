@@ -148,10 +148,10 @@ class InstagramHuman(object):
 			self.explore_profile(explore_user)
 
 	def scroll_content(self, last_pk: int) -> None:
-		timeline_initialized = False
+		#timeline_initialized = False
 		if random.random() > 0.5:
-			timeline_initialized = True
-			self.browse_timeline()
+			#timeline_initialized = True
+			#self.browse_timeline()
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
@@ -159,8 +159,8 @@ class InstagramHuman(object):
 		
 		if random.random() > 0.7:
 			time.sleep(random.uniform(2, 20))
-			if not timeline_initialized:
-				self.browse_timeline()
+			#if not timeline_initialized:
+			#	self.browse_timeline()
 			logging.info("Starting to explore reels with media_pk '%d'", last_pk)
 			media = self.scrapler.download_hndlr(self.scrapler.cl.explore_reels, amount=random.randint(4, 10), last_media_pk=last_pk)
 			self.operations_count += 1
