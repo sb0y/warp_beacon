@@ -257,13 +257,13 @@ class AccountSelector(object):
 		return len(self.accounts[module_name])
 	
 	def inc_ig_request_count(self, amount: int = 1) -> None:
-		self.ig_request_count.value += amount
+		self.ig_request_count.value += int(amount)
 
 	def reset_ig_request_count(self) -> None:
 		self.ig_request_count.value = 0
 
 	def get_ig_request_count(self) -> int:
-		return self.ig_request_count.value
+		return int(self.ig_request_count.value)
 	
 	def get_ig_session_id(self) -> str:
 		with self.lock:

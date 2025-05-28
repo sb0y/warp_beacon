@@ -78,29 +78,21 @@ class InstagramHuman(object):
 			logging.info("raw_tray: %s", str(raw_tray))
 			tray = raw_tray.get("tray", [])
 			for user_story in tray:
-				try:
-					user = user_story["user"]
-					#username = user["username"]
-					user_id = user["pk"]
-					_stories = self.scrapler.cl.user_stories(user_id)
-					self.operations_count += 1
-					if _stories:
-						stories.extend(_stories)
-					self.random_pause()
-				except Exception as exc:
-					logging.warning("Failed to fetch stories for user '%s'", user_story.get("user", {}).get("username", ""), exc_info=exc)
-					self.random_pause()
-		except Exception as e:
-			logging.warning("Failed to get user stories!", exc_info=e)
+				user = user_story["user"]
+				user_id = user["pk"]
+				_stories = self.scrapler.cl.user_stories(user_id)
+				self.operations_count += 1
+				if _stories:
+					stories.extend(_stories)
+				self.random_pause()
 
-		if not stories:
-			return
+			if not stories:
+				return
 
-		seen = []
-		explore_user = None
-		if stories:
-			for m in stories[:random.randint(1, len(stories))]:
-				try:
+			seen = []
+			explore_user = None
+			if stories:
+				for m in stories[:random.randint(1, len(stories))]:
 					logging.info("Wathing story with pk '%s'", str(m.id))
 					seen.append(str(m.id))
 					if random.random() > 0.9:
@@ -108,19 +100,16 @@ class InstagramHuman(object):
 						self.operations_count += 1
 						break
 					self.random_pause()
-				except Exception as e:
-					logging.warning("Exception while watching content", exc_info=e)
 
-		if seen:
-			try:
+			if seen:
 				self.scrapler.cl.media_seen(seen)
 				self.operations_count += 1
 				logging.info("Marked '%d' stories as seen", len(seen))
-			except Exception as e:
-				logging.warning("Failed to mark seen watched watch stories!", exc_info=e)
 
-		if explore_user:
-			self.explore_profile(explore_user)
+			if explore_user:
+				self.explore_profile(explore_user)
+		except Exception as e:
+			logging.warning("Failed to get user stories!", exc_info=e)
 
 	def watch_content(self, media: list) -> None:
 		if not media:
@@ -129,22 +118,16 @@ class InstagramHuman(object):
 		seen = []
 		random.seed(time.time())
 		for m in media[:random.randint(1, len(media))]:
-			try:
-				logging.info("Watching content with pk '%s'", str(m.id))
-				seen.append(str(m.id))
-				logging.info("Watched content with id '%s'", str(m.id))
-				if random.random() > 0.9:
-					explore_user = m.user
-					break
-				self.random_pause()
-			except Exception as e:
-				logging.warning("Exception while watching content")
-				logging.exception(e)
-		try:
-			self.scrapler.download_hndlr(self.scrapler.cl.media_seen, seen)
-			self.operations_count += 1
-		except Exception as e:
-			logging.warning("Failed to mark seen watched videos!", exc_info=e)
+			logging.info("Watching content with pk '%s'", str(m.id))
+			seen.append(str(m.id))
+			logging.info("Watched content with id '%s'", str(m.id))
+			if random.random() > 0.9:
+				explore_user = m.user
+				break
+			self.random_pause()
+
+		self.scrapler.download_hndlr(self.scrapler.cl.media_seen, seen)
+		self.operations_count += 1
 
 		if explore_user:
 			self.explore_profile(explore_user)
@@ -291,22 +274,18 @@ class InstagramHuman(object):
 		threads = self.scrapler.download_hndlr(self.scrapler.cl.direct_threads, amount=random.randint(3, 7))
 		self.operations_count += 1
 		for thread in threads:
-			try:
-				messages = self.scrapler.cl.direct_messages(thread.id, amount=random.randint(5, 15))
-				self.operations_count += 1
-				if not messages:
-					continue
-				msg_sample = random.sample(messages, k=random.randint(1, min(len(messages), 5)))
-				for msg in msg_sample:
-					if random.random() < 0.85:
-						#self.scrapler.cl.direct_message_seen(msg.thread_id, msg.id)
-						#self.operations_count += 1
-						logging.info("visual_media: '%s'", msg.visual_media)
-					self.random_pause()
-				self.random_pause()
-			except Exception as e:
-				logging.warning("Failed to read thread %s", thread.id)
-				logging.exception(e)
+			messages = self.scrapler.cl.direct_messages(thread.id, amount=random.randint(5, 15))
+			self.operations_count += 1
+			if not messages:
+				continue
+			#msg_sample = random.sample(messages, k=random.randint(1, min(len(messages), 5)))
+			#for msg in msg_sample:
+				#if random.random() < 0.85:
+					#self.scrapler.cl.direct_message_seen(msg.thread_id, msg.id)
+					#self.operations_count += 1
+					#logging.info("visual_media: '%s'", msg.visual_media)
+				#self.random_pause()
+			#self.random_pause()
 
 	def explore_profile(self, user: UserShort) -> None:
 		try:
