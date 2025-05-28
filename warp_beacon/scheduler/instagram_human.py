@@ -71,10 +71,12 @@ class InstagramHuman(object):
 		logging.info("Simulating stories watch ...")
 		stories = []
 		try:
-			tray = self.reel_tray_feed_if_needed()
-			if not tray:
+			raw_tray = self.reel_tray_feed_if_needed()
+			if not raw_tray:
 				logging.info("No stories tray available.")
 				return
+			logging.info("raw_tray: %s", str(raw_tray))
+			tray = raw_tray.get("tray", [])
 			for user_story in tray:
 				try:
 					user = user_story["user"]
