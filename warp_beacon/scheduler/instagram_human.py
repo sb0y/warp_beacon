@@ -80,7 +80,7 @@ class InstagramHuman(object):
 			for user_story in tray:
 				user = user_story["user"]
 				user_id = user["pk"]
-				_stories = self.scrapler.cl.user_stories(user_id)
+				_stories = self.scrapler.download_hndlr(self.scrapler.cl.user_stories, user_id)
 				self.operations_count += 1
 				if _stories:
 					stories.extend(_stories)
@@ -102,7 +102,7 @@ class InstagramHuman(object):
 					self.random_pause()
 
 			if seen:
-				self.scrapler.cl.media_seen(seen)
+				self.scrapler.download_hndlr(self.scrapler.cl.media_seen, seen)
 				self.operations_count += 1
 				logging.info("Marked '%d' stories as seen", len(seen))
 
