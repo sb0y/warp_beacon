@@ -75,16 +75,23 @@ class InstagramHuman(object):
 			if not raw_tray:
 				logging.info("No stories tray available.")
 				return
-			logging.info("raw_tray: %s", str(raw_tray))
+			#logging.info("raw_tray: %s", str(raw_tray))
 			tray = raw_tray.get("tray", [])
-			for user_story in tray:
-				user = user_story["user"]
-				user_id = user["pk"]
-				_stories = self.scrapler.download_hndlr(self.scrapler.cl.user_stories, user_id)
-				self.operations_count += 1
-				if _stories:
-					stories.extend(_stories)
-				self.random_pause()
+			if tray:
+				reels_tray = []
+				target_len = random.randint(1, 5)
+				for el in tray[:target_len]:
+					user = el["user"]
+					user_id = user["pk"]
+					if el.get("seen", 0) == 0:
+						reels_tray.append({"user_id": user_id})
+
+				for el in reels_tray:
+					_stories = self.scrapler.download_hndlr(self.scrapler.cl.user_stories, el["user_id"])
+					self.operations_count += 1
+					if _stories:
+						stories.extend(_stories)
+					self.random_pause()
 
 			if not stories:
 				return
