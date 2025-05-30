@@ -5,7 +5,7 @@ from datetime import datetime
 
 import logging
 
-from instagrapi.types import UserShort
+from instagrapi.types import UserShort, Story
 from warp_beacon.scraper.instagram.instagram import InstagramScraper
 
 class InstagramHuman(object):
@@ -69,7 +69,7 @@ class InstagramHuman(object):
 
 	def watch_stories(self) -> None:
 		logging.info("Simulating stories watch ...")
-		stories = []
+		stories: list[Story] = []
 		try:
 			raw_tray = self.reel_tray_feed_if_needed()
 			if not raw_tray:
@@ -77,16 +77,17 @@ class InstagramHuman(object):
 				return
 			#logging.info("raw_tray: %s", str(raw_tray))
 			tray = raw_tray.get("tray", [])
-			if tray:
+			filtered_tray = [item for item in tray if item.get("seen", 0) == 0]
+			if filtered_tray:
 				reels_tray = []
 				target_len = random.randint(1, 5)
-				for el in tray[:target_len]:
+				for el in filtered_tray[:target_len]:
 					user = el["user"]
 					user_id = user["pk"]
-					if el.get("seen", 0) == 0:
-						reels_tray.append({"user_id": user_id})
+					reels_tray.append({"user_id": user_id})
 
 				for el in reels_tray:
+					# amount?
 					_stories = self.scrapler.download_hndlr(self.scrapler.cl.user_stories, el["user_id"])
 					self.operations_count += 1
 					if _stories:
@@ -106,7 +107,16 @@ class InstagramHuman(object):
 						explore_user = m.user
 						self.operations_count += 1
 						break
-					self.random_pause()
+					pause = 0.0
+					if m.media_type == 2:
+						pause = m.video_duration or random.uniform(2, 20)
+					elif m.media_type == 8:
+						pause = random.uniform(2, 31)
+					else: # img, etc.
+						pause = random.uniform(2, 14)
+					logging.info("Pause for '%.2f' sec ...", round(pause, 2))
+					time.sleep(pause)
+					#self.random_pause()
 
 			if seen:
 				self.scrapler.download_hndlr(self.scrapler.cl.media_seen, seen)
