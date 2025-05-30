@@ -28,13 +28,14 @@ class FailHandler(object):
 			logging.exception(e)
 		return db_id
 	
-	def get_failed_jobs(self) -> list:
+	def get_failed_jobs(self, clean: bool = True) -> list:
 		ret = []
 		try:
 			cursor = self.db.find()
 			for document in cursor:
 				ret.append(pickle.loads(document["job_data"]))
-			self.db.delete_many({})
+			if clean:
+				self.db.delete_many({})
 		except Exception as e:
 			logging.error("Failed to get failed jobs!")
 			logging.exception(e)

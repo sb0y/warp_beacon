@@ -50,10 +50,11 @@ class AsyncUploader(object):
 			self.threads.append(thread)
 
 	def add_callback(self, message_id: int, callback: Callable) -> None:
-		async def callback_wrap(*args, **kwargs) -> None:
-			await callback(*args, **kwargs)
-			#self.remove_callback(message_id)
-		self.callbacks[message_id] = {"callback": callback_wrap}
+		if message_id not in self.callbacks:
+			async def callback_wrap(*args, **kwargs) -> None:
+				await callback(*args, **kwargs)
+				#self.remove_callback(message_id)
+			self.callbacks[message_id] = {"callback": callback_wrap}
 
 	def remove_callback(self, message_id: int) -> None:
 		if message_id in self.callbacks:

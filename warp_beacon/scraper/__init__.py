@@ -79,8 +79,6 @@ class AsyncDownloader(object):
 
 	def try_next_account(self, selector: AccountSelector, job: DownloadJob, report_error: str = None) -> None:
 		logging.warning("Switching account!")
-		if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
-			raise AllAccountsFailed("All config accounts failed!", job=job, reason=report_error)
 		if report_error:
 			selector.bump_acc_fail(report_error)
 		selector.next()
@@ -112,6 +110,9 @@ class AsyncDownloader(object):
 								replay=True
 							))
 							continue
+		
+						if job.account_switches > self.acc_selector.count_service_accounts(job.job_origin):
+							raise AllAccountsFailed("All config accounts failed!", job=job)
 						if not job.in_process:
 							if job.job_postponed_until > 0:
 								if (job.job_postponed_until - time.time()) > 0:
@@ -403,7 +404,6 @@ class AsyncDownloader(object):
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 							self.uploader.queue_task(job.to_upload_job())
-			
 					except AllAccountsFailed as e:
 						self.send_message_to_admin(
 							f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>AllAccountsFailed</b>'."
