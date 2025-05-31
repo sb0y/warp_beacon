@@ -45,9 +45,9 @@ class Storage(object):
 			yt_vid_id = yt_vid_id_list.pop() if yt_vid_id_list else ""
 			if yt_vid_id:
 				path = urlparse(url).path.strip('/').replace("watch", ("yt_music" if parse_mode is UrlParseMode.YT_MUSIC else "youtube"))
-				return ("%s/%s" % (path, yt_vid_id)).strip('/')
+				return f"{path}/{yt_vid_id}".strip('/')
 			else:
-				raise ValueError("Failed to generate uniq_id for url '%s'", url)
+				raise ValueError(f"Failed to generate uniq_id for url '{url}'")
 			
 		path = urlparse(url).path.strip('/')
 		return path

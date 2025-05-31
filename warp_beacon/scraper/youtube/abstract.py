@@ -381,11 +381,7 @@ class YoutubeAbstract(ScraperAbstract):
 			logging.warning("Download failed, trying to download with yt_dlp")
 			logging.exception(e)
 		
-		try:
-			ret = self.download_hndlr(self._download_yt_dlp, job.url, thumbnail=thumbnail)
-		except NotImplementedError:
-			logging.info("yt_dlp is not supported for this submodule yet")
-			raise Unavailable("Сontent unvailable")
+		ret = self.download_hndlr(self._download_yt_dlp, job.url, thumbnail=thumbnail)
 
 		return ret
 
