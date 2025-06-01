@@ -151,7 +151,7 @@ class InstagramHuman(object):
 
 	def scroll_content(self, last_pk: int) -> None:
 		#timeline_initialized = False
-		if random.random() > 0.5:
+		if random.random() > 0.95:
 			#timeline_initialized = True
 			#self.browse_timeline()
 			logging.info("Starting to watch related reels with media_pk '%d'", last_pk)
@@ -159,7 +159,7 @@ class InstagramHuman(object):
 			self.operations_count += 1
 			self.watch_content(media)
 		
-		if random.random() > 0.7:
+		if random.random() > 0.95:
 			time.sleep(random.uniform(2, 20))
 			#if not timeline_initialized:
 			#	self.browse_timeline()

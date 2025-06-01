@@ -24,7 +24,7 @@ from warp_beacon.telegram.types import ReportType
 
 class XAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
-	X_MAX_RETRIES_DEFAULT = 8
+	X_MAX_RETRIES_DEFAULT = 2
 	X_PAUSE_BEFORE_RETRY_DEFAULT = 3
 	X_TIMEOUT_DEFAULT = 15
 	X_TIMEOUT_INCREMENT_DEFAULT = 20

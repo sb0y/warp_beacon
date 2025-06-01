@@ -7,6 +7,7 @@ import requests
 import yt_dlp
 from playwright.sync_api import sync_playwright
 
+from warp_beacon.telegram.utils import Utils
 from warp_beacon.scraper.utils import ScraperUtils
 from warp_beacon.scraper.X.types import XMediaType
 from warp_beacon.jobs.types import JobType
@@ -82,24 +83,40 @@ class XScraper(XAbstract):
 					media_type = XMediaType.IMAGE
 				else:
 					raise
-
+		
+		images = []
 		if media_type == XMediaType.IMAGE:
 			job_type = JobType.IMAGE
 			images, post_text = self.download_images(url, timeout)
 			if images:
-				#if len(images) > 1:
-				#	job_type = JobType.COLLECTION
-				local_file = images[0]
+				if len(images) > 1:
+					job_type = JobType.COLLECTION
+				else:
+					local_file = images[0]
 
-		if local_file:
+		if job_type == JobType.COLLECTION:
+			chunks = []
+			for media_chunk in Utils.chunker(images, 10):
+				chunk = []
+				for media in media_chunk:
+					chunk.append({
+						"local_media_path": media,
+						"canonical_name": post_text,
+						"media_type": JobType.IMAGE
+					})
+				chunks.append(chunk)
 			res.append({
-				"local_media_path": local_file,
-				"performer": media_info.get("uploader", "Unknown"),
-				'progress_hooks': [self.dlp_on_progress],
-				#"thumb": thumbnail,
-				"canonical_name": post_text,
-				"media_type": job_type
+				"media_type": JobType.COLLECTION,
+				"items": chunks
 			})
+		else:
+			if local_file:
+				res.append({
+					"local_media_path": local_file,
+					"performer": media_info.get("uploader", "Unknown"),
+					"canonical_name": post_text,
+					"media_type": job_type
+				})
 
 		return res
 
@@ -200,13 +217,13 @@ class XScraper(XAbstract):
 
 		with sync_playwright() as p:
 			with p.chromium.launch(headless=True) as browser:
-				with browser.new_context(proxy=proxy, ignore_https_errors=True) as context:
+				with browser.new_context(proxy=proxy) as context:
 					page = context.new_page()
 					page.goto(url, wait_until="networkidle", timeout=(timeout*1000))
 
 					#page.wait_for_timeout(3000)
 					page.wait_for_selector("img[src*='pbs.twimg.com/media']", timeout=(timeout*1000))
-					text_element = page.wait_for_selector('[data-testid="tweetText"]', timeout=(timeout*1000))
+					text_element = page.query_selector('[data-testid="tweetText"]')
 					text = text_element.inner_text()
 
 					image_elements = page.query_selector_all("img")
