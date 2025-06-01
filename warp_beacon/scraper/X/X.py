@@ -223,10 +223,10 @@ class XScraper(XAbstract):
 					continue
 
 			return " ".join(tweet_texts).strip()
-
 		except Exception as e:
-			logging.warning("Failed to extract tweet text: %s", e)
-			return ""
+			logging.warning("Failed to extract tweet text.", exc_info=e)
+		
+		return ""
 
 	def extract_image_urls_from_x_post(self, url: str, timeout: int = 60) -> tuple[list[str], str]:
 		img_urls, post_text = [], ''
