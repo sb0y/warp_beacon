@@ -1,29 +1,33 @@
+import http.client
+import io
+import logging
 import os
 import socket
 import ssl
 import time
-import logging
-
-from typing import Callable, Optional, Union
-import requests
 import urllib
+from typing import Callable, Optional, Union
+
+import playwright
+import playwright.sync_api
+import requests
 import urllib3
-import http.client
 #from pytubefix.exceptions import VideoUnavailable, VideoPrivate, MaxRetriesExceeded
 import yt_dlp
 
-from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.download_job import DownloadJob
+from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.scraper.exceptions import (BadProxy, TimeOut, Unavailable,
-											extract_exception_message)
-from warp_beacon.scraper.X.types import XMediaType
+                                            extract_exception_message)
+from warp_beacon.telegram.types import ReportType
+
 
 class XAbstract(ScraperAbstract):
 	DOWNLOAD_DIR = "/tmp"
 	X_MAX_RETRIES_DEFAULT = 8
 	X_PAUSE_BEFORE_RETRY_DEFAULT = 3
-	X_TIMEOUT_DEFAULT = 2
-	X_TIMEOUT_INCREMENT_DEFAULT = 60
+	X_TIMEOUT_DEFAULT = 15
+	X_TIMEOUT_INCREMENT_DEFAULT = 20
 
 	def __init__(self, account: tuple, proxy: dict=None) -> None:
 		super().__init__(account, proxy)
@@ -53,13 +57,14 @@ class XAbstract(ScraperAbstract):
 					http.client.HTTPException,
 					requests.RequestException,
 					urllib.error.URLError,
-					urllib.error.HTTPError) as e:
+					urllib.error.HTTPError,
+					playwright.sync_api.TimeoutError) as e:
 				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
 					raise Unavailable(extract_exception_message(e))
 				if hasattr(e, "reason") and "Remote end closed connection without response" in str(e.reason):
 					raise Unavailable(extract_exception_message(e))
-				logging.warning("Youtube read timeout! Retrying in '%d' seconds ...", pause_secs)
-				logging.info("Your `YT_MAX_RETRIES` values is '%d'", max_retries)
+				logging.warning("X read timeout! Retrying in '%d' seconds ...", pause_secs)
+				logging.info("Your `X_MAX_RETRIES` values is '%d'", max_retries)
 				logging.exception(extract_exception_message(e))
 				if max_retries <= retries:
 					#self.remove_tmp_files()
@@ -84,6 +89,24 @@ class XAbstract(ScraperAbstract):
 
 		return ret_val
 
+	def download_progress(self, total: int | None, bytes_transferred: int, path: str) -> None:
+		if not total:
+			return
+		percentage_of_completion = round(bytes_transferred / (total or 1) * 100)
+		if percentage_of_completion >= self._download_progress_threshold:
+			logging.debug("[Download] X file '%s', %d", path, percentage_of_completion)
+			msg = {
+				"action": "report_download_status",
+				"current": bytes_transferred,
+				"total": total or 0,
+				"message_id": self.job.placeholder_message_id,
+				"chat_id": self.job.chat_id,
+				"completed": percentage_of_completion >= 100,
+				"report_type": ReportType.PROGRESS
+			}
+			self.status_pipe.send(msg)
+			self._download_progress_threshold += 20
+
 	def dlp_on_progress(self, params: dict) -> None:
 		if params.get("status", "") == "downloading":
 			total_size = int(params.get("total_bytes") or params.get("total_bytes_estimate") or 0)
@@ -99,58 +122,18 @@ class XAbstract(ScraperAbstract):
 					"total": total_size,
 					"message_id": self.job.placeholder_message_id,
 					"chat_id": self.job.chat_id,
-					"completed": percentage_of_completion >= 100
+					"completed": percentage_of_completion >= 100,
+					"report_type": ReportType.PROGRESS
 				}
 				self.status_pipe.send(msg)
 				logging.debug("[Download worker][yt_dlp] Downloaded %d%%", percentage_of_completion)
 				if total_size > 0:
 					self._download_progress_threshold += 20
 
-	def get_post_info(self, url: str, timeout: int = 60) -> dict:
-		ydl_opts = {
-			'socket_timeout': timeout,
-			'quiet': True,
-			'skip_download': True,
-			'force_generic_extractor': False,
-			'simulate': True,
-			'dump_single_json': True,
-		}
-
-		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-			info = ydl.extract_info(url, download=False)
-			return info
-
-		return {}
-
-	def _download(self, url: str, media_info: dict, media_type: XMediaType = XMediaType.UNKNOWN, timeout: int = 60) -> list:
+	def _download(self, url: str, timeout: int = 60) -> list:
 		raise NotImplementedError("You should to implement _download method")
 
 	def download(self, job: DownloadJob) -> list:
 		self.job = job
-		ret = []
-
-		try:
-			#self.status_pipe.send({"action": "report_download_status", "current": 0, "total": 0,
-			#						"message_id": self.job.placeholder_message_id, "chat_id": self.job.chat_id})
-			media_type = XMediaType.UNKNOWN
-			post_info = self.download_hndlr(self.get_post_info, url=job.url)
-			logging.info("[X] post info: '%s'", post_info)
-
-			if 'ext' in post_info:
-				logging.info("[X] Format: '%s'", post_info['ext'])
-			if 'formats' in post_info:
-				logging.info("[X] Contains video.")
-				media_type = XMediaType.VIDEO
-			elif 'thumbnails' in post_info:
-				logging.info("[X] contains images.")
-			else:
-				logging.info("[X] No media found.")
-
-			if media_type == XMediaType.VIDEO:
-				ret = self.download_hndlr(self._download, job.url, media_type=media_type, media_info=post_info)
-			return ret
-		except (Unavailable, TimeOut, KeyError) as e:
-			logging.warning("Download failed, trying to download with yt_dlp")
-			logging.exception(e)
-
+		ret = self.download_hndlr(self._download, job.url)
 		return ret
