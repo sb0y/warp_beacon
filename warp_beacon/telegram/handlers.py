@@ -99,6 +99,17 @@ class Handlers(object):
 								origin=job.job_origin.value,
 								canonical_name=job.canonical_name
 							)
+				elif job.media_type == JobType.COLLECTION:
+					common_canonical_name = job.canonical_name
+					if not common_canonical_name and job.media_collection:
+						common_canonical_name = job.media_collection[0].canonical_name
+					self.storage.add_media(
+						tg_file_ids=[','.join(tg_file_ids)],
+						media_url=job.url,
+						media_type=job.media_type.value,
+						origin=job.job_origin.value,
+						canonical_name=common_canonical_name
+					)
 				else:
 					self.storage.add_media(
 						tg_file_ids=[','.join(tg_file_ids)],
@@ -196,7 +207,8 @@ class Handlers(object):
 								user_id=message.from_user.id,
 								chat_type=message.chat.type,
 								source_username=Utils.extract_message_author(message),
-								message_leftover=msg_leftover
+								message_leftover=msg_leftover,
+								canonical_name=entities[0]["canonical_name"]
 							)
 						)
 					elif ent_len:
