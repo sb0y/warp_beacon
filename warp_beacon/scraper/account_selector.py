@@ -118,7 +118,7 @@ class AccountSelector(object):
 			current_acc_pid = acc_data.get("proxy_id", "").strip()
 			for proxy in self.proxies:
 				if ipv4:
-					if proxy.get("ip_version", '') != "v4":
+					if proxy.get("ip_version", '') not in ("v4", "both"):
 						continue
 				pid = proxy.get("id", "").strip()
 				if pid and current_acc_pid and pid == current_acc_pid:
