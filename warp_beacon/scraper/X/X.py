@@ -226,7 +226,7 @@ class XScraper(XAbstract):
 					page.wait_for_selector("img[src*='pbs.twimg.com/media']", timeout=(timeout*1000))
 					text_element = page.query_selector('[data-testid="tweetText"]')
 					if text_element:
-						text = text_element.inner_text()
+						post_text = str(text_element.inner_text())
 
 					image_elements = page.query_selector_all("img")
 					image_urls = []
@@ -237,5 +237,4 @@ class XScraper(XAbstract):
 							image_urls.append(src)
 					
 					img_urls = list(set(image_urls))
-					post_text = str(text)
 		return img_urls, post_text
