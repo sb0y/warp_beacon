@@ -77,7 +77,7 @@ class XScraper(XAbstract):
 					job_type = JobType.VIDEO
 			except yt_dlp.utils.DownloadError as e:
 				msg = str(e).lower()
-				if "No video could be found in this tweet" in msg:
+				if "no video could be found in this tweet" in msg:
 					logging.warning("[X] yt_dlp failed to extract info. Falling back to image scraping.")
 					media_type = XMediaType.IMAGE
 				else:
@@ -87,6 +87,8 @@ class XScraper(XAbstract):
 			job_type = JobType.IMAGE
 			images, post_text = self.download_images(url, timeout)
 			if images:
+				#if len(images) > 1:
+				#	job_type = JobType.COLLECTION
 				local_file = images[0]
 
 		if local_file:
