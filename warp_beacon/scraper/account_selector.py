@@ -111,12 +111,15 @@ class AccountSelector(object):
 	def get_last_proxy(self) -> Optional[dict]:
 		return self.accounts_meta_data.get("last_proxy", None)
 
-	def get_proxy_list(self) -> List[dict]:
+	def get_proxy_list(self, ipv4: bool = False) -> List[dict]:
 		matched_proxy = []
 		try:
 			acc_id, acc_data = self.get_current()
 			current_acc_pid = acc_data.get("proxy_id", "").strip()
 			for proxy in self.proxies:
+				if ipv4:
+					if proxy.get("ip_version", '') != "v4":
+						continue
 				pid = proxy.get("id", "").strip()
 				if pid and current_acc_pid and pid == current_acc_pid:
 					if "override_force_ipv6" in proxy:
@@ -129,10 +132,10 @@ class AccountSelector(object):
 
 		return matched_proxy
 
-	def get_random_account_proxy(self) -> Optional[dict]:
+	def get_random_account_proxy(self, ipv4: bool = False) -> Optional[dict]:
 		if self.proxies:
 			try:
-				matched_proxy = self.get_proxy_list()
+				matched_proxy = self.get_proxy_list(ipv4)
 				if matched_proxy:
 					if len(matched_proxy) > 1:
 						random.seed(random.seed(time.time_ns() ^ int.from_bytes(os.urandom(len(matched_proxy)), "big")))
@@ -204,7 +207,10 @@ class AccountSelector(object):
 			if not self.current.get("enabled", True):
 				logging.info("Account '%d' is disabled. Probing next ...", idx)
 				self.next()
-		self.current_proxy = self.get_random_account_proxy()
+		ipv4 = False
+		if module_origin is Origin.X:
+			ipv4 = True
+		self.current_proxy = self.get_random_account_proxy(ipv4)
 
 	def next(self) -> dict:
 		idx = self.account_index[self.current_module_name].value

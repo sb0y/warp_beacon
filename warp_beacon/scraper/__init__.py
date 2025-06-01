@@ -148,6 +148,10 @@ class AsyncDownloader(object):
 							elif job.job_origin is Origin.YOUTUBE:
 								from warp_beacon.scraper.youtube.youtube import YoutubeScraper
 								actor = YoutubeScraper(selector.get_current(), proxy)
+							elif job.job_origin is Origin.X:
+								from warp_beacon.scraper.X.X import XScraper
+								actor = XScraper(selector.get_current(), proxy)
+
 							actor.send_message_to_admin_func = self.send_message_to_admin
 							actor.request_yt_auth = self.request_yt_auth
 							actor.auth_event = self.auth_event

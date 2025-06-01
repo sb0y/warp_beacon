@@ -43,6 +43,9 @@ class Utils(object):
 
 		if "youtube.com/" in url:
 			return Origin.YOUTUBE
+		
+		if "x.com/" in url:
+			return Origin.X
 
 		return Origin.UNKNOWN
 
