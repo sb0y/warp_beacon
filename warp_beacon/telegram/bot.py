@@ -195,23 +195,24 @@ class Bot(object):
 
 		return []
 
-	def build_signature_caption(self, job: UploadJob) -> str:
+	def build_signature_caption(self, job: UploadJob, override_canonical_name: str = None) -> str:
 		caption = ""
 		is_group = job.chat_type in (ChatType.GROUP, ChatType.SUPERGROUP)
 		is_youtube = job.job_origin in (Origin.YOUTUBE, Origin.YT_SHORTS)
-		if job.canonical_name:
-			if is_group and not is_youtube and CaptionShortner.need_short(job.canonical_name):
-				caption = f"{html.escape(CaptionShortner.smart_truncate_html(job.canonical_name))} ..."
+		effective_canonical_name = override_canonical_name or job.canonical_name
+		if effective_canonical_name:
+			if is_group and not is_youtube and CaptionShortner.need_short(effective_canonical_name):
+				caption = f"{html.escape(CaptionShortner.smart_truncate_html(effective_canonical_name))} ..."
 				job.short_text = True
 			elif is_group:
 				# short enough
-				caption = html.escape(job.canonical_name)
+				caption = html.escape(effective_canonical_name)
 			# Captions only for YouTube in groups; empty otherwise.
 			# Might be too long for Telegram, so we skip them.
 			if is_youtube and is_group:
-				caption = f"<b>{html.escape(job.canonical_name)}</b>"
+				caption = f"<b>{html.escape(effective_canonical_name)}</b>"
 		if is_group:
-			if job.canonical_name:
+			if effective_canonical_name:
 				caption += "\n—\n"
 			if job.message_leftover:
 				caption += job.message_leftover
@@ -371,20 +372,20 @@ class Bot(object):
 								height=j.media_info["height"],
 								duration=round(j.media_info["duration"]),
 								thumb=j.media_info["thumb"],
-								caption=self.build_signature_caption(j)
+								caption=self.build_signature_caption(job, j.canonical_name)
 							)
 							tg_chunk.append(vid)
 						elif j.media_type == JobType.IMAGE:
 							photo = InputMediaPhoto(
 								media=j.local_media_path,
-								caption=self.build_signature_caption(j)
+								caption=self.build_signature_caption(job, j.canonical_name)
 							)
 							tg_chunk.append(photo)
 						elif j.media_type == JobType.ANIMATION:
 							anim = InputMediaAnimation(
 								media=j.local_media_path,
 								thumb=j.media_info["thumb"],
-								caption=self.build_signature_caption(j),
+								caption=self.build_signature_caption(job, j.canonical_name),
 								width=j.media_info["width"],
 								height=j.media_info["height"],
 								duration=round(j.media_info["duration"])

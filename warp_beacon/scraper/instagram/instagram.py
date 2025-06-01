@@ -135,6 +135,7 @@ class InstagramScraper(ScraperAbstract):
 		return inst_human.operations_count
 	
 	def scroll_content(self, last_pk: int) -> None:
+		return
 		from warp_beacon.scheduler.instagram_human import InstagramHuman
 		self.load_session()
 		inst_human = InstagramHuman(self)

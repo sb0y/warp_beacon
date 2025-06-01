@@ -156,8 +156,8 @@ class IGScheduler(object):
 				self.state["remaining"] -= elapsed
 
 				if self.running:
-					if self.state["remaining"] <= 0:
-						self.validate_ig_session()
+					#if self.state["remaining"] <= 0:
+					#	self.validate_ig_session()
 					if yt_expires <= time.time() + 60:
 						self.validate_yt_session()
 				self.save_state()
