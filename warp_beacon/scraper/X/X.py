@@ -214,17 +214,19 @@ class XScraper(XAbstract):
 					"username": parsed.username,
 					"password": parsed.password
 				}
+				logging.info("[X] build proxy: %s", proxy)
 
 		with sync_playwright() as p:
 			with p.chromium.launch(headless=True) as browser:
-				with browser.new_context(proxy=proxy) as context:
+				with browser.new_context(proxy=proxy, ignore_https_errors=True) as context:
 					page = context.new_page()
 					page.goto(url, wait_until="networkidle", timeout=(timeout*1000))
 
 					#page.wait_for_timeout(3000)
 					page.wait_for_selector("img[src*='pbs.twimg.com/media']", timeout=(timeout*1000))
 					text_element = page.query_selector('[data-testid="tweetText"]')
-					text = text_element.inner_text()
+					if text_element:
+						text = text_element.inner_text()
 
 					image_elements = page.query_selector_all("img")
 					image_urls = []
