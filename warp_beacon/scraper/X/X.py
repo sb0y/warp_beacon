@@ -5,7 +5,7 @@ from mimetypes import guess_extension
 from urllib.parse import urlparse
 import requests
 import yt_dlp
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Page
 
 from warp_beacon.telegram.utils import Utils
 from warp_beacon.scraper.utils import ScraperUtils
@@ -200,7 +200,34 @@ class XScraper(XAbstract):
 				downloaded_imgs.append(filepath)
 
 		return downloaded_imgs, post_text
-	
+
+	def extract_post_text(self, page: Page) -> str:
+		try:
+			tweet_texts = []
+			# collecting text blocks from post
+			containers = page.query_selector_all('div[data-testid="tweetText"]')
+			for container in containers:
+				try:
+					spans = container.query_selector_all("span")
+					if spans:
+						for span in spans:
+							text = span.inner_text().strip()
+							if text:
+								tweet_texts.append(text)
+					else:
+						# to span's try container itself
+						text = container.inner_text().strip()
+						if text:
+							tweet_texts.append(text)
+				except Exception:
+					continue
+
+			return " ".join(tweet_texts).strip()
+
+		except Exception as e:
+			logging.warning("Failed to extract tweet text: %s", e)
+			return ""
+
 	def extract_image_urls_from_x_post(self, url: str, timeout: int = 60) -> tuple[list[str], str]:
 		img_urls, post_text = [], ''
 
@@ -224,9 +251,7 @@ class XScraper(XAbstract):
 
 					#page.wait_for_timeout(3000)
 					page.wait_for_selector("img[src*='pbs.twimg.com/media']", timeout=(timeout*1000))
-					text_element = page.query_selector('[data-testid="tweetText"]')
-					if text_element:
-						post_text = str(text_element.inner_text())
+					post_text = self.extract_post_text(page)
 
 					image_elements = page.query_selector_all("img")
 					image_urls = []
