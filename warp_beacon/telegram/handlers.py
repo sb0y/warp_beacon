@@ -102,7 +102,8 @@ class Handlers(object):
 				elif job.media_type == JobType.COLLECTION:
 					common_canonical_name = job.canonical_name
 					if not common_canonical_name and job.media_collection:
-						common_canonical_name = job.media_collection[0].canonical_name
+						if job.media_collection[0]:
+							common_canonical_name = job.media_collection[0][0].canonical_name
 					self.storage.add_media(
 						tg_file_ids=[','.join(tg_file_ids)],
 						media_url=job.url,
