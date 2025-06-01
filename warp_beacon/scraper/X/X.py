@@ -100,7 +100,7 @@ class XScraper(XAbstract):
 				chunk = []
 				for media in media_chunk:
 					chunk.append({
-						"local_media_path": media,
+						"local_media_path": self.rename_local_file(media),
 						"canonical_name": post_text,
 						"media_type": JobType.IMAGE
 					})
@@ -112,7 +112,7 @@ class XScraper(XAbstract):
 		else:
 			if local_file:
 				res.append({
-					"local_media_path": local_file,
+					"local_media_path": self.rename_local_file(local_file),
 					"performer": media_info.get("uploader", "Unknown"),
 					"canonical_name": post_text,
 					"media_type": job_type
@@ -225,7 +225,7 @@ class XScraper(XAbstract):
 			return " ".join(tweet_texts).strip()
 		except Exception as e:
 			logging.warning("Failed to extract tweet text.", exc_info=e)
-		
+
 		return ""
 
 	def extract_image_urls_from_x_post(self, url: str, timeout: int = 60) -> tuple[list[str], str]:

@@ -371,15 +371,25 @@ class Bot(object):
 								height=j.media_info["height"],
 								duration=round(j.media_info["duration"]),
 								thumb=j.media_info["thumb"],
-								caption=self.build_signature_caption(job)
+								caption=self.build_signature_caption(j)
 							)
 							tg_chunk.append(vid)
 						elif j.media_type == JobType.IMAGE:
 							photo = InputMediaPhoto(
 								media=j.local_media_path,
-								caption=self.build_signature_caption(job)
+								caption=self.build_signature_caption(j)
 							)
 							tg_chunk.append(photo)
+						elif j.media_type == JobType.ANIMATION:
+							anim = InputMediaAnimation(
+								media=j.local_media_path,
+								thumb=j.media_info["thumb"],
+								caption=self.build_signature_caption(j),
+								width=j.media_info["width"],
+								height=j.media_info["height"],
+								duration=round(j.media_info["duration"])
+							)
+							tg_chunk.append(anim)
 					mediafs.append(tg_chunk)
 				args["media"] = mediafs
 
