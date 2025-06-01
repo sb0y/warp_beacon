@@ -57,6 +57,7 @@ class XScraper(XAbstract):
 			'noplaylist': True,
 			'merge_output_format': 'mp4',
 			'dump_single_json': True,
+			'nocheckcertificate': True,
 		}
 
 		if self.proxy:
@@ -74,9 +75,13 @@ class XScraper(XAbstract):
 					local_file = self.download_video(url, ydl, media_info)
 					post_text = self.extract_canonical_name(media_info)
 					job_type = JobType.VIDEO
-			except yt_dlp.utils.DownloadError:
-				logging.warning("[X] yt_dlp failed to extract info. Falling back to image scraping.")
-				media_type = XMediaType.IMAGE
+			except yt_dlp.utils.DownloadError as e:
+				msg = str(e).lower()
+				if "No video could be found in this tweet" in msg:
+					logging.warning("[X] yt_dlp failed to extract info. Falling back to image scraping.")
+					media_type = XMediaType.IMAGE
+				else:
+					raise
 
 		if media_type == XMediaType.IMAGE:
 			job_type = JobType.IMAGE
@@ -193,7 +198,7 @@ class XScraper(XAbstract):
 
 		with sync_playwright() as p:
 			with p.chromium.launch(headless=True) as browser:
-				with browser.new_context(proxy=proxy) as context:
+				with browser.new_context(proxy=proxy, ignore_https_errors=True) as context:
 					page = context.new_page()
 					page.goto(url, wait_until="networkidle", timeout=(timeout*1000))
 
