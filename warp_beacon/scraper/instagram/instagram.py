@@ -403,7 +403,7 @@ class InstagramScraper(ScraperAbstract):
 				if os.path.exists(self.inst_session_file):
 					os.unlink(self.inst_session_file)
 				raise IGRateLimitOccurred("Instagram ratelimit")
-			except (exceptions.MediaNotFound, exceptions.ClientNotFoundError, exceptions.UserNotFound) as e:
+			except (exceptions.MediaNotFound, exceptions.ClientNotFoundError, exceptions.UserNotFound, exceptions.StoryNotFound) as e:
 				raise NotFound(extract_exception_message(e))
 			except IGUnknownError as e:
 				raise UnknownError(extract_exception_message(e))
