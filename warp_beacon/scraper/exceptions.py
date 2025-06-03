@@ -44,6 +44,9 @@ class AllAccountsFailed(ScraperError):
 class BadProxy(ScraperError):
 	pass
 
+class TOTPNotProvided(ScraperError):
+	pass
+
 class UnknownError(ScraperError):
 	pass
 

@@ -16,3 +16,4 @@ pydub
 SpeechRecognition
 playwright
 fake-useragent
+pyotp

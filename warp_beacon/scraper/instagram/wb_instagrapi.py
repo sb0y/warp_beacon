@@ -9,13 +9,67 @@ import requests
 from instagrapi import Client
 from instagrapi.types import Media, User, Story
 from instagrapi.exceptions import (
-	#ClientError,
+	ClientError,
 	#ClientLoginRequired,
+	ClientNotFoundError,
 	VideoNotDownload,
+	MediaNotFound,
 	PrivateError
 )
 
+from instagrapi.extractors import (
+	extract_location,
+	#extract_media_v1,
+	extract_user_short,
+	extract_usertag,
+	extract_resource_v1
+)
+
 from warp_beacon.scraper.utils import ScraperUtils
+
+def extract_media_v1(data):
+	"""Extract media from Private API"""
+	media = deepcopy(data)
+	if "video_versions" in media:
+		# Select Best Quality by Resolutiuon
+		media["video_url"] = sorted(
+			media["video_versions"], key=lambda o: o["height"] * o["width"]
+		)[-1]["url"]
+	if media["media_type"] == 2 and not media.get("product_type"):
+		media["product_type"] = "feed"
+	if "image_versions2" in media:
+		media["thumbnail_url"] = sorted(
+			media["image_versions2"]["candidates"],
+			key=lambda o: o["height"] * o["width"],
+		)[-1]["url"]
+	if media["media_type"] == 8:
+		# remove thumbnail_url and video_url for albums
+		# see resources
+		media.pop("thumbnail_url", "")
+		media.pop("video_url", "")
+	location = media.get("location")
+	media["location"] = location and extract_location(location)
+	media["user"] = extract_user_short(media.get("user"))
+	media["usertags"] = sorted(
+		[
+			extract_usertag(usertag)
+			for usertag in media.get("usertags", {}).get("in", [])
+		],
+		key=lambda tag: tag.user.pk,
+	)
+	media["like_count"] = media.get("like_count", 0)
+	media["has_liked"] = media.get("has_liked", False)
+	#media["sponsor_tags"] = [tag["sponsor"] for tag in media.get("sponsor_tags", [])]
+	media["sponsor_tags"] = [tag["sponsor"] for tag in media.get("sponsor_tags") or []]
+	media["play_count"] = media.get("play_count", 0)
+	media["coauthor_producers"] = media.get("coauthor_producers", [])
+	return Media(
+		caption_text=(media.get("caption") or {}).get("text", ""),
+		resources=[
+			extract_resource_v1(edge) for edge in media.get("carousel_media", [])
+		],
+		**media,
+	)
 
 class WBClient(Client):
 	"""
@@ -193,6 +247,30 @@ class WBClient(Client):
 		return deepcopy(
 			self._medias_cache[media_pk]
 		)  # return copy of cache (dict changes protection)
+	
+	def media_info_v1(self, media_pk: str) -> Media:
+		"""
+		Get Media from PK by Private Mobile API
+
+		Parameters
+		----------
+		media_pk: str
+			Unique identifier of the media
+
+		Returns
+		-------
+		Media
+			An object of Media type
+		"""
+		try:
+			result = self.private_request(f"media/{media_pk}/info/")
+		except ClientNotFoundError as e:
+			raise MediaNotFound(e, media_pk=media_pk, **self.last_json)
+		except ClientError as e:
+			if "Media not found" in str(e):
+				raise MediaNotFound(e, media_pk=media_pk, **self.last_json)
+			raise e
+		return extract_media_v1(result["items"].pop())
 	
 	def user_info_by_username(self, username: str, use_cache: bool = True) -> User:
 		"""

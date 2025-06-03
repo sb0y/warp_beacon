@@ -30,7 +30,8 @@ dependencies = [
 	"pydub",
 	"SpeechRecognition",
 	"playwright",
-	"fake-useragent"
+	"fake-useragent",
+	"pyotp"
 ]
 keywords = ["bot", "telegram", "instagram", "export"]
 classifiers = [

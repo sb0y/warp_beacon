@@ -16,15 +16,17 @@ from urllib.parse import urljoin, urlparse
 import requests
 import urllib3
 
+import pyotp
+
 from instagrapi import exceptions
-from instagrapi.exceptions import UnknownError as IGUnknownError
+from instagrapi.exceptions import TwoFactorRequired, UnknownError as IGUnknownError
 from instagrapi.mixins.story import Story
 from instagrapi.types import Media
 from instagrapi.mixins.challenge import ChallengeChoice
 #from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, MediaNotFound, ClientNotFoundError, UserNotFound, ChallengeRequired, \
 #	ChallengeSelfieCaptcha, ChallengeUnknownStep, UnknownError as IGUnknownError
 
-from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, BadProxy, extract_exception_message
+from warp_beacon.scraper.exceptions import NotFound, UnknownError, TimeOut, IGRateLimitOccurred, CaptchaIssue, BadProxy, TOTPNotProvided, extract_exception_message
 from warp_beacon.scraper.abstract import ScraperAbstract
 from warp_beacon.jobs.types import JobType
 from warp_beacon.jobs.download_job import DownloadJob
@@ -112,9 +114,6 @@ class InstagramScraper(ScraperAbstract):
 			logging.info("Loading existing session file '%s'", self.inst_session_file)
 			with open(self.inst_session_file, 'r', encoding="utf-8") as f:
 				js = json.loads(f.read())
-				if "warp_timeline_cursor" in js:
-					self.timeline_cursor = js.get("warp_timeline_cursor", {})
-					del js["warp_timeline_cursor"]
 				self.cl.set_settings(js)
 		else:
 			self.download_hndlr(self.login)
@@ -122,9 +121,20 @@ class InstagramScraper(ScraperAbstract):
 	def login(self) -> None:
 		username = self.account["login"]
 		password = self.account["password"]
+		totp_secret = self.account.get("totp_secret")
 		if username and password:
-			self.cl.login(username=username, password=password, verification_code="")
-		self.safe_write_session()
+			try:
+				self.cl.login(username=username, password=password)
+			except TwoFactorRequired:
+				logging.warning("Two factor required!")
+				if not totp_secret:
+					logging.critical("Please specify TOTP secret in account config")
+					raise TOTPNotProvided("Please specify TOTP secret in account config")
+				totp = pyotp.TOTP(totp_secret)
+				code = totp.now()
+				logging.info("TOTP code for now: '%s'", code)
+				self.cl.login(username=username, password=password, verification_code=code)
+			self.safe_write_session()
 
 	def validate_session(self) -> int:
 		from warp_beacon.scheduler.instagram_human import InstagramHuman

@@ -59,6 +59,7 @@ class XScraper(XAbstract):
 			'merge_output_format': 'mp4',
 			'dump_single_json': True,
 			'nocheckcertificate': True,
+			'progress_hooks': [self.dlp_on_progress],
 		}
 
 		if self.proxy:
@@ -68,6 +69,16 @@ class XScraper(XAbstract):
 				ydl_opts["proxy"] = proxy_dsn
 
 		local_file, media_info, media_type, post_text = "", {}, XMediaType.UNKNOWN, ""
+		#tweet_contains_video, tweet_contains_images = False, False
+
+		#with sync_playwright() as p:
+		#	with p.chromium.launch(headless=True) as browser:
+		#		with browser.new_context(proxy=proxy, ignore_https_errors=True) as context:
+		#			page = context.new_page()
+		#			page.goto(url, wait_until="networkidle", timeout=(timeout*1000))
+		#			tweet_contains_video = self.tweet_contains_video(page)
+		#			tweet_contains_images = self.tweet_contains_images(page)
+
 		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 			try:
 				media_info = ydl.extract_info(url, download=False)
@@ -263,3 +274,57 @@ class XScraper(XAbstract):
 					
 					img_urls = list(set(image_urls))
 		return img_urls, post_text
+	
+	def get_media_type_from_info_and_dom(self, media_info: dict, page: Page) -> XMediaType:
+		is_video = (
+			media_info.get("vcodec") != "none" or
+			media_info.get("ext") in {"mp4", "mov", "mkv"} or
+			any(
+				f.get("vcodec") not in (None, "none")
+				for f in media_info.get("formats", [])
+			)
+		)
+
+		try:
+			image_elements = page.query_selector_all("img")
+			image_urls = [
+				img.get_attribute("src")
+				for img in image_elements
+				if img.get_attribute("src") and "pbs.twimg.com/media" in img.get_attribute("src")
+			]
+			has_images = bool(image_urls)
+		except Exception:
+			has_images = False
+
+		if is_video and has_images:
+			return XMediaType.MIXED
+		elif is_video:
+			return XMediaType.VIDEO
+		elif has_images:
+			return XMediaType.IMAGE
+		
+		return XMediaType.UNKNOWN
+	
+	def tweet_contains_video(self, page: Page) -> bool:
+		try:
+			return bool(
+				page.query_selector("article video") or
+				page.query_selector("div[data-testid='videoPlayer']") or
+				page.query_selector("div[aria-label='Embedded video']")
+			)
+		except Exception:
+			pass
+		return False
+		
+	def tweet_contains_images(self, page: Page) -> bool:
+		try:
+			image_elements = page.query_selector_all("img")
+			image_urls = [
+				img.get_attribute("src")
+				for img in image_elements
+				if img.get_attribute("src") and "pbs.twimg.com/media" in img.get_attribute("src")
+			]
+			return bool(image_urls)
+		except Exception:
+			pass
+		return False
