@@ -1,9 +1,13 @@
+import asyncio
 import re
+
+import logging
 
 from pyrogram.client import Client
 from pyrogram.types import InputMedia, InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InlineKeyboardMarkup
 from pyrogram import raw
 from pyrogram import types
+from pyrogram.errors import FloodWait
 
 from warp_beacon.telegram.progress_bar import ProgressBar
 from warp_beacon.telegram.types import ReportType
@@ -124,23 +128,30 @@ class EditMessage(object):
 				raw_file_thumb = await self.client.save_file(path=media.thumb)
 			raw_media = self.get_wrapped_animation(raw_file=raw_file, raw_thumb=raw_file_thumb, media=media, file_name=file_name)
 
-		peer = await self.client.resolve_peer(chat_id)
-
-		r = await self.client.invoke(
-			raw.functions.messages.EditMessage(
-				peer=peer,
-				id=message_id,
-				media=raw_media,
-				reply_markup=await reply_markup.write(self.client) if reply_markup else None,
-				message=message,
-				entities=entities
-			)
-		)
-
-		for i in r.updates:
-			if isinstance(i, (raw.types.UpdateEditMessage, raw.types.UpdateEditChannelMessage)):
-				return await types.Message._parse(
-					self.client, i.message,
-					{i.id: i for i in r.users},
-					{i.id: i for i in r.chats}
+		peer, r = None, None
+		while True:
+			try:
+				peer = await self.client.resolve_peer(chat_id)
+				r = await self.client.invoke(
+					raw.functions.messages.EditMessage(
+						peer=peer,
+						id=message_id,
+						media=raw_media,
+						reply_markup=await reply_markup.write(self.client) if reply_markup else None,
+						message=message,
+						entities=entities
+					)
 				)
+				break
+			except FloodWait as e:
+				logging.warning("FloodWait occurred, waiting '%d' seconds before retry", int(e.value))
+				asyncio.sleep(e.value)
+
+		if r:
+			for i in r.updates:
+				if isinstance(i, (raw.types.UpdateEditMessage, raw.types.UpdateEditChannelMessage)):
+					return await types.Message._parse(
+						self.client, i.message,
+						{i.id: i for i in r.users},
+						{i.id: i for i in r.chats}
+					)

@@ -11,7 +11,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode, ChatType
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import InputMediaAudio, InputMediaPhoto, InputMediaVideo, InputMediaAnimation, InlineKeyboardButton, InlineKeyboardMarkup
-from pyrogram.errors import NetworkMigrate, BadRequest, MultiMediaTooLong, MessageIdInvalid
+from pyrogram.errors import NetworkMigrate, BadRequest, MultiMediaTooLong, MessageIdInvalid, FloodWait
 
 import warp_beacon
 from warp_beacon.__version__ import __version__
@@ -443,7 +443,13 @@ class Bot(object):
 								JobType.ANIMATION: self.client.send_animation
 							}
 							try:
-								reply_message = await send_funcs[job.media_type](**self.build_tg_args(job))
+								while True:
+									try:
+										reply_message = await send_funcs[job.media_type](**self.build_tg_args(job))
+										break
+									except FloodWait as e:
+										logging.warning("FloodWait occurred, waiting '%d' seconds before retry", int(e.value))
+										asyncio.sleep(e.value)
 							except ValueError as e:
 								err_text = str(e)
 								if "Expected" in err_text:
@@ -464,7 +470,14 @@ class Bot(object):
 						snd_grp_options = {"chat_id": job.chat_id, "reply_to_message_id": job.message_id}
 						for i, media_chunk in enumerate(col_job_args["media"]):
 							snd_grp_options["media"] = media_chunk
-							messages = await self.client.send_media_group(**snd_grp_options)
+							messages = []
+							while True:
+								try:
+									messages = await self.client.send_media_group(**snd_grp_options)
+									break
+								except FloodWait as e:
+									logging.warning("FloodWait occurred, waiting '%d' seconds before retry", int(e.value))
+									asyncio.sleep(e.value)
 							sent_messages += messages
 							if job.media_collection:
 								for j, _ in enumerate(media_chunk):
