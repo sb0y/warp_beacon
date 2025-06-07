@@ -111,6 +111,14 @@ class Handlers(object):
 						origin=job.job_origin.value,
 						canonical_name=common_canonical_name
 					)
+				elif job.media_type == JobType.TEXT:
+					self.storage.add_media(
+						tg_file_ids=[None],
+						media_url=job.url,
+						media_type=job.media_type.value,
+						origin=job.job_origin.value,
+						message_text=job.message_text
+					)
 				else:
 					self.storage.add_media(
 						tg_file_ids=[','.join(tg_file_ids)],
@@ -215,6 +223,7 @@ class Handlers(object):
 					elif ent_len:
 						media_type = JobType[entities[0]["media_type"].upper()]
 						canonical_name = entities[0]["canonical_name"]
+						message_text = entities[0]["message_text"]
 						await self.bot.upload_job(
 							UploadJob(
 								url=url,
@@ -228,22 +237,23 @@ class Handlers(object):
 								chat_type=message.chat.type,
 								source_username=Utils.extract_message_author(message),
 								canonical_name=canonical_name,
-								message_leftover=msg_leftover
+								message_leftover=msg_leftover,
+								message_text=message_text
 							)
 						)
 				else:
 					if await self.queue_job(DownloadJob.build(
-							url=url,
-							message_id=effective_message_id,
-							chat_id=chat.id,
-							user_id=message.from_user.id,
-							in_process=self.bot.uploader.is_inprocess(uniq_id),
-							uniq_id=uniq_id,
-							job_origin=origin,
-							source_username=Utils.extract_message_author(message),
-							chat_type=chat.type,
-							message_leftover=msg_leftover
-						)):
+						url=url,
+						message_id=effective_message_id,
+						chat_id=chat.id,
+						user_id=message.from_user.id,
+						in_process=self.bot.uploader.is_inprocess(uniq_id),
+						uniq_id=uniq_id,
+						job_origin=origin,
+						source_username=Utils.extract_message_author(message),
+						chat_type=chat.type,
+						message_leftover=msg_leftover
+					)):
 						self.bot.uploader.set_inprocess(uniq_id)
 
 		if chat.type not in (ChatType.GROUP, ChatType.SUPERGROUP) and not urls:

@@ -1,7 +1,8 @@
-import enum
+from enum import Flag, auto
 
-class XMediaType(enum.Enum):
+class XMediaType(Flag):
 	UNKNOWN = 0
-	VIDEO = 1
-	IMAGE = 2
-	MIXED = 3
+	VIDEO = auto()
+	IMAGE = auto()
+	MIXED = auto()
+	PLAYLIST = auto()

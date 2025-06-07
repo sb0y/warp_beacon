@@ -7,3 +7,4 @@ class JobType(str, Enum):
 	AUDIO = "audio",
 	COLLECTION = "collection"
 	ANIMATION = "animation"
+	TEXT = "text"

@@ -109,6 +109,9 @@ class AbstractJob(ABC):
 		if self.media_type == JobType.COLLECTION:
 			if not self.media_collection:
 				return True
+		elif self.media_type == JobType.TEXT:
+			if not self.message_text:
+				return True
 		elif not self.local_media_path:
 			return True
 		return False
@@ -129,9 +132,13 @@ class AbstractJob(ABC):
 				for j in i:
 					if os.path.exists(j.local_media_path):
 						os.unlink(j.local_media_path)
+		elif self.media_type == JobType.TEXT:
+			pass
 		else:
 			if os.path.exists(self.local_media_path):
 				os.unlink(self.local_media_path)
 			if self.local_compressed_media_path:
 				if os.path.exists(self.local_compressed_media_path):
 					os.unlink(self.local_compressed_media_path)
+
+		return True

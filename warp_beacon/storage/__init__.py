@@ -67,7 +67,8 @@ class Storage(object):
 					"uniq_id": document["uniq_id"],
 					"tg_file_id": document["tg_file_id"],
 					"media_type": document["media_type"],
-					"canonical_name": document.get("canonical_name")
+					"canonical_name": document.get("canonical_name"),
+					"message_text": document.get("message_text")
 				})
 		except Exception as e:
 			logging.error("Error occurred while trying to read from the database!")
@@ -82,13 +83,10 @@ class Storage(object):
 	def db_lookup_id(self, uniq_id: str) -> list[dict]:
 		return self.db_find(uniq_id)
 	
-	def add_media(self, tg_file_ids: list[str], media_url: str, media_type: str, origin: str, canonical_name: str = "") -> list[int]:
+	def add_media(self, tg_file_ids: list[str], media_url: str, media_type: str, origin: str, canonical_name: str = "", message_text: str = "") -> list[int]:
 		uniq_id = self.compute_uniq(media_url)
 		media_ids = []
 		for tg_file_id in tg_file_ids:
-			if not tg_file_id:
-				logging.warning("Passed empty `tg_file_id`! Skipping.")
-				continue
 			if self.db_lookup_id(uniq_id):
 				logging.info("Detected existing uniq_id, skipping storage write operation")
 				continue
@@ -98,7 +96,8 @@ class Storage(object):
 				"media_type": media_type,
 				"tg_file_id": tg_file_id,
 				"origin": origin,
-				"canonical_name": canonical_name
+				"canonical_name": canonical_name,
+				"message_text": message_text
 			}).inserted_id)
 
 		return media_ids

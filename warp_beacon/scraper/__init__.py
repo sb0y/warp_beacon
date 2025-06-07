@@ -319,6 +319,7 @@ class AsyncDownloader(object):
 								# success
 								for job in fail_handler.get_failed_jobs():
 									self.queue_task(job)
+								# media info processing
 								for item in items:
 									media_info = {"filesize": 0}
 									if item["media_type"] == JobType.VIDEO:
@@ -372,6 +373,8 @@ class AsyncDownloader(object):
 										job_args["media_collection"] = item["items"]
 										if item.get("save_items", None) is not None:
 											job_args["save_items"] = item.get("save_items", False)
+									elif item["media_type"] == JobType.TEXT:
+										job_args["message_text"] = item.get("message_text", "")
 									else:
 										job_args["local_media_path"] = item["local_media_path"]
 										if item.get("local_compressed_media_path", None):

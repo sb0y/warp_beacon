@@ -89,7 +89,7 @@ class AsyncUploader(object):
 		while self.allow_loop:
 			try:
 				try:
-					job = self.job_queue.get()
+					job: UploadJob = self.job_queue.get()
 					if job is self.__JOE_BIDEN_WAKEUP:
 						break
 					if job.is_message_to_admin and job.message_text and self.admin_message_callback:
@@ -118,7 +118,10 @@ class AsyncUploader(object):
 					message_id = job.placeholder_message_id
 
 					if not in_process and not job.job_failed and not job.job_warning and not job.replay:
-						logging.info("Accepted upload job, file(s): '%s'", path)
+						if job.media_type == JobType.TEXT:
+							logging.info("Uploading job text: '%s'", job.message_text)
+						else:
+							logging.info("Accepted upload job, file(s): '%s'", path)
 
 					try:
 						if message_id in self.callbacks:

@@ -393,6 +393,9 @@ class Bot(object):
 							tg_chunk.append(anim)
 					mediafs.append(tg_chunk)
 				args["media"] = mediafs
+		elif job.media_type == JobType.TEXT:
+			args["text"] = f"<b>Post text:</b><pre>{job.message_text}</pre>\n\n{self.build_signature_caption(job)}"
+			args["parse_mode"] = ParseMode.HTML
 
 		args["chat_id"] = job.chat_id
 
@@ -412,7 +415,7 @@ class Bot(object):
 			if render_donates:
 				keyboard_buttons[0].append(InlineKeyboardButton("❤ Donate", url=os.environ.get("DONATE_LINK", "https://pay.cryptocloud.plus/pos/W5BMtNQt5bJFoW2E")))
 
-			if keyboard_buttons[0]:  #job.short_text or render_donates:
+			if keyboard_buttons[0]:
 				args["reply_markup"] = InlineKeyboardMarkup(keyboard_buttons)
 
 		return args
@@ -425,9 +428,14 @@ class Bot(object):
 			while not retry_amount >= max_retries:
 				try:
 					reply_message = None
-					if job.media_type in (JobType.VIDEO, JobType.IMAGE, JobType.AUDIO, JobType.ANIMATION):
-						if job.media_type in (JobType.VIDEO, JobType.AUDIO):
-							await Utils.ensure_me_loaded(self.client)
+					if job.media_type in (JobType.VIDEO, JobType.IMAGE, JobType.AUDIO, JobType.ANIMATION, JobType.TEXT):
+						#if job.media_type in (JobType.VIDEO, JobType.AUDIO):
+						#	await Utils.ensure_me_loaded(self.client)
+						if job.media_type == JobType.TEXT:
+							if job.placeholder_message_id:
+								await self.placeholder.remove(job.chat_id, job.placeholder_message_id)
+								job.placeholder_message_id = None
+
 						if job.placeholder_message_id:
 							try:
 								reply_message = await self.editor.edit(**self.build_tg_args(job))
@@ -440,7 +448,8 @@ class Bot(object):
 								JobType.VIDEO: self.client.send_video,
 								JobType.IMAGE: self.client.send_photo,
 								JobType.AUDIO: self.client.send_audio,
-								JobType.ANIMATION: self.client.send_animation
+								JobType.ANIMATION: self.client.send_animation,
+								JobType.TEXT: self.client.send_message
 							}
 							try:
 								while True:
@@ -460,9 +469,10 @@ class Bot(object):
 									job_args[reality.value.lower()] = job_args.pop(expectation.value.lower())
 									reply_message = await send_funcs[reality](**job_args)
 
-						tg_file_id = Utils.extract_file_id(reply_message)
-						tg_file_ids.append(tg_file_id)
-						job.tg_file_id = tg_file_id
+						if reply_message:
+							tg_file_id = Utils.extract_file_id(reply_message)
+							tg_file_ids.append(tg_file_id)
+							job.tg_file_id = tg_file_id
 						logging.info("Uploaded media file with type '%s' tg_file_id is '%s'", job.media_type.value, job.tg_file_id)
 					elif job.media_type == JobType.COLLECTION:
 						col_job_args = self.build_tg_args(job)
