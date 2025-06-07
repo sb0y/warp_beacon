@@ -22,6 +22,7 @@ class AsyncUploader(object):
 			request_yt_auth_callback: Callable,
 			pool_size: int=min(32, os.cpu_count() + 4)
 		) -> None:
+		self.allow_loop = True
 		self.threads = []
 		self.in_process = set()
 		self.storage = storage
