@@ -12,20 +12,12 @@ from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
 	__JOE_BIDEN_WAKEUP = None
-	threads = None
-	allow_loop = True
-	job_queue = None
-	callbacks = None
-	storage = None
-	in_process = None
-	loop = None
-	admin_message_callback = None
-	request_yt_auth_callback = None
 	pool_size = 1
 
 	def __init__(self,
 			loop: asyncio.AbstractEventLoop,
 			storage: Storage,
+			upload_wrapper: Callable,
 			admin_message_callback: Callable,
 			request_yt_auth_callback: Callable,
 			pool_size: int=min(32, os.cpu_count() + 4)
@@ -38,7 +30,7 @@ class AsyncUploader(object):
 		self.admin_message_callback = admin_message_callback
 		self.request_yt_auth_callback = request_yt_auth_callback
 		self.pool_size = pool_size
-		self.upload_wrapper: Callable = lambda: None
+		self.upload_wrapper: upload_wrapper
 	
 	def __del__(self) -> None:
 		self.stop_all()

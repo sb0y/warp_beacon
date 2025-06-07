@@ -69,9 +69,11 @@ class Bot(object):
 		)
 
 		self.editor = EditMessage(self.client)
+		self.handlers = Handlers(self)
 
 		self.uploader = AsyncUploader(
 			storage=self.storage,
+			upload_wrapper=self.handlers.upload_wrapper,
 			admin_message_callback=self.send_text_to_admin,
 			request_yt_auth_callback=self.request_yt_auth,
 			pool_size=int(os.environ.get("UPLOAD_POOL_SIZE", default=workers_amount)),
@@ -85,7 +87,6 @@ class Bot(object):
 		)
 
 		self.scheduler = IGScheduler(self.downloader)
-		self.handlers = Handlers(self)
 
 		self.client.add_handler(MessageHandler(self.handlers.start, filters.command("start")))
 		self.client.add_handler(MessageHandler(self.handlers.help, filters.command("help")))

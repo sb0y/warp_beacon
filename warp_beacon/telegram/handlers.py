@@ -23,7 +23,6 @@ class Handlers(object):
 	def __init__(self, bot: "Bot") -> None:
 		self.bot = bot
 		self.storage = bot.storage
-		self.bot.uploader.uploader_wrapper = self.upload_wrapper
 
 	async def help(self, _: Client, message: Message) -> None:
 		"""Send a message when the command /help is issued."""
