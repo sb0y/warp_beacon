@@ -31,7 +31,6 @@ class AsyncUploader(object):
 			pool_size: int=min(32, os.cpu_count() + 4)
 		) -> None:
 		self.threads = []
-		self.callbacks = {}
 		self.in_process = set()
 		self.storage = storage
 		self.loop = loop
@@ -39,6 +38,7 @@ class AsyncUploader(object):
 		self.admin_message_callback = admin_message_callback
 		self.request_yt_auth_callback = request_yt_auth_callback
 		self.pool_size = pool_size
+		self.upload_wrapper: Callable = lambda: None
 	
 	def __del__(self) -> None:
 		self.stop_all()
@@ -48,18 +48,6 @@ class AsyncUploader(object):
 			thread = threading.Thread(target=self.do_work)
 			thread.start()
 			self.threads.append(thread)
-
-	def add_callback(self, message_id: int, callback: Callable) -> None:
-		if message_id not in self.callbacks:
-			async def callback_wrap(*args, **kwargs) -> None:
-				await callback(*args, **kwargs)
-				#self.remove_callback(message_id)
-			self.callbacks[message_id] = {"callback": callback_wrap}
-
-	def remove_callback(self, message_id: int) -> None:
-		if message_id in self.callbacks:
-			logging.debug("Removing callback with message id #%d", message_id)
-			del self.callbacks[message_id]
 
 	def stop_all(self) -> None:
 		self.allow_loop = False
@@ -115,7 +103,6 @@ class AsyncUploader(object):
 	
 					in_process = job.in_process
 					uniq_id = job.uniq_id
-					message_id = job.placeholder_message_id
 
 					if not in_process and not job.job_failed and not job.job_warning and not job.replay:
 						if job.media_type == JobType.TEXT:
@@ -123,65 +110,61 @@ class AsyncUploader(object):
 						else:
 							logging.info("Accepted upload job, file(s): '%s'", path)
 
-					try:
-						if message_id in self.callbacks:
-							if job.job_failed:
-								logging.info("URL '%s' download failed. Skipping upload job ...", job.url)
-								if job.job_failed_msg: # we want to say something to user
-									self.loop.call_soon_threadsafe(
-										asyncio.create_task,
-										self.callbacks[message_id]["callback"](job)
-									)
-								self.process_done(uniq_id)
-								self.remove_callback(message_id)
-								continue
-							
-							if job.replay:
-								self.loop.call_soon_threadsafe(
-									asyncio.create_task,
-									self.callbacks[message_id]["callback"](job)
-								)
-								self.remove_callback(message_id)
-								continue
+					async def callback_wrap(*args, **kwargs) -> None:
+						await self.upload_wrapper(*args, **kwargs)
 
-							if job.job_warning:
-								logging.info("Job warning occurred ...")
-								if job.job_warning_msg:
-									self.loop.call_soon_threadsafe(
-										asyncio.create_task,
-										self.callbacks[message_id]["callback"](job)
-									)
-								continue
-							if in_process:
-								db_list_dicts = self.storage.db_lookup_id(uniq_id)
-								if db_list_dicts:
-									tg_file_ids = [i["tg_file_id"] for i in db_list_dicts]
-									dlds_len = len(db_list_dicts)
-									if dlds_len > 1:
-										job.tg_file_id = ",".join(tg_file_ids)
-										job.media_type = JobType.COLLECTION
-									elif dlds_len:
-										job.tg_file_id = ",".join(tg_file_ids)
-										db_data = db_list_dicts.pop()
-										job.media_type = JobType[db_data["media_type"].upper()]
-										job.canonical_name = db_data.get("canonical_name", "")
-									self.loop.call_soon_threadsafe(
-										asyncio.create_task,
-										self.callbacks[message_id]["callback"](job)
-									)
-									self.process_done(uniq_id)
-									self.remove_callback(message_id)
-								else:
-									self.queue_task(job)
-							else:
+					try:
+						if job.job_failed:
+							logging.info("URL '%s' download failed. Skipping upload job ...", job.url)
+							if job.job_failed_msg: # we want to say something to user
 								self.loop.call_soon_threadsafe(
 									asyncio.create_task,
-									self.callbacks[message_id]["callback"](job)
+									callback_wrap(job)
+								)
+							self.process_done(uniq_id)
+							continue
+							
+						if job.replay:
+							self.loop.call_soon_threadsafe(
+								asyncio.create_task,
+								callback_wrap(job)
+							)
+							continue
+
+						if job.job_warning:
+							logging.info("Job warning occurred ...")
+							if job.job_warning_msg:
+								self.loop.call_soon_threadsafe(
+									asyncio.create_task,
+									callback_wrap(job)
+								)
+							continue
+						if in_process:
+							db_list_dicts = self.storage.db_lookup_id(uniq_id)
+							if db_list_dicts:
+								tg_file_ids = [i["tg_file_id"] for i in db_list_dicts]
+								dlds_len = len(db_list_dicts)
+								if dlds_len > 1:
+									job.tg_file_id = ",".join(tg_file_ids)
+									job.media_type = JobType.COLLECTION
+								elif dlds_len:
+									job.tg_file_id = ",".join(tg_file_ids)
+									db_data = db_list_dicts.pop()
+									job.media_type = JobType[db_data["media_type"].upper()]
+									job.canonical_name = db_data.get("canonical_name", "")
+								self.loop.call_soon_threadsafe(
+									asyncio.create_task,
+									callback_wrap(job)
 								)
 								self.process_done(uniq_id)
-								self.remove_callback(message_id)
+							else:
+								self.queue_task(job)
 						else:
-							logging.info("No callback no call!!")
+							self.loop.call_soon_threadsafe(
+								asyncio.create_task,
+								callback_wrap(job)
+							)
+							self.process_done(uniq_id)
 					except Exception as e:
 						logging.exception(e)
 				except Empty:
@@ -189,4 +172,4 @@ class AsyncUploader(object):
 			except Exception as e:
 				logging.error("Exception occurred inside upload worker!")
 				logging.exception(e)
-		logging.info("Thread done")
+			logging.info("Thread done")

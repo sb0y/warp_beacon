@@ -14,8 +14,6 @@ from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.types import JobType
 from warp_beacon.scraper.link_resolver import LinkResolver
-from warp_beacon.scraper.fail_handler import FailHandler
-from warp_beacon.storage.mongo import DBClient
 
 class Handlers(object):
 	storage = None
@@ -25,12 +23,7 @@ class Handlers(object):
 	def __init__(self, bot: "Bot") -> None:
 		self.bot = bot
 		self.storage = bot.storage
-		# add uploader callbacks to handle service restart
-		for job in FailHandler(DBClient()).get_failed_jobs(clean=False):
-			self.bot.uploader.add_callback(
-				job.placeholder_message_id,
-				self.upload_wrapper
-			)
+		self.bot.uploader.uploader_wrapper = self.upload_wrapper
 
 	async def help(self, _: Client, message: Message) -> None:
 		"""Send a message when the command /help is issued."""
@@ -146,11 +139,6 @@ class Handlers(object):
 					reply_id=job.message_id,
 					text="Failed to create message placeholder. Please check your bot Internet connection."
 				)
-
-			self.bot.uploader.add_callback(
-				job.placeholder_message_id,
-				self.upload_wrapper
-			)
 
 			self.bot.downloader.queue_task(job)
 		except Exception as e:

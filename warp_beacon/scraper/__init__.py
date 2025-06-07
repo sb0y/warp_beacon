@@ -318,7 +318,7 @@ class AsyncDownloader(object):
 							if items:
 								# success
 								for job in fail_handler.get_failed_jobs():
-									self.queue_task(job)
+									self.queue_task(job["job"])
 								# media info processing
 								for item in items:
 									media_info = {"filesize": 0}
