@@ -30,7 +30,7 @@ class AsyncUploader(object):
 		self.admin_message_callback = admin_message_callback
 		self.request_yt_auth_callback = request_yt_auth_callback
 		self.pool_size = pool_size
-		self.upload_wrapper: upload_wrapper
+		self.upload_wrapper = upload_wrapper
 	
 	def __del__(self) -> None:
 		self.stop_all()
