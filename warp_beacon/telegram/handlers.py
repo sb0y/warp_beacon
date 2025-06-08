@@ -177,7 +177,7 @@ class Handlers(object):
 						url = new_url
 						origin = Origin.YOUTUBE
 				if origin is Origin.UNKNOWN:
-					logging.info("Only Instagram, YouTube Shorts and YouTube Music are now supported. Skipping.")
+					logging.info("Only Instagram, YouTube Shorts, YouTube Music and X are now supported. Skipping.")
 					continue
 				entities, tg_file_ids = [], []
 				uniq_id = Storage.compute_uniq(url)
