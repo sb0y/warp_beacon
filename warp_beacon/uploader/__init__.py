@@ -64,6 +64,9 @@ class AsyncUploader(object):
 	def queue_task(self, job: UploadJob) -> None:
 		self.job_queue.put_nowait(job)
 
+	async def callback_wrap(self, *args, **kwargs) -> None:
+		await self.upload_wrapper(*args, **kwargs)
+
 	def do_work(self) -> None:
 		logging.info("Upload worker started")
 		while self.allow_loop:
@@ -102,16 +105,13 @@ class AsyncUploader(object):
 						else:
 							logging.info("Accepted upload job, file(s): '%s'", path)
 
-					async def callback_wrap(*args, **kwargs) -> None:
-						await self.upload_wrapper(*args, **kwargs)
-
 					try:
 						if job.job_failed:
 							logging.info("URL '%s' download failed. Skipping upload job ...", job.url)
 							if job.job_failed_msg: # we want to say something to user
 								self.loop.call_soon_threadsafe(
 									asyncio.create_task,
-									callback_wrap(job)
+									self.callback_wrap(job)
 								)
 							self.process_done(uniq_id)
 							continue
@@ -119,7 +119,7 @@ class AsyncUploader(object):
 						if job.replay:
 							self.loop.call_soon_threadsafe(
 								asyncio.create_task,
-								callback_wrap(job)
+								self.callback_wrap(job)
 							)
 							continue
 
@@ -128,7 +128,7 @@ class AsyncUploader(object):
 							if job.job_warning_msg:
 								self.loop.call_soon_threadsafe(
 									asyncio.create_task,
-									callback_wrap(job)
+									self.callback_wrap(job)
 								)
 							continue
 						if in_process:
@@ -146,7 +146,7 @@ class AsyncUploader(object):
 									job.canonical_name = db_data.get("canonical_name", "")
 								self.loop.call_soon_threadsafe(
 									asyncio.create_task,
-									callback_wrap(job)
+									self.callback_wrap(job)
 								)
 								self.process_done(uniq_id)
 							else:
@@ -154,7 +154,7 @@ class AsyncUploader(object):
 						else:
 							self.loop.call_soon_threadsafe(
 								asyncio.create_task,
-								callback_wrap(job)
+								self.callback_wrap(job)
 							)
 							self.process_done(uniq_id)
 					except Exception as e:
