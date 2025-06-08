@@ -222,11 +222,11 @@ class Bot(object):
 				if job.source_username.startswith("<a href="):
 					caption += f"Requested by <b>{job.source_username}</b>"
 				else:
-					caption += f"Requested by <b>@{job.source_username}</b>"
+					caption += f"Requested by <b>@{html.escape(job.source_username)}</b>"
 			if job.source_username and job.url:
 				caption += " | "
 			if job.url:
-				caption += f'<a href="{job.url}">source link</a>'
+				caption += f'<a href="{html.escape(job.url)}">source link</a>'
 
 		return caption
 
@@ -238,11 +238,11 @@ class Bot(object):
 					args["media"] = InputMediaVideo(
 						media=job.tg_file_id.replace(":video", ''),
 						supports_streaming=True,
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["video"] = job.tg_file_id.replace(":video", '')
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaVideo(
@@ -252,7 +252,7 @@ class Bot(object):
 						height=job.media_info["height"],
 						duration=round(job.media_info["duration"]),
 						thumb=job.media_info["thumb"],
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["video"] = job.local_media_path
@@ -261,7 +261,7 @@ class Bot(object):
 					args["height"] = job.media_info["height"]
 					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 
 				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.IMAGE:
@@ -269,20 +269,20 @@ class Bot(object):
 				if job.placeholder_message_id:
 					args["media"] = InputMediaPhoto(
 						media=job.tg_file_id.replace(":image", ''),
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["photo"] = job.tg_file_id.replace(":image", '')
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaPhoto(
 						media=job.local_media_path,
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["photo"] = job.local_media_path
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 
 				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.AUDIO:
@@ -290,7 +290,7 @@ class Bot(object):
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAudio(
 						media=job.tg_file_id.replace(":audio", ''),
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["audio"] = job.tg_file_id.replace(":audio", '')
@@ -302,7 +302,7 @@ class Bot(object):
 						thumb=job.media_info["thumb"],
 						duration=round(job.media_info["duration"]),
 						title=job.canonical_name,
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["audio"] = job.local_media_path
@@ -310,7 +310,7 @@ class Bot(object):
 					args["thumb"] = job.media_info["thumb"]
 					args["duration"] = round(job.media_info["duration"])
 					args["title"] = job.canonical_name
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 
 				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.ANIMATION:
@@ -318,11 +318,11 @@ class Bot(object):
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAnimation(
 						media=job.tg_file_id.replace(":animation", ''),
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["animation"] = job.tg_file_id.replace(":animation", '')
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 			else:
 				if job.placeholder_message_id:
 					args["media"] = InputMediaAnimation(
@@ -331,7 +331,7 @@ class Bot(object):
 						duration=round(job.media_info["duration"]),
 						width=job.media_info["width"],
 						height=job.media_info["height"],
-						caption=self.build_signature_caption(job)
+						caption=self.build_signature_caption(job, job.message_text)
 					)
 				else:
 					args["animation"] = job.local_media_path
@@ -339,7 +339,7 @@ class Bot(object):
 					args["height"] = job.media_info["height"]
 					args["duration"] = round(job.media_info["duration"])
 					args["thumb"] = job.media_info["thumb"]
-					args["caption"] = self.build_signature_caption(job)
+					args["caption"] = self.build_signature_caption(job, job.message_text)
 
 				args["file_name"] = os.path.basename(job.local_media_path)
 		elif job.media_type == JobType.COLLECTION:
@@ -352,11 +352,11 @@ class Bot(object):
 						ctype = JobType[mtype.upper()]
 						ptr = None
 						if ctype == JobType.VIDEO:
-							ptr = InputMediaVideo(media=tg_id, caption=self.build_signature_caption(job))
+							ptr = InputMediaVideo(media=tg_id, caption=self.build_signature_caption(job, job.message_text))
 						elif ctype == JobType.IMAGE:
-							ptr = InputMediaPhoto(media=tg_id, caption=self.build_signature_caption(job))
+							ptr = InputMediaPhoto(media=tg_id, caption=self.build_signature_caption(job, job.message_text))
 						elif ctype == JobType.ANIMATION:
-							ptr = InputMediaAnimation(media=tg_id, caption=self.build_signature_caption(job))
+							ptr = InputMediaAnimation(media=tg_id, caption=self.build_signature_caption(job, job.message_text))
 						tg_chunk.append(ptr)
 
 					args["media"].append(tg_chunk)

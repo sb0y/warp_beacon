@@ -20,10 +20,10 @@ class XScraper(XAbstract):
 	def extract_canonical_name(self, media: dict) -> str:
 		ret = ""
 		try:
-			if media.get("title"):
-				ret = media["title"]
-			elif media.get("description"):
+			if media.get("description"):
 				ret = media["description"]
+			elif media.get("title"):
+				ret = media["title"]
 		except Exception as e:
 			logging.warning("Failed to extract canonical media name!")
 			logging.exception(e)
