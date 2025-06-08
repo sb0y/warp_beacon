@@ -12,7 +12,6 @@ from warp_beacon.storage import Storage
 
 class AsyncUploader(object):
 	__JOE_BIDEN_WAKEUP = None
-	pool_size = 1
 
 	def __init__(self,
 			loop: asyncio.AbstractEventLoop,
@@ -165,4 +164,4 @@ class AsyncUploader(object):
 			except Exception as e:
 				logging.error("Exception occurred inside upload worker!")
 				logging.exception(e)
-			logging.info("Thread done")
+		logging.info("Thread done")
