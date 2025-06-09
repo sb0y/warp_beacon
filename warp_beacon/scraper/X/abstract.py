@@ -51,18 +51,16 @@ class XAbstract(ScraperAbstract):
 			except urllib3.exceptions.ProxyError as e:
 				logging.warning("Proxy error!")
 				raise BadProxy(extract_exception_message(e.original_error))
+			except playwright.sync_api.TimeoutError as e:
+				logging.warning("Plawright timeout error", exc_info=e)
+				raise BadProxy("Content unvailable")
 			except (socket.timeout,
 					ssl.SSLError,
 					http.client.IncompleteRead,
 					http.client.HTTPException,
 					requests.RequestException,
 					urllib.error.URLError,
-					urllib.error.HTTPError,
-					playwright.sync_api.TimeoutError) as e:
-				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
-					raise Unavailable(extract_exception_message(e))
-				if hasattr(e, "reason") and "Remote end closed connection without response" in str(e.reason):
-					raise Unavailable(extract_exception_message(e))
+					urllib.error.HTTPError) as e:
 				logging.warning("X read timeout! Retrying in '%d' seconds ...", pause_secs)
 				logging.info("Your `X_MAX_RETRIES` values is '%d'", max_retries)
 				logging.exception(extract_exception_message(e))
@@ -135,5 +133,9 @@ class XAbstract(ScraperAbstract):
 
 	def download(self, job: DownloadJob) -> list:
 		self.job = job
-		ret = self.download_hndlr(self._download, job.url)
+		ret = []
+		try:
+			ret = self.download_hndlr(self._download, job.url)
+		except playwright.errors.TimeoutError as e:
+			pass
 		return ret
