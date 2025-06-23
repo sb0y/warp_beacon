@@ -414,39 +414,48 @@ class InstagramScraper(ScraperAbstract):
 	
 	def email_challenge_resolver(self, username: str) -> Optional[str]:
 		logging.info("Started email challenge resolver")
-		mail = imaplib.IMAP4_SSL(self.account.get("imap_server", "imap.bagrintsev.me"))
-		mail.login(self.account.get("imap_login", ""), self.account.get("imap_password", "")) # email server creds
-		mail.select("inbox")
-		_, data = mail.search(None, "(UNSEEN)")
-		ids = data.pop().split()
-		for num in reversed(ids):
-			mail.store(num, "+FLAGS", "\\Seen")  # mark as read
-			_, data = mail.fetch(num, "(RFC822)")
-			msg = email.message_from_string(data[0][1].decode())
-			payloads = msg.get_payload()
-			if not isinstance(payloads, list):
-				payloads = [msg]
-			code = None
-			for payload in payloads:
-				body = ''
+		try:
+			mail = imaplib.IMAP4_SSL(self.account.get("imap_server", "imap.bagrintsev.me"))
+			mail.login(self.account.get("imap_login", ""), self.account.get("imap_password", "")) # email server creds
+			mail.select("inbox")
+			_, data = mail.search(None, "(UNSEEN)")
+			ids = data.pop().split()
+			for num in reversed(ids):
+				mail.store(num, "+FLAGS", "\\Seen")  # mark as read
+				_, data = mail.fetch(num, "(RFC822)")
+				msg, payloads = "", None
 				try:
-					body = payload.get_payload(decode=True).decode()
+					msg = email.message_from_string(data[0][1].decode())
+					payloads = msg.get_payload()
 				except:
+					logging.error("Failed to parse imap message!")
 					continue
-				if "<div" not in body:
-					continue
-				match = re.search(">([^>]*?({u})[^<]*?)<".format(u=username), body)
-				if not match:
-					continue
-				logging.info("Match from email: '%s'", match.group(1))
-				match = re.search(r">(\d{6})<", body)
-				if not match:
-					logging.info('Skip this email, "code" not found')
-					continue
-				code = match.group(1)
-				if code:
-					logging.info("Found IG code at mail server: '%s'", code)
-					return code
+				if not isinstance(payloads, list):
+					payloads = [msg]
+				code = None
+				for payload in payloads:
+					body = ''
+					try:
+						body = payload.get_payload(decode=True).decode()
+					except:
+						continue
+					if "<div" not in body:
+						continue
+					match = re.search(">([^>]*?({u})[^<]*?)<".format(u=username), body)
+					if not match:
+						continue
+					logging.info("Match from email: '%s'", match.group(1))
+					match = re.search(r">(\d{6})<", body)
+					if not match:
+						logging.info('Skip this email, "code" not found')
+						continue
+					code = match.group(1)
+					if code:
+						logging.info("Found IG code at mail server: '%s'", code)
+						return code
+		except Exception as e:
+			logging.error("Failed to scan IMAP folder")
+			logging.exception(e)
 		return None
 
 	def get_code_from_sms(self, username: str) -> Optional[str]:
