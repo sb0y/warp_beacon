@@ -408,6 +408,7 @@ class AsyncDownloader(object):
 								# report media seen
 								if job.job_origin is Origin.INSTAGRAM:
 									actor.report_seen(items)
+									selector.inc_ig_request_count()
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 							self.uploader.queue_task(job.to_upload_job())
