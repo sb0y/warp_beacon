@@ -150,6 +150,8 @@ class Handlers(object):
 	async def handler(self, client: Client, message: Message) -> None:
 		if message is None:
 			return
+		if message.from_user and message.from_user.is_self:
+			return
 		message_text = Utils.extract_message_text(message)
 		if not message_text:
 			return
