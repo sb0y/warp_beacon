@@ -18,6 +18,12 @@ class FailHandler(object):
 	def store_failed_job(self, job: DownloadJob) -> int:
 		db_id = ""
 		try:
+			# check if job not already in storage
+			find_opts = {"uniq_id": job.uniq_id, "message_id": job.message_id, "chat_id": job.chat_id}
+			if self.db.find_one(find_opts) is not None:
+				logging.info("Job already in storage skipping write")
+				return 0
+			#
 			job_serilized = pickle.dumps(job)
 			db_id = self.db.insert_one(
 			{
