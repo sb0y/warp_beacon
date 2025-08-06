@@ -53,7 +53,8 @@ class XAbstract(ScraperAbstract):
 				raise BadProxy(extract_exception_message(e.original_error))
 			except playwright.sync_api.TimeoutError as e:
 				logging.warning("Plawright timeout error", exc_info=e)
-				raise BadProxy("Content unvailable")
+				#raise BadProxy("Content unvailable")
+				raise Unavailable(extract_exception_message(e))
 			except (socket.timeout,
 					ssl.SSLError,
 					http.client.IncompleteRead,
@@ -136,6 +137,6 @@ class XAbstract(ScraperAbstract):
 		ret = []
 		try:
 			ret = self.download_hndlr(self._download, job.url)
-		except playwright.errors.TimeoutError as e:
+		except playwright.sync_api.TimeoutError:
 			pass
 		return ret
