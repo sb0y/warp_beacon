@@ -264,7 +264,7 @@ class InstagramScraper(ScraperAbstract):
 
 	def download_video(self, url: str, media_info: Media) -> dict:
 		self.cl.request_timeout = int(os.environ.get("IG_REQUEST_TIMEOUT", default=60))
-		path = self.download_hndlr(self.cl.video_download_by_url, url, folder='/tmp')
+		path = self.download_hndlr(self.cl.video_download_by_url, url, filename=str(time.time()).replace('.', '_'), folder='/tmp')
 		return {
 			"local_media_path": self.rename_local_file(str(path)),
 			"canonical_name": self.extract_canonical_name(media_info),
@@ -275,7 +275,7 @@ class InstagramScraper(ScraperAbstract):
 		}
 
 	def download_photo(self, url: str, media_info: Media) -> dict:
-		path = str(self.download_hndlr(self.cl.photo_download_by_url, url, folder='/tmp'))
+		path = str(self.download_hndlr(self.cl.photo_download_by_url, url, filename=str(time.time()).replace('.', '_'), folder='/tmp'))
 		path_lowered = path.lower()
 		if ".webp" in path_lowered:
 			path = InstagramScraper.convert_webp_to_png(path)
@@ -300,7 +300,7 @@ class InstagramScraper(ScraperAbstract):
 		logging.info("Effective story id is '%s'", effective_story_id)
 		effective_url = f"https://www.instagram.com/stories/{story_info.user.username}/{effective_story_id}/"
 		if story_info.media_type == 1: # photo
-			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, folder='/tmp'))
+			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.thumbnail_url, filename=str(time.time()).replace('.', '_'), folder='/tmp'))
 			path_lowered = path.lower()
 			if ".webp" in path_lowered:
 				path = InstagramScraper.convert_webp_to_png(path)
@@ -308,7 +308,7 @@ class InstagramScraper(ScraperAbstract):
 				path = InstagramScraper.convert_heic_to_png(path)
 			media_type = JobType.IMAGE
 		elif story_info.media_type == 2: # video
-			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, folder='/tmp'))
+			path = str(self.download_hndlr(self.cl.story_download_by_url, url=story_info.video_url, filename=str(time.time()).replace('.', '_'), folder='/tmp'))
 			media_type = JobType.VIDEO
 			media_info["duration"] = story_info.video_duration
 
