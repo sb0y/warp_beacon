@@ -178,7 +178,8 @@ class WBClient(Client):
 	) -> Path:
 		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
-		filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
+		#filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
+		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder) / filename
 
 		logging.info("Downloading photo from '%s' to '%s'", url, path)
