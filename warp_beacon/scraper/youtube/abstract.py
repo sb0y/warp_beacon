@@ -192,6 +192,7 @@ class YoutubeAbstract(ScraperAbstract):
 					http.client.IncompleteRead,
 					http.client.HTTPException,
 					requests.RequestException,
+					requests.exceptions.ChunkedEncodingError,
 					urllib.error.URLError,
 					urllib.error.HTTPError) as e:
 				if hasattr(e, "code") and (int(e.code) == 403 or int(e.code) == 400):
