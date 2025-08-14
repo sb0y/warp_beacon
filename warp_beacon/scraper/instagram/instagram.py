@@ -250,6 +250,7 @@ class InstagramScraper(ScraperAbstract):
 					requests.exceptions.ReadTimeout,
 					requests.exceptions.ConnectTimeout,
 					requests.exceptions.HTTPError,
+					requests.exceptions.ChunkedEncodingError,
 					urllib3.exceptions.ReadTimeoutError,
 					urllib3.exceptions.ConnectionError) as e:
 				logging.warning("Instagram read timeout! Retrying in 2 seconds ...")
