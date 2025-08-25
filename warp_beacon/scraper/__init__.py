@@ -419,7 +419,6 @@ class AsyncDownloader(object):
 							job_failed=True,
 							job_failed_msg="Link resolution failed. The link appears to be invalid or unsupported.")
 						)
-						break
 					except AllAccountsFailed as e:
 						self.send_message_to_admin(
 							f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>AllAccountsFailed</b>'."
