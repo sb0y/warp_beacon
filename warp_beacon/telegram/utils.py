@@ -29,7 +29,7 @@ class Utils(object):
 
 	@staticmethod
 	def extract_origin(url: str) -> Origin:
-		if "instagram.com/" in url:
+		if "https://www.instagram.com/" in url:
 			return Origin.INSTAGRAM
 
 		if "youtube.com/" in url and "shorts/" in url:
@@ -44,7 +44,7 @@ class Utils(object):
 		if "youtube.com/" in url:
 			return Origin.YOUTUBE
 		
-		if "x.com/" in url:
+		if "https://x.com/" in url:
 			return Origin.X
 
 		return Origin.UNKNOWN
