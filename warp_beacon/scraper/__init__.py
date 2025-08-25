@@ -20,7 +20,7 @@ from warp_beacon.scraper.exceptions import (AllAccountsFailed, BadProxy,
 											CaptchaIssue, FileTooBig,
 											IGRateLimitOccurred, NotFound,
 											TimeOut, Unavailable, UnknownError,
-											YotubeAgeRestrictedError,
+											YotubeAgeRestrictedError, LinkResolveFailed,
 											YoutubeLiveError)
 from warp_beacon.scraper.fail_handler import FailHandler
 from warp_beacon.scraper.link_resolver import LinkResolver
@@ -412,6 +412,14 @@ class AsyncDownloader(object):
 						else:
 							logging.info("Job already in work in parallel worker. Redirecting job to upload worker.")
 							self.uploader.queue_task(job.to_upload_job())
+					except LinkResolveFailed as e:
+						logging.warning("Failed to resolve link '%s'", job.url)
+						logging.exception(e)
+						self.uploader.queue_task(job.to_upload_job(
+							job_failed=True,
+							job_failed_msg="Link resolution failed. The link appears to be invalid or unsupported.")
+						)
+						break
 					except AllAccountsFailed as e:
 						self.send_message_to_admin(
 							f"Task <code>{job.job_id}</code> failed. URL: '{job.url}'. Reason: '<b>AllAccountsFailed</b>'."

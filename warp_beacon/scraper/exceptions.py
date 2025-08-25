@@ -47,6 +47,9 @@ class BadProxy(ScraperError):
 class TOTPNotProvided(ScraperError):
 	pass
 
+class LinkResolveFailed(ScraperError):
+	pass
+
 class UnknownError(ScraperError):
 	pass
 

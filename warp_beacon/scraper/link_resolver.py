@@ -1,11 +1,12 @@
 import os
 import re
 import logging
-import requests
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+import requests
 
 from warp_beacon.jobs import Origin
 from warp_beacon.jobs.download_job import DownloadJob
+from warp_beacon.scraper.exceptions import LinkResolveFailed
 
 class LinkResolver(object):
 	"Resolve short links"
@@ -59,11 +60,12 @@ class LinkResolver(object):
 		result url: https://www.instagram.com/reel/DAKjQgUNzuH/
 		'''
 		try:
-			content = requests.get(
+			resp = requests.get(
 				url,
 				timeout=int(os.environ.get("REQUESTS_TIMEOUT", default=60)
-			)).text
-			res = re.search(LinkResolver.canonical_link_resolve_re, content)
+			))
+			resp.raise_for_status()
+			res = re.search(LinkResolver.canonical_link_resolve_re, resp.text)
 			new_url = res.group(1).strip()
 			logging.info("Converted IG share '%s' link to '%s'", url, new_url)
 			return new_url
@@ -71,7 +73,7 @@ class LinkResolver(object):
 			logging.error("Failed to convert IG share link!")
 			logging.exception(e)
 
-		return url
+		return "" # failed to resolve
 
 	@staticmethod
 	def resolve_job(job: DownloadJob) -> bool:
@@ -82,7 +84,10 @@ class LinkResolver(object):
 			ret = True
 		if job.job_origin is Origin.INSTAGRAM:
 			if "share/" in job.url:
-				job.url = LinkResolver.resolve_ig_share_link(job.url)
+				new_url = LinkResolver.resolve_ig_share_link(job.url)
+				if not new_url:
+					raise LinkResolveFailed(f"Failed to resolve link '{job.url}'")
+				job.url = new_url
 				ret = True
 
 		return ret
