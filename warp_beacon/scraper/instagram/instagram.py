@@ -33,7 +33,7 @@ from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.telegram.utils import Utils
 from warp_beacon.scraper.instagram.wb_instagrapi import WBClient
 from warp_beacon.telegram.types import ReportType
-from warp_beacon.scraper.utils import ScraperUtils
+#from warp_beacon.scraper.utils import ScraperUtils
 
 INST_SESSION_FILE_TPL = "/var/warp_beacon/inst_session_account_%d.json"
 
@@ -59,13 +59,13 @@ class InstagramScraper(ScraperAbstract):
 		self.setup_device()
 		self.cl.challenge_code_handler = self.challenge_code_handler
 		self.cl.change_password_handler = self.change_password_handler
-		self.cl.public.headers.update({
-			"Connection": "keep-alive",
-			"Accept": "*/*",
-			"Accept-Encoding": "gzip, deflate, br",
-			"Accept-Language": "en-US,en;q=0.9",
-			"User-Agent": ScraperUtils.get_ua()
-		})
+		#self.cl.public.headers.update({
+		#	"Connection": "keep-alive",
+		#	"Accept": "*/*",
+		#	"Accept-Encoding": "gzip, deflate, br",
+		#	"Accept-Language": "en-US,en;q=0.9",
+		#	"User-Agent": ScraperUtils.get_ua()
+		#})
 		self.cl.set_progress_callback(self.download_progress)
 
 	def setup_device(self) -> None:

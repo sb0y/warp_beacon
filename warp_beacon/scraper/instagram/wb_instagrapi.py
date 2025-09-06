@@ -25,7 +25,7 @@ from instagrapi.extractors import (
 	extract_resource_v1
 )
 
-from warp_beacon.scraper.utils import ScraperUtils
+#from warp_beacon.scraper.utils import ScraperUtils
 
 def extract_media_v1(data):
 	"""Extract media from Private API"""
@@ -81,14 +81,17 @@ class WBClient(Client):
 		self.session = requests.Session()
 		# may be I should remove '"Sec-Fetch-*", "Upgrade-Insecure-Requests", "DNT"' ?
 		self.session.headers.update({
-			"User-Agent": ScraperUtils.get_ua(),
-			"Accept": (
-				"text/html,application/xhtml+xml,application/xml;"
-				"q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
-			),
-			"Accept-Language": "en-US,en;q=0.9",
+			#"User-Agent": ScraperUtils.get_ua(),
+			"User-Agent": self.private.headers["User-Agent"],
+			"Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+			#(
+			#	"text/html,application/xhtml+xml,application/xml;"
+			#	"q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+			#	"image/webp,image/apng,image/*,*/*;q=0.8"
+			#),
+			"Accept-Language": "en-US,en;q=0.8",
 			"Accept-Encoding": "gzip, deflate, br",
-			"Referer": "https://www.instagram.com/",
+			#"Referer": "https://www.instagram.com/",
 			"Connection": "keep-alive",
 			#"Sec-Fetch-Site": "same-origin",
 			#"Sec-Fetch-Mode": "navigate",
@@ -97,6 +100,7 @@ class WBClient(Client):
 			#"Upgrade-Insecure-Requests": "1",
 			#"DNT": "1",
 		})
+		logging.info("Builded UA: '%s'", self.session.headers)
 		self.essential_params = {"oe", "oh", "_nc_ht", "_nc_cat", "_nc_oc", "_nc_ohc", "_nc_gid"}
 
 	def set_progress_callback(self, callback: Callable[[int | None, int, Path], None]) -> None:
