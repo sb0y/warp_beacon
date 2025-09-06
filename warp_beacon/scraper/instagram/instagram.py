@@ -49,7 +49,7 @@ class InstagramScraper(ScraperAbstract):
 		super().__init__(account, proxy)
 		#
 		self.inst_session_file = INST_SESSION_FILE_TPL % self.account_index
-		self.cl = WBClient()
+		self.cl = WBClient(self.account.get("auth_details", {}).get("user_agent", "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)"))
 		if self.proxy:
 			proxy_dsn = self.proxy.get("dsn", "")
 			if proxy_dsn:

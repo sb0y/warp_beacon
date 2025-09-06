@@ -75,14 +75,14 @@ class WBClient(Client):
 	"""
 	patched instagrapi
 	"""
-	def __init__(self) -> None:
+	def __init__(self, user_agent: str) -> None:
 		super().__init__()
 		self.progress_callback = None
 		self.session = requests.Session()
 		# may be I should remove '"Sec-Fetch-*", "Upgrade-Insecure-Requests", "DNT"' ?
 		self.session.headers.update({
 			#"User-Agent": ScraperUtils.get_ua(),
-			"User-Agent": self.private.headers["User-Agent"],
+			"User-Agent": user_agent,
 			"Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
 			#(
 			#	"text/html,application/xhtml+xml,application/xml;"
