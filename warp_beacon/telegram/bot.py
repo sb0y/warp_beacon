@@ -459,7 +459,7 @@ class Bot(object):
 										break
 									except FloodWait as e:
 										logging.warning("FloodWait occurred, waiting '%d' seconds before retry", int(e.value))
-										asyncio.sleep(e.value)
+										await asyncio.sleep(e.value)
 							except ValueError as e:
 								err_text = str(e)
 								if "Expected" in err_text:
@@ -488,7 +488,7 @@ class Bot(object):
 									break
 								except FloodWait as e:
 									logging.warning("FloodWait occurred, waiting '%d' seconds before retry", int(e.value))
-									asyncio.sleep(e.value)
+									await asyncio.sleep(e.value)
 							sent_messages += messages
 							if job.media_collection:
 								for j, _ in enumerate(media_chunk):

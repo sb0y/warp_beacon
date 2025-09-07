@@ -145,7 +145,7 @@ class EditMessage(object):
 				break
 			except FloodWait as e:
 				logging.warning("FloodWait occurred, waiting '%d' seconds before retry", int(e.value))
-				asyncio.sleep(e.value)
+				await asyncio.sleep(float(e.value))
 
 		if r:
 			for i in r.updates:
