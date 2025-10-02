@@ -71,6 +71,7 @@ setup(
 		"warp_beacon/telegram/progress_file_reader",
 		"warp_beacon/telegram/edit_message",
 		"warp_beacon/telegram/download_status",
+		"warp_beacon/telegram/custom_handlers",
 		"warp_beacon/telegram/types",
 		"warp_beacon/jobs/abstract",
 		"warp_beacon/jobs/download_job",

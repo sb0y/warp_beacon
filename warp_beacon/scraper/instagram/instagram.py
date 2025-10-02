@@ -73,10 +73,10 @@ class InstagramScraper(ScraperAbstract):
 			self.client_session_id = self.cl.generate_uuid()
 		details = self.account.get("auth_details", {})
 		self.cl.delay_range = details.get("delay_range", [1, 3])
-		self.cl.set_country_code(details.get("country_code", 1))
-		self.cl.set_locale(details.get("locale", "en_US"))
-		self.cl.set_timezone_offset(details.get("timezone_offset", 10800))
 		self.cl.set_user_agent(details.get("user_agent", "Barcelona 291.0.0.31.111 Android (33/13; 600dpi; 1440x3044; samsung; SM-G998B; p3s; exynos2100; en_US; 493450264)"))
+		self.cl.set_country_code(details.get("country_code", 1))
+		self.cl.set_locale(details.get("locale", "US"))
+		self.cl.set_timezone_offset(details.get("timezone_offset", 10800))
 		device = details.get("device", {})
 		self.cl.set_device({
 			"app_version": device.get("app_version", "291.0.0.31.111"),

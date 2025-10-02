@@ -79,27 +79,27 @@ class WBClient(Client):
 		super().__init__()
 		self.progress_callback = None
 		self.session = requests.Session()
-		# may be I should remove '"Sec-Fetch-*", "Upgrade-Insecure-Requests", "DNT"' ?
-		self.session.headers.update({
+		self.session.headers["User-Agent"] = user_agent
+		#self.session.headers.update({
 			#"User-Agent": ScraperUtils.get_ua(),
-			"User-Agent": user_agent,
-			"Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+		#	"User-Agent": user_agent,
+		#	"Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
 			#(
 			#	"text/html,application/xhtml+xml,application/xml;"
 			#	"q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
 			#	"image/webp,image/apng,image/*,*/*;q=0.8"
 			#),
-			"Accept-Language": "en-US,en;q=0.8",
-			"Accept-Encoding": "gzip, deflate, br",
-			#"Referer": "https://www.instagram.com/",
-			"Connection": "keep-alive",
+		#	"Accept-Language": "en-US,en;q=0.8",
+		#	"Accept-Encoding": "gzip, deflate, br",
+		#	"Referer": "https://www.instagram.com/",
+		#	"Connection": "keep-alive",
 			#"Sec-Fetch-Site": "same-origin",
 			#"Sec-Fetch-Mode": "navigate",
 			#"Sec-Fetch-User": "?1",
 			#"Sec-Fetch-Dest": "document",
 			#"Upgrade-Insecure-Requests": "1",
 			#"DNT": "1",
-		})
+		#})
 		logging.info("Builded UA: '%s'", self.session.headers)
 		self.essential_params = {"oe", "oh", "_nc_ht", "_nc_cat", "_nc_oc", "_nc_ohc", "_nc_gid"}
 
@@ -128,6 +128,7 @@ class WBClient(Client):
 		return urlunparse(parsed._replace(query=new_query))
 
 	def video_download_by_url(self, url: str, filename: str = "", folder: Path = "") -> Path:
+		self.private.headers = self.private.headers
 		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
@@ -180,6 +181,7 @@ class WBClient(Client):
 	def photo_download_by_url(
 		self, url: str, filename: str = "", folder: Path = ""
 	) -> Path:
+		self.private.headers = self.private.headers
 		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		#filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"

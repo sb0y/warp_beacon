@@ -133,6 +133,11 @@ class YoutubeScraper(YoutubeAbstract):
 
 		return res
 	
+	def compute_filesize_tbr(self, tbr: int, duration: int) -> int:
+		est_size = int(int(tbr) * 1000 / 8 * int(duration))
+		logging.info("[yt_dlp] Estimate size '%d'", est_size)
+		return est_size
+
 	def _download_yt_dlp(self, url: str, thumbnail: Optional[io.BytesIO] = None, timeout: int = 60) -> list:
 		res = []
 		with self.build_yt_dlp(timeout) as ydl:
@@ -150,6 +155,10 @@ class YoutubeScraper(YoutubeAbstract):
 		
 			filesize = dl_format.get('filesize', 0) or dl_format.get('filesize_approx', 0)
 			logging.info("[yt_dlp] File size '%d'", filesize)
+			if not filesize:
+				if dl_format.get("tbr") and info.get("duration"):
+					filesize = self.compute_filesize_tbr(dl_format["tbr"], info["duration"])
+					logging.info("[yt_dlp] Estimate size '%d'", filesize)
 			if filesize:
 				if filesize > 2147483648: # 2 GiB
 					logging.warning("Max resolution exceeding TG limits")
@@ -157,6 +166,8 @@ class YoutubeScraper(YoutubeAbstract):
 						if (f.get('vcodec', '') != 'none' and f.get('acodec', '') != 'none'
 								and (f.get('height', 0) or 0) <= 720 and f.get('ext', '') == 'mp4'):
 							alt_filesize = f.get('filesize', 0) or f.get('filesize_approx', 0)
+							if not alt_filesize and f.get("tbr") and info.get("duration"):
+								alt_filesize = self.compute_filesize_tbr(f["tbr"], info["duration"])
 							if alt_filesize: #and alt_filesize <= max_size_bytes:
 								dl_format = f
 								break

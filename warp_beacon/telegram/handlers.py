@@ -9,6 +9,7 @@ from urlextract import URLExtract
 
 from warp_beacon.storage import Storage
 from warp_beacon.telegram.utils import Utils
+from warp_beacon.telegram.custom_handlers import CustomHandlers
 from warp_beacon.jobs.download_job import DownloadJob
 from warp_beacon.jobs.upload_job import UploadJob
 from warp_beacon.jobs import Origin
@@ -23,6 +24,7 @@ class Handlers(object):
 	def __init__(self, bot: "Bot") -> None:
 		self.bot = bot
 		self.storage = bot.storage
+		self.custom_handlers = CustomHandlers()
 
 	async def help(self, _: Client, message: Message) -> None:
 		"""Send a message when the command /help is issued."""
@@ -155,6 +157,9 @@ class Handlers(object):
 		message_text = Utils.extract_message_text(message)
 		if not message_text:
 			return
+
+		await self.custom_handlers.exec_handlers(client, message, message_text)
+
 		chat = message.chat
 		effective_message_id = message.id
 		urls_raw = self.url_extractor.find_urls(message_text)
