@@ -183,6 +183,8 @@ class Handlers(object):
 					if new_url:
 						url = new_url
 						origin = Origin.YOUTUBE
+				if origin is Origin.INSTAGRAM:
+					url = Utils.remove_url_igsh(url)
 				if origin is Origin.UNKNOWN:
 					logging.info("Only Instagram, YouTube Shorts, YouTube Music and X are now supported. Skipping.")
 					continue

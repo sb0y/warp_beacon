@@ -1,6 +1,6 @@
 from typing import Optional
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from pyrogram import Client
 from pyrogram.types import Message, ChatMember
@@ -172,3 +172,19 @@ class Utils(object):
 		except Exception as e:
 			logging.warning("Failed to remove links without path!", exc_info=e)
 		return urls
+	
+	@staticmethod
+	def remove_url_igsh(url: str) -> str:
+		try:
+			if "igsh" in url:
+				parts = urlparse(url)
+				query = parse_qs(parts.query)
+				query.pop("igsh", None)
+
+				new_query = urlencode(query, doseq=True)
+				new_url = urlunparse(parts._replace(query=new_query))
+				logging.info("removed igsh tracking from url '%s'", new_url)
+				return new_url
+		except Exception as e:
+			logging.warning("Failed to remove igsh from link '%s'", url, exc_info=e)
+		return url
