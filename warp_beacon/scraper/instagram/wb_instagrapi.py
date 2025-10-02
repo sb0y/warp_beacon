@@ -128,7 +128,7 @@ class WBClient(Client):
 		return urlunparse(parsed._replace(query=new_query))
 
 	def video_download_by_url(self, url: str, filename: str = "", folder: Path = "") -> Path:
-		self.private.headers = self.private.headers
+		self.session.headers = self.private.headers
 		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
@@ -181,7 +181,7 @@ class WBClient(Client):
 	def photo_download_by_url(
 		self, url: str, filename: str = "", folder: Path = ""
 	) -> Path:
-		self.private.headers = self.private.headers
+		self.session.headers = self.private.headers
 		url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		#filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
