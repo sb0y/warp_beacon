@@ -99,8 +99,7 @@ class WBClient(Client):
 			#"Sec-Fetch-Dest": "document",
 			#"Upgrade-Insecure-Requests": "1",
 			#"DNT": "1",
-		})T": "1",
-		#})
+		})
 		logging.info("Builded UA: '%s'", self.session.headers)
 		self.essential_params = {"oe", "oh", "_nc_ht", "_nc_cat", "_nc_oc", "_nc_ohc", "_nc_gid"}
 
