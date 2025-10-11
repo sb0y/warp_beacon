@@ -26,6 +26,13 @@ from instagrapi.extractors import (
 	#extract_resource_v1
 )
 
+from instagrapi.types import ClipsMetadata, ClipsOriginalSoundInfo
+
+class PatchedClipsMetadata(ClipsMetadata):
+	original_sound_info: Optional[ClipsOriginalSoundInfo] = None
+
+import instagrapi.types as t
+t.ClipsMetadata = PatchedClipsMetadata
 
 def safe_extract_media_v1(data: dict) -> Media:
 	try:
