@@ -32,7 +32,18 @@ def safe_extract_media_v1(data: dict) -> Media:
 	except ValidationError as e:
 		if "clips_metadata.original_sound_info" in str(e):
 			if data.get("clips_metadata"):
-				data["clips_metadata"]["original_sound_info"] = {}
+				# if no dict, create
+				data["clips_metadata"]["original_sound_info"] = {
+					"audio_asset_id": None,
+					"dash_manifest": None,
+					"duration_in_ms": None,
+					"original_media_id": None,
+					"progressive_download_url": None,
+					"time_created": None,
+					"ig_artist": None,
+					"consumption_info": None,
+					"fb_downstream_use_xpost_metadata": None,
+				}
 			return extract_media_v1(data)
 		raise
 
