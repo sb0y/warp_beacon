@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List
+from typing import Callable, List, Union
 from copy import deepcopy
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from pathlib import Path
@@ -121,11 +121,11 @@ class WBClient(Client):
 		new_query = urlencode(filtered_query, doseq=True)
 		return urlunparse(parsed._replace(query=new_query))
 
-	def video_download_by_url(self, url: str, filename: str = "", folder: Path = "") -> Path:
+	def video_download_by_url(self, url: Union[str, "HttpUrl"], filename: str = "", folder: Path = "") -> Path:
 		self.__session.headers["User-Agent"] = self.private.headers["User-Agent"]
 		self.__session.headers["Accept-Language"] = self.private.headers["Accept-Language"]
 		#url = self.sanitize_instagram_url(url)
-		fname = urlparse(url).path.rsplit("/", 1)[1]
+		fname = urlparse(str(url)).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder or Path.cwd()) / filename
 
@@ -174,12 +174,12 @@ class WBClient(Client):
 		return path.resolve()
 
 	def photo_download_by_url(
-		self, url: str, filename: str = "", folder: Path = ""
+		self, url: Union[str, "HttpUrl"], filename: str = "", folder: Path = ""
 	) -> Path:
 		self.__session.headers["User-Agent"] = self.private.headers["User-Agent"]
 		self.__session.headers["Accept-Language"] = self.private.headers["Accept-Language"]
 		#url = self.sanitize_instagram_url(url)
-		fname = urlparse(url).path.rsplit("/", 1)[1]
+		fname = urlparse(str(url)).path.rsplit("/", 1)[1]
 		#filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder) / filename
