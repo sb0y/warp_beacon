@@ -18,15 +18,14 @@ from instagrapi.exceptions import (
 )
 
 from instagrapi.extractors import (
-	extract_location,
-	#extract_media_v1,
-	extract_user_short,
-	extract_usertag,
-	extract_resource_v1
+	#extract_location,
+	extract_media_v1,
+	#extract_user_short,
+	#extract_usertag,
+	#extract_resource_v1
 )
 
-#from warp_beacon.scraper.utils import ScraperUtils
-
+'''
 def extract_media_v1(data):
 	"""Extract media from Private API"""
 	media = deepcopy(data)
@@ -70,7 +69,7 @@ def extract_media_v1(data):
 		],
 		**media,
 	)
-
+'''
 class WBClient(Client):
 	"""
 	patched instagrapi
@@ -78,20 +77,15 @@ class WBClient(Client):
 	def __init__(self, user_agent: str) -> None:
 		super().__init__()
 		self.progress_callback = None
-		self.session = requests.Session()
-		#self.session.headers["User-Agent"] = user_agent
-		self.session.headers.update({
+		self.__session = requests.Session()
+		#self.__session.headers["User-Agent"] = user_agent
+		self.__session.headers.update({
 			#"User-Agent": ScraperUtils.get_ua(),
 			"User-Agent": user_agent,
-			"Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
-			#(
-			#	"text/html,application/xhtml+xml,application/xml;"
-			#	"q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-			#	"image/webp,image/apng,image/*,*/*;q=0.8"
-			#),
-			"Accept-Language": "en-US,en;q=0.8",
-			"Accept-Encoding": "gzip, deflate, br",
-			#"Referer": "https://www.instagram.com/",
+			"Accept": "*/*",
+			"Accept-Language": f"{self.settings['locale']},{self.settings['country']};q=0.8",
+			"Accept-Encoding": "gzip, deflate",
+			"Referer": "https://www.instagram.com/",
 			"Connection": "keep-alive",
 			#"Sec-Fetch-Site": "same-origin",
 			#"Sec-Fetch-Mode": "navigate",
@@ -100,7 +94,7 @@ class WBClient(Client):
 			#"Upgrade-Insecure-Requests": "1",
 			#"DNT": "1",
 		})
-		logging.info("Builded UA: '%s'", self.session.headers)
+		#logging.info("Builded UA: '%s'", self.__session.headers)
 		self.essential_params = {"oe", "oh", "_nc_ht", "_nc_cat", "_nc_oc", "_nc_ohc", "_nc_gid"}
 
 	def set_progress_callback(self, callback: Callable[[int | None, int, Path], None]) -> None:
@@ -128,17 +122,18 @@ class WBClient(Client):
 		return urlunparse(parsed._replace(query=new_query))
 
 	def video_download_by_url(self, url: str, filename: str = "", folder: Path = "") -> Path:
-		#self.session.headers = self.private.headers
-		url = self.sanitize_instagram_url(url)
+		self.__session.headers["User-Agent"] = self.private.headers["User-Agent"]
+		self.__session.headers["Accept-Language"] = self.private.headers["Accept-Language"]
+		#url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
 		path = Path(folder or Path.cwd()) / filename
 
 		logging.info("Downloading video from '%s' to '%s'", url, path)
 
-		prepared = self.session.prepare_request(requests.Request("GET", url))
+		prepared = self.__session.prepare_request(requests.Request("GET", url))
 		logging.info("Prepared headers: %s", prepared.headers)
-		response = self.session.send(
+		response = self.__session.send(
 			prepared,
 			stream=True,
 			verify=False,
@@ -181,8 +176,9 @@ class WBClient(Client):
 	def photo_download_by_url(
 		self, url: str, filename: str = "", folder: Path = ""
 	) -> Path:
-		#self.session.headers = self.private.headers
-		url = self.sanitize_instagram_url(url)
+		self.__session.headers["User-Agent"] = self.private.headers["User-Agent"]
+		self.__session.headers["Accept-Language"] = self.private.headers["Accept-Language"]
+		#url = self.sanitize_instagram_url(url)
 		fname = urlparse(url).path.rsplit("/", 1)[1]
 		#filename = f"{filename}.{(filename, fname.rsplit('.', 1)[1]) if filename else fname}"
 		filename = f"{filename}.{fname.rsplit('.', 1)[1]}" if filename else fname
@@ -191,9 +187,9 @@ class WBClient(Client):
 		logging.info("Downloading photo from '%s' to '%s'", url, path)
 		logging.info("[Downloader] Using proxies: %s", self.public.proxies)
 
-		prepared = self.session.prepare_request(requests.Request("GET", url))
+		prepared = self.__session.prepare_request(requests.Request("GET", url))
 		logging.info("Prepared headers: %s", prepared.headers)
-		response = self.session.send(
+		response = self.__session.send(
 			prepared,
 			stream=True,
 			verify=False,
@@ -254,7 +250,7 @@ class WBClient(Client):
 		return deepcopy(
 			self._medias_cache[media_pk]
 		)  # return copy of cache (dict changes protection)
-	
+
 	def media_info_v1(self, media_pk: str) -> Media:
 		"""
 		Get Media from PK by Private Mobile API

@@ -9,7 +9,7 @@ av==12.3.0
 urlextract
 pillow
 pymongo
-instagrapi==2.0.0
+instagrapi==2.2.1
 bs4
 yt_dlp
 pydub

@@ -429,7 +429,7 @@ class InstagramScraper(ScraperAbstract):
 					msg = email.message_from_string(data[0][1].decode())
 					payloads = msg.get_payload()
 				except:
-					logging.error("Failed to parse imap message!")
+					logging.warning("Failed to parse imap message!")
 					continue
 				if not isinstance(payloads, list):
 					payloads = [msg]
@@ -439,6 +439,7 @@ class InstagramScraper(ScraperAbstract):
 					try:
 						body = payload.get_payload(decode=True).decode()
 					except:
+						logging.warning("Failed to get payload from imap message!")
 						continue
 					if "<div" not in body:
 						continue
