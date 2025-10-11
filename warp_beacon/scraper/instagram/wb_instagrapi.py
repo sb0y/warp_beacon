@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Optional
 from copy import deepcopy
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from pathlib import Path
@@ -26,24 +26,18 @@ from instagrapi.extractors import (
 	#extract_resource_v1
 )
 
+
 def safe_extract_media_v1(data: dict) -> Media:
 	try:
 		return extract_media_v1(data)
 	except ValidationError as e:
 		if "clips_metadata.original_sound_info" in str(e):
-			if data.get("clips_metadata"):
-				# if no dict, create
-				data["clips_metadata"]["original_sound_info"] = {
-					"audio_asset_id": None,
-					"dash_manifest": None,
-					"duration_in_ms": None,
-					"original_media_id": None,
-					"progressive_download_url": None,
-					"time_created": None,
-					"ig_artist": None,
-					"consumption_info": None,
-					"fb_downstream_use_xpost_metadata": None,
-				}
+			logging.info("clips_metadata.original_sound_info handling")
+			cm = data.get("clips_metadata")
+			if isinstance(cm, dict) and cm.get("original_sound_info") is not None:
+				cm.pop("original_sound_info", None)
+			elif isinstance(cm, dict) and cm.get("original_sound_info") is None:
+				cm.pop("original_sound_info", None)
 			return extract_media_v1(data)
 		raise
 
@@ -107,7 +101,7 @@ class WBClient(Client):
 			"Accept": "*/*",
 			"Accept-Language": f"{self.settings['locale']},{self.settings['country']};q=0.8",
 			"Accept-Encoding": "gzip, deflate",
-			"Referer": "https://www.instagram.com/",
+			#"Referer": "https://www.instagram.com/",
 			"Connection": "keep-alive",
 			#"Sec-Fetch-Site": "same-origin",
 			#"Sec-Fetch-Mode": "navigate",
