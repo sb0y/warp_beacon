@@ -4,6 +4,7 @@ from copy import deepcopy
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from pathlib import Path
 import time
+from pydantic_core import ValidationError
 import requests
 
 from instagrapi import Client
@@ -24,6 +25,16 @@ from instagrapi.extractors import (
 	#extract_usertag,
 	#extract_resource_v1
 )
+
+def safe_extract_media_v1(data: dict) -> Media:
+	try:
+		return extract_media_v1(data)
+	except ValidationError as e:
+		if "clips_metadata.original_sound_info" in str(e):
+			if data.get("clips_metadata"):
+				data["clips_metadata"]["original_sound_info"] = {}
+			return extract_media_v1(data)
+		raise
 
 '''
 def extract_media_v1(data):
@@ -273,7 +284,7 @@ class WBClient(Client):
 			if "Media not found" in str(e):
 				raise MediaNotFound(e, media_pk=media_pk, **self.last_json)
 			raise e
-		return extract_media_v1(result["items"].pop())
+		return safe_extract_media_v1(result["items"].pop())
 	
 	def user_info_by_username(self, username: str, use_cache: bool = True) -> User:
 		"""
